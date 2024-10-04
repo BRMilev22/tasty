@@ -1,39 +1,25 @@
-import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { Ionicons } from '@expo/vector-icons';
-import IndexScreen from './index';
-import GoalsScreen from './goals';
-import InventoryScreen from './inventory';
-import RecipesScreen from './recipes';
+// app/_layout.tsx
+import React, { useState } from 'react';
+import { View } from 'react-native';
+import AuthScreen from '../auth/AuthScreen';
+import Dashboard from './index'; // Replace with the actual path to your dashboard
 
-const Tab = createBottomTabNavigator();
+const AppLayout = () => {
+    const [isLoggedIn, setIsLoggedIn] = useState(false);
 
-export default function Layout() {
-  return (
-    <Tab.Navigator
-      screenOptions={({ route }) => ({
-        tabBarIcon: ({ color, size }) => {
-          let iconName;
+    const handleLogin = () => {
+        setIsLoggedIn(true); // Update the state to indicate the user is logged in
+    };
 
-          if (route.name === 'Dashboard') {
-            iconName = 'home';
-          } else if (route.name === 'Goals') {
-            iconName = 'flag';
-          } else if (route.name === 'Inventory') {
-            iconName = 'cart';
-          } else if (route.name === 'Recipes') {
-            iconName = 'restaurant';
-          }
+    return (
+        <View style={{ flex: 1 }}>
+            {isLoggedIn ? (
+                <Dashboard /> // Render your main app content when logged in
+            ) : (
+                <AuthScreen onLogin={handleLogin} />
+            )}
+        </View>
+    );
+};
 
-          return <Ionicons name={iconName} size={size} color={color} />;
-        },
-        tabBarActiveTintColor: '#1e90ff',
-        tabBarInactiveTintColor: 'gray',
-      })}
-    >
-      <Tab.Screen name="Dashboard" component={IndexScreen} />
-      <Tab.Screen name="Goals" component={GoalsScreen} />
-      <Tab.Screen name="Inventory" component={InventoryScreen} />
-      <Tab.Screen name="Recipes" component={RecipesScreen} />
-    </Tab.Navigator>
-  );
-}
+export default AppLayout;

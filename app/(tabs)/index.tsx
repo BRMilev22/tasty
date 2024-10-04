@@ -1,28 +1,54 @@
 import React from 'react';
 import { StyleSheet, Text, View, TouchableOpacity, ScrollView } from 'react-native';
+import { NavigationContainer } from '@react-navigation/native';
+import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import Ionicons from 'react-native-vector-icons/Ionicons'; // Ensure you have this package installed
+import DashboardContent from './two'
+import GoalsScreen from './goals'
+import InventoryScreen from './inventory';
+import RecipesScreen from './recipes';
+import DashboardScreen from './dashboard';
 
 const IndexScreen = () => {
+  // Create a bottom tab navigator
+  const Tab = createBottomTabNavigator();
+
+  // Dashboard content
+  
+
+
+  // Goals screen content
+
+  // Inventory screen content
+  // Recipes screen content
+
   return (
-    <ScrollView contentContainerStyle={styles.container}>
-      <Text style={styles.header}>Dashboard</Text>
+      <Tab.Navigator
+        screenOptions={({ route }) => ({
+          tabBarIcon: ({ color, size }) => {
+            let iconName;
 
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Today's Summary</Text>
-        <Text style={styles.sectionDescription}>Calories: 1,500 / 2,000</Text>
-        <Text style={styles.sectionDescription}>Meals Logged: 3</Text>
-        <Text style={styles.sectionDescription}>Water: 1.5L / 2L</Text>
-      </View>
+            if (route.name === 'Dashboard') {
+              iconName = 'home';
+            } else if (route.name === 'Goals') {
+              iconName = 'flag';
+            } else if (route.name === 'Inventory') {
+              iconName = 'cart';
+            } else if (route.name === 'Recipes') {
+              iconName = 'restaurant';
+            }
 
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Recent Activities</Text>
-        <Text style={styles.sectionDescription}>Added Chicken Breast to Inventory</Text>
-        <Text style={styles.sectionDescription}>Logged Breakfast: Oatmeal</Text>
-      </View>
-
-      <TouchableOpacity style={styles.button}>
-        <Text style={styles.buttonText}>Add New Meal</Text>
-      </TouchableOpacity>
-    </ScrollView>
+            return <Ionicons name={iconName} size={size} color={color} />;
+          },
+          tabBarActiveTintColor: '#1e90ff',
+          tabBarInactiveTintColor: 'gray',
+        })}
+      >
+        <Tab.Screen name="Dashboard" component={DashboardScreen} />
+        <Tab.Screen name="Goals" component={GoalsScreen} />
+        <Tab.Screen name="Inventory" component={InventoryScreen} />
+        <Tab.Screen name="Recipes" component={RecipesScreen} />
+      </Tab.Navigator>
   );
 };
 
@@ -68,6 +94,12 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 16,
     fontWeight: 'bold',
+  },
+  screenContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#f7f7f7',
   },
 });
 
