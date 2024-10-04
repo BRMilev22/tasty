@@ -1,32 +1,73 @@
 // app/auth/AuthScreen.tsx
-import React, { useState } from 'react';
-import { View, TextInput, Button, Text, StyleSheet, TouchableOpacity } from 'react-native';
-import { Ionicons } from '@expo/vector-icons'; // Import icons if using Expo
+import React, { useState, useEffect } from 'react';
+import { View, TextInput, Text, StyleSheet, TouchableOpacity, Animated } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import { signInWithEmailAndPassword, createUserWithEmailAndPassword } from 'firebase/auth';
+import { auth } from '../../firebaseConfig'; // Import Firebase authentication object
+import FlashMessage, { showMessage } from 'react-native-flash-message'; // Import FlashMessage
 
-// Define the prop types
 interface AuthScreenProps {
-    onLogin: () => void; // Define onLogin as a function that returns void
+    onLogin: () => void;
 }
 
 const AuthScreen: React.FC<AuthScreenProps> = ({ onLogin }) => {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
+    const [isRegistering, setIsRegistering] = useState(false);
+    const opacity = useState(new Animated.Value(1))[0]; // Initialize animated value
 
-    const handleLogin = () => {
-        // Replace with your actual login logic
-        if (email === 'Admin' && password === 'Admin') {
+    const fadeOut = () => {
+        Animated.timing(opacity, {
+            toValue: 0,
+            duration: 1500,
+            useNativeDriver: true,
+        }).start(() => {
+            onLogin(); // Call onLogin prop after animation is complete
+        });
+    };
+
+    const handleLogin = async () => {
+        try {
+            await signInWithEmailAndPassword(auth, email, password);
             setError('');
-            onLogin(); // Call the login handler from props
-        } else {
-            setError('Invalid credentials');
+            showMessage({
+                message: 'Login successful!',
+                type: 'success',
+            });
+            fadeOut(); // Start fade-out animation
+        } catch (err) {
+            setError('Invalid credentials. Please try again.');
+            showMessage({
+                message: 'Invalid credentials. Please try again.',
+                type: 'danger',
+            });
+        }
+    };
+
+    const handleRegister = async () => {
+        try {
+            await createUserWithEmailAndPassword(auth, email, password);
+            setError('');
+            showMessage({
+                message: 'Registration successful! You can now log in.',
+                type: 'success',
+            });
+            fadeOut(); // Start fade-out animation
+        } catch (err) {
+            setError('Error registering. Please try again.');
+            showMessage({
+                message: 'Error registering. Please try again.',
+                type: 'danger',
+            });
         }
     };
 
     return (
-        <View style={styles.container}>
-            <Text style={styles.title}>Login</Text>
+        <Animated.View style={[styles.container, { opacity }]}>
+            <Text style={styles.title}>{isRegistering ? 'Register' : 'Login'}</Text>
             {error ? <Text style={styles.error}>{error}</Text> : null}
+            
             <View style={styles.inputContainer}>
                 <Ionicons name="mail" size={20} color="#888" style={styles.icon} />
                 <TextInput
@@ -37,6 +78,7 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ onLogin }) => {
                     autoCapitalize="none"
                 />
             </View>
+            
             <View style={styles.inputContainer}>
                 <Ionicons name="lock-closed" size={20} color="#888" style={styles.icon} />
                 <TextInput
@@ -47,13 +89,20 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ onLogin }) => {
                     onChangeText={setPassword}
                 />
             </View>
-            <TouchableOpacity style={styles.button} onPress={handleLogin}>
-                <Text style={styles.buttonText}>Login</Text>
+            
+            <TouchableOpacity style={styles.button} onPress={isRegistering ? handleRegister : handleLogin}>
+                <Text style={styles.buttonText}>{isRegistering ? 'Register' : 'Login'}</Text>
             </TouchableOpacity>
-            <TouchableOpacity>
-                <Text style={styles.forgotPassword}>Forgot Password?</Text>
+            
+            <TouchableOpacity onPress={() => setIsRegistering(!isRegistering)}>
+                <Text style={styles.toggleText}>
+                    {isRegistering ? 'Already have an account? Login' : 'Don’t have an account? Register'}
+                </Text>
             </TouchableOpacity>
-        </View>
+
+            {/* Flash Message component */}
+            <FlashMessage position="top" />
+        </Animated.View>
     );
 };
 
@@ -105,7 +154,7 @@ const styles = StyleSheet.create({
         fontSize: 18,
         fontWeight: 'bold',
     },
-    forgotPassword: {
+    toggleText: {
         color: '#1e90ff',
         marginTop: 10,
         textAlign: 'center',
