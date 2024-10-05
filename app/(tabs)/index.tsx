@@ -8,6 +8,7 @@ import GoalsScreen from './goals'
 import InventoryScreen from './inventory';
 import RecipesScreen from './recipes';
 import DashboardScreen from './dashboard';
+import GoalSelectionScreen from '../goalsSelect';
 
 const IndexScreen = () => {
   // Create a bottom tab navigator

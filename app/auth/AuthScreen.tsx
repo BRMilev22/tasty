@@ -1,8 +1,8 @@
-// app/auth/AuthScreen.tsx
 import React, { useState, useEffect } from 'react';
 import { View, TextInput, Text, StyleSheet, TouchableOpacity, Animated } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { signInWithEmailAndPassword, createUserWithEmailAndPassword } from 'firebase/auth';
+import { useRouter } from 'expo-router';  // Import useRouter for navigation
 import { auth } from '../../firebaseConfig'; // Import Firebase authentication object
 import FlashMessage, { showMessage } from 'react-native-flash-message'; // Import FlashMessage
 
@@ -16,6 +16,7 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ onLogin }) => {
     const [error, setError] = useState('');
     const [isRegistering, setIsRegistering] = useState(false);
     const opacity = useState(new Animated.Value(1))[0]; // Initialize animated value
+    const router = useRouter(); // Initialize the router hook for navigation
 
     const fadeOut = () => {
         Animated.timing(opacity, {
@@ -50,10 +51,10 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ onLogin }) => {
             await createUserWithEmailAndPassword(auth, email, password);
             setError('');
             showMessage({
-                message: 'Registration successful! You can now log in.',
+                message: 'Registration successful! Please select your goal.',
                 type: 'success',
             });
-            fadeOut(); // Start fade-out animation
+            router.replace('/goalsSelect'); // Navigate to the goal selection screen
         } catch (err) {
             setError('Error registering. Please try again.');
             showMessage({

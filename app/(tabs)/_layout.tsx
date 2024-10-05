@@ -1,8 +1,7 @@
-// app/_layout.tsx
 import React, { useState } from 'react';
 import { View } from 'react-native';
 import AuthScreen from '../auth/AuthScreen';
-import Dashboard from './index'; // Replace with the actual path to your dashboard
+import DashboardScreen from './dashboard'; // Correct import for the DashboardScreen
 
 const AppLayout = () => {
     const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -11,10 +10,14 @@ const AppLayout = () => {
         setIsLoggedIn(true); // Update the state to indicate the user is logged in
     };
 
+    const handleLogout = () => {
+        setIsLoggedIn(false); // Update the state to indicate the user is logged out
+    };
+
     return (
         <View style={{ flex: 1 }}>
             {isLoggedIn ? (
-                <Dashboard /> // Render your main app content when logged in
+                <DashboardScreen onLogout={handleLogout} /> // Pass the handleLogout prop to the DashboardScreen
             ) : (
                 <AuthScreen onLogin={handleLogin} />
             )}

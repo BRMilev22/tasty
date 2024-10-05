@@ -1,24 +1,32 @@
+// DashboardScreen.tsx
 import React, { useState } from 'react';
 import { StyleSheet, Text, View, TouchableOpacity, ScrollView } from 'react-native';
-import { useRouter } from 'expo-router';
-import { MaterialIcons } from '@expo/vector-icons';
-import { PieChart } from 'react-native-chart-kit'; // Make sure to install this package
+import { PieChart } from 'react-native-chart-kit';
+import { auth } from '../../firebaseConfig';
 
-const DashboardScreen = () => {
-  const router = useRouter();
+interface DashboardProps {
+  onLogout: () => void; // Ensure onLogout is defined here
+}
+
+const DashboardScreen: React.FC<DashboardProps> = ({ onLogout }) => {
   const [isSummaryOpen, setIsSummaryOpen] = useState(false);
   const [isRecentActivitiesOpen, setIsRecentActivitiesOpen] = useState(false);
 
-  const handleLogout = () => {
-    router.replace('/auth/AuthScreen');
+  const handleLogout = async () => {
+    try {
+      await auth.signOut(); // Sign out from Firebase
+      onLogout(); // Call onLogout prop to update the app state
+    } catch (err) {
+      console.error('Logout error:', err);
+    }
   };
 
   const toggleSummary = () => {
-    setIsSummaryOpen(!isSummaryOpen);
+    setIsSummaryOpen(prev => !prev);
   };
 
   const toggleRecentActivities = () => {
-    setIsRecentActivitiesOpen(!isRecentActivitiesOpen);
+    setIsRecentActivitiesOpen(prev => !prev);
   };
 
   const data = [
@@ -53,60 +61,45 @@ const DashboardScreen = () => {
         <Text style={styles.chartTitle}>Nutritional Breakdown</Text>
         <PieChart
           data={data}
-          width={320} // Set the width of the pie chart
-          height={220} // Set the height of the pie chart
+          width={320}
+          height={220}
           chartConfig={{
             backgroundColor: '#ffffff',
-            backgroundGradientFrom: '#ffffff',
-            backgroundGradientTo: '#ffffff',
             color: (opacity = 1) => `rgba(255, 99, 132, ${opacity})`,
             labelColor: (opacity = 1) => `rgba(0, 0, 0, ${opacity})`,
-            style: {
-              borderRadius: 16,
+            style: { borderRadius: 16 },
+            propsForDots: {
+              r: '6',
+              strokeWidth: '2',
+              stroke: '#ffffff',
             },
           }}
           accessor="population"
           backgroundColor="transparent"
           paddingLeft="15"
-          absolute // Show absolute values
         />
-        <View style={styles.legendContainer}>
-          {data.map((item) => (
-            <View key={item.name} style={styles.legendItem}>
-              <View style={[styles.legendColorBox, { backgroundColor: item.color }]} />
-              <Text style={styles.legendText}>{item.name}</Text>
-            </View>
-          ))}
-        </View>
       </View>
 
-      <TouchableOpacity style={styles.toggleButton} onPress={toggleSummary}>
-        <Text style={styles.toggleButtonText}>Today's Summary</Text>
-        <MaterialIcons name={isSummaryOpen ? "expand-less" : "expand-more"} size={24} color="#000" />
+      <TouchableOpacity onPress={toggleSummary} style={styles.summaryButton}>
+        <Text style={styles.buttonText}>Summary</Text>
       </TouchableOpacity>
       {isSummaryOpen && (
-        <View style={styles.section}>
-          <Text style={styles.sectionDescription}>Keep track of your daily intake and goals.</Text>
+        <View style={styles.summaryContainer}>
+          <Text style={styles.summaryText}>Your Summary Content Here</Text>
         </View>
       )}
 
-      <TouchableOpacity style={styles.toggleButton} onPress={toggleRecentActivities}>
-        <Text style={styles.toggleButtonText}>Recent Activities</Text>
-        <MaterialIcons name={isRecentActivitiesOpen ? "expand-less" : "expand-more"} size={24} color="#000" />
+      <TouchableOpacity onPress={toggleRecentActivities} style={styles.activitiesButton}>
+        <Text style={styles.buttonText}>Recent Activities</Text>
       </TouchableOpacity>
       {isRecentActivitiesOpen && (
-        <View style={styles.section}>
-          <Text style={styles.sectionDescription}>Added Chicken Breast to Inventory</Text>
-          <Text style={styles.sectionDescription}>Logged Breakfast: Oatmeal</Text>
+        <View style={styles.activitiesContainer}>
+          <Text style={styles.activitiesText}>Your Recent Activities Here</Text>
         </View>
       )}
 
-      <TouchableOpacity style={styles.addMealButton}>
-        <Text style={styles.addMealButtonText}>Add New Meal</Text>
-      </TouchableOpacity>
-
-      <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
-        <Text style={styles.logoutButtonText}>Logout</Text>
+      <TouchableOpacity onPress={handleLogout} style={styles.logoutButton}>
+        <Text style={styles.buttonText}>Logout</Text>
       </TouchableOpacity>
     </ScrollView>
   );
@@ -116,91 +109,65 @@ const styles = StyleSheet.create({
   container: {
     flexGrow: 1,
     padding: 20,
-    backgroundColor: '#eef2f3',
+    backgroundColor: '#f0f4f8',
   },
   header: {
     fontSize: 32,
     fontWeight: 'bold',
+    marginBottom: 20,
     color: '#333',
-    marginBottom: 30,
     textAlign: 'center',
   },
   pieChartContainer: {
+    marginVertical: 20,
     alignItems: 'center',
-    marginBottom: 20,
   },
   chartTitle: {
-    fontSize: 24,
+    fontSize: 20,
     fontWeight: 'bold',
     marginBottom: 10,
-  },
-  legendContainer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    marginTop: 10,
-  },
-  legendItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginHorizontal: 5,
-  },
-  legendColorBox: {
-    width: 20,
-    height: 20,
-    borderRadius: 5,
-    marginRight: 5,
-  },
-  legendText: {
-    fontSize: 16,
-  },
-  toggleButton: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    backgroundColor: '#ffffff',
-    borderRadius: 8,
-    padding: 15,
-    marginBottom: 10,
-    shadowColor: '#000',
-    shadowOpacity: 0.1,
-    shadowRadius: 10,
-    elevation: 2,
-  },
-  toggleButtonText: {
-    fontSize: 18,
     color: '#333',
-    flex: 1,
   },
-  section: {
-    padding: 15,
-    backgroundColor: '#f0f8ff',
+  summaryButton: {
+    backgroundColor: '#1e90ff',
     borderRadius: 8,
-    marginBottom: 10,
-  },
-  sectionDescription: {
-    fontSize: 16,
-    color: '#666',
-    marginBottom: 5,
-  },
-  addMealButton: {
-    backgroundColor: '#007bff',
     paddingVertical: 12,
-    borderRadius: 8,
+    marginVertical: 10,
     alignItems: 'center',
+  },
+  activitiesButton: {
+    backgroundColor: '#1e90ff',
+    borderRadius: 8,
+    paddingVertical: 12,
+    marginVertical: 10,
+    alignItems: 'center',
+  },
+  summaryContainer: {
+    backgroundColor: '#ffffff',
+    padding: 20,
+    borderRadius: 8,
     marginVertical: 10,
   },
-  addMealButtonText: {
-    color: '#fff',
-    fontSize: 18,
-    fontWeight: 'bold',
+  summaryText: {
+    color: '#333',
+  },
+  activitiesContainer: {
+    backgroundColor: '#ffffff',
+    padding: 20,
+    borderRadius: 8,
+    marginVertical: 10,
+  },
+  activitiesText: {
+    color: '#333',
   },
   logoutButton: {
-    backgroundColor: '#f44336',
-    paddingVertical: 12,
+    backgroundColor: '#ff4757',
     borderRadius: 8,
+    paddingVertical: 12,
+    marginVertical: 20,
     alignItems: 'center',
   },
-  logoutButtonText: {
+  buttonText: {
     color: '#fff',
     fontSize: 18,
     fontWeight: 'bold',
