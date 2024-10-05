@@ -6,6 +6,7 @@ import { PieChart } from 'react-native-chart-kit';
 import GoalsScreen from './goals';
 import InventoryScreen from './inventory';
 import RecipesScreen from './recipes';
+import ScanScreen from './scan';
 import { auth } from '../../firebaseConfig';
 
 const Tab = createBottomTabNavigator();
@@ -73,9 +74,11 @@ const DashboardScreen: React.FC<DashboardProps> = ({ onLogout }) => {
             iconName = 'cart';
           } else if (route.name === 'Recipes') {
             iconName = 'restaurant';
+          } else if (route.name === 'Scan') {
+            iconName = 'scan';
           }
 
-          return <Ionicons name={iconName} size={size} color={color} />;
+          return <Ionicons name={iconName || 'home'} size={size} color={color} />;
         },
         tabBarActiveTintColor: '#1e90ff',
         tabBarInactiveTintColor: 'gray',
@@ -153,6 +156,7 @@ const DashboardScreen: React.FC<DashboardProps> = ({ onLogout }) => {
       <Tab.Screen name="Goals" component={GoalsScreen} />
       <Tab.Screen name="Inventory" component={InventoryScreen} />
       <Tab.Screen name="Recipes" component={RecipesScreen} />
+      <Tab.Screen name="Scan" component={ScanScreen} />
     </Tab.Navigator>
   );
 };
