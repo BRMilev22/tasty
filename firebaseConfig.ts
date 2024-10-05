@@ -1,8 +1,9 @@
 // firebaseConfig.ts
 import { initializeApp } from 'firebase/app';
 import { initializeAuth } from 'firebase/auth';
-import { getReactNativePersistence } from 'firebase/auth'; // Make sure this is the correct import
 import { getFirestore } from 'firebase/firestore';
+// Removed getReactNativePersistence
+// import { getReactNativePersistence } from 'firebase/auth'; 
 import AsyncStorage from '@react-native-async-storage/async-storage'; // Import AsyncStorage
 
 // Your Firebase config object
@@ -19,15 +20,11 @@ const firebaseConfig = {
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
 
-// Initialize Firebase Auth with AsyncStorage for persistence
-const auth = initializeAuth(app, {
-    persistence: getReactNativePersistence(AsyncStorage) // Correctly use AsyncStorage for persistence
-});
+// Initialize Firebase Auth without persistence (defaults to session)
+const auth = initializeAuth(app);
 
-// Optionally, initialize Firestore if needed
-// import { getFirestore } from 'firebase/firestore';
-// const db = getFirestore(app);
+// Initialize Firestore
+const db = getFirestore(app); // Declare db only once
 
-export const db = getFirestore(app);
-
-export { auth };
+// Exporting auth and db
+export { auth, db }; // Only export once
