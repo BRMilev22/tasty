@@ -1,8 +1,9 @@
+<p align="center"><img src="https://github.com/user-attachments/assets/428d2e63-de9f-43f6-9bfd-118885eefa2b" width="200" height="250" alt="Tasty Logo"></p>
+
 # 🍽️ Tasty - Meal Planning App
 
 **Tasty** is a powerful meal planning app built with **React Native** and **TypeScript**. It features both mobile and web versions, enabling users to create personalized meal plans, track inventory through barcode scanning, and receive tailored recipe recommendations based on their inventory.
 
-![Tasty Logo](https://example.com/path/to/logo.png) <!-- Replace with your logo URL -->
 
 ## 📦 Features
 
@@ -38,7 +39,11 @@
 - **Backend:**
   - [Node.js](https://nodejs.org/) - A JavaScript runtime built on Chrome's V8 JavaScript engine.
   - [Express](https://expressjs.com/) - A minimal and flexible Node.js web application framework.
-  - [MySQL](https://www.mysql.com/) - A relational database management system.
+  - [Firebase](https://firebase.google.com/) - Google's cloud service for creating mobile and web applications.
+ 
+## 🫂 Contributors
+- [Bozhidar Dimov](https://github.com/BADimov21) - Full-Stack Developer - programming and ICT student at VSCPI, Burgas
+- [Boris Milev](https://github.com/BRMilev22) - Full-Stack Developer - programming and ICT student at VSCPI, Burgas
 
 ## 📊 Getting Started
 
