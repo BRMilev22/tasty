@@ -24,6 +24,7 @@ const ProductDetail = () => {
       try {
         const response = await fetch(`https://world.openfoodfacts.org/api/v0/product/${barcode}.json`);
         const data = await response.json();
+        console.log('API response:', JSON.stringify(data, null, 2)); // Log the full API response
         if (data.product) {
           setProduct(data.product);
         } else {
@@ -65,16 +66,16 @@ const ProductDetail = () => {
         Добавки: {product.additives || 'Няма информация за добавки'}
       </Text>
       <Text style={styles.productNutritionalInfo}>
-        Калории: {product.nutrition_grade_fr === 'a' ? 'Ниско' : product.nutrition_grade_fr === 'b' ? 'Умерено' : 'Високо'}
+        Калории: {product.nutriments?.['energy-kcal_100g'] || 'Няма информация за калории'} ккал
       </Text>
       <Text style={styles.productNutritionalInfo}>
-        Протеини: {product.proteins || 'Няма информация за протеини'} г
+        Протеини: {product.nutriments?.['proteins_100g'] || product.nutriments?.['proteins'] || 'Няма информация за протеини'} г
       </Text>
       <Text style={styles.productNutritionalInfo}>
-        Мазнини: {product.fat || 'Няма информация за мазнини'} г
+        Мазнини: {product.nutriments?.['fat_100g'] || 'Няма информация за мазнини'} г
       </Text>
       <Text style={styles.productNutritionalInfo}>
-        Въглехидрати: {product.carbohydrates || 'Няма информация за въглехидрати'} г
+        Въглехидрати: {product.nutriments?.['carbohydrates_100g'] || 'Няма информация за въглехидрати'} г
       </Text>
     </ScrollView>
   );
@@ -84,43 +85,55 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     padding: 16,
-    backgroundColor: '#fff',
+    backgroundColor: '#F5F5F5',
   },
   productImage: {
-    width: '100%',
-    height: 200,
-    resizeMode: 'contain',
+    width: '80%',  
+    height: 250,
+    resizeMode: 'contain',  
+    borderRadius: 12,
+    borderColor: '#ccc',
+    borderWidth: 1,
+    marginBottom: 20,
+    alignSelf: 'center',  
   },
   productName: {
-    fontSize: 24,
-    fontWeight: 'bold',
+    fontSize: 28,
+    fontWeight: '700',
     marginVertical: 8,
+    color: '#2C3E50',
   },
   productBrand: {
-    fontSize: 20,
-    color: '#555',
+    fontSize: 24,
+    color: '#2980B9',
     marginVertical: 4,
+    fontWeight: '600',
   },
   productCategories: {
-    fontSize: 16,
-    color: '#777',
+    fontSize: 18,
+    color: '#8E44AD',
     marginVertical: 4,
+    fontStyle: 'italic',
   },
   productIngredients: {
     fontSize: 16,
     marginVertical: 4,
+    color: '#333',
   },
   productAllergens: {
     fontSize: 16,
     marginVertical: 4,
+    color: '#C0392B',
   },
   productAdditives: {
     fontSize: 16,
     marginVertical: 4,
+    color: '#E67E22',
   },
   productNutritionalInfo: {
     fontSize: 16,
     marginVertical: 4,
+    color: '#333',
   },
 });
 
