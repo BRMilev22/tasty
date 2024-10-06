@@ -1,61 +1,127 @@
-import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
-import { useLocalSearchParams } from 'expo-router';
+import React, { useEffect, useState } from 'react';
+import { View, Text, Image, StyleSheet, ScrollView } from 'react-native';
+import { RouteProp } from '@react-navigation/native';
+import { StackNavigationProp } from '@react-navigation/stack';
+import { useNavigation, useRoute } from '@react-navigation/native';
 
-interface Product {
-    product_name?: string;
-    brands?: string;
-    nutriments?: Record<string, any>;
-}
+type RootStackParamList = {
+  ProductDetail: { barcode: string };
+};
+
+type ProductDetailScreenNavigationProp = StackNavigationProp<RootStackParamList, 'ProductDetail'>;
+type ProductDetailScreenRouteProp = RouteProp<RootStackParamList, 'ProductDetail'>;
 
 const ProductDetail = () => {
-    const params = useLocalSearchParams();
-    console.log('Received params:', params); // Debugging line
-    
-    const product = params.product as Product | undefined; // Updated type assertion
-    const scannedData = params.scannedData as string | undefined; // Updated type assertion
+  const navigation = useNavigation<ProductDetailScreenNavigationProp>();
+  const route = useRoute<ProductDetailScreenRouteProp>();
+  const { barcode } = route.params;
+  const [product, setProduct] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-    // Check if product data is available
-    if (!product || !product.product_name) {
-        return (
-            <View style={styles.container}>
-                <Text style={styles.errorText}>No product data available.</Text>
-            </View>
-        );
-    }
+  useEffect(() => {
+    const fetchProductData = async () => {
+      try {
+        const response = await fetch(`https://world.openfoodfacts.org/api/v0/product/${barcode}.json`);
+        const data = await response.json();
+        if (data.product) {
+          setProduct(data.product);
+        } else {
+          setError('Продуктът не е намерен');
+        }
+      } catch (err) {
+        setError('Неуспешно извличане на данни за продукта');
+      } finally {
+        setLoading(false);
+      }
+    };
 
-    return (
-        <View style={styles.container}>
-            <Text style={styles.title}>{product.product_name || 'Unknown Product'}</Text>
-            <Text style={styles.details}>Brand: {product.brands || 'N/A'}</Text>
-            <Text style={styles.details}>
-                Nutriments: {product.nutriments ? JSON.stringify(product.nutriments, null, 2) : 'N/A'}
-            </Text>
-            {scannedData && (
-                <Text style={styles.details}>Scanned Data: {scannedData}</Text>
-            )}
-        </View>
-    );
+    fetchProductData();
+  }, [barcode]);
+
+  if (loading) {
+    return <Text>Зареждане...</Text>;
+  }
+
+  if (error) {
+    return <Text>{error}</Text>;
+  }
+
+  return (
+    <ScrollView style={styles.container}>
+      {product.image_url && (
+        <Image source={{ uri: product.image_url }} style={styles.productImage} />
+      )}
+      <Text style={styles.productName}>{product.product_name_bg || product.product_name || 'Непознат продукт'}</Text>
+      <Text style={styles.productBrand}>{product.brands || 'Непозната марка'}</Text>
+      <Text style={styles.productCategories}>{product.categories || 'Няма категории'}</Text>
+      <Text style={styles.productIngredients}>
+        Съставки: {product.ingredients_text || 'Няма налични съставки'}
+      </Text>
+      <Text style={styles.productAllergens}>
+        Алергени: {product.allergens || 'Няма информация за алергени'}
+      </Text>
+      <Text style={styles.productAdditives}>
+        Добавки: {product.additives || 'Няма информация за добавки'}
+      </Text>
+      <Text style={styles.productNutritionalInfo}>
+        Калории: {product.nutrition_grade_fr === 'a' ? 'Ниско' : product.nutrition_grade_fr === 'b' ? 'Умерено' : 'Високо'}
+      </Text>
+      <Text style={styles.productNutritionalInfo}>
+        Протеини: {product.proteins || 'Няма информация за протеини'} г
+      </Text>
+      <Text style={styles.productNutritionalInfo}>
+        Мазнини: {product.fat || 'Няма информация за мазнини'} г
+      </Text>
+      <Text style={styles.productNutritionalInfo}>
+        Въглехидрати: {product.carbohydrates || 'Няма информация за въглехидрати'} г
+      </Text>
+    </ScrollView>
+  );
 };
 
 const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-        padding: 20,
-        justifyContent: 'center',
-    },
-    title: {
-        fontSize: 24,
-        fontWeight: 'bold',
-    },
-    details: {
-        fontSize: 16,
-        marginVertical: 5,
-    },
-    errorText: {
-        color: 'red',
-        fontSize: 18,
-    },
+  container: {
+    flex: 1,
+    padding: 16,
+    backgroundColor: '#fff',
+  },
+  productImage: {
+    width: '100%',
+    height: 200,
+    resizeMode: 'contain',
+  },
+  productName: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    marginVertical: 8,
+  },
+  productBrand: {
+    fontSize: 20,
+    color: '#555',
+    marginVertical: 4,
+  },
+  productCategories: {
+    fontSize: 16,
+    color: '#777',
+    marginVertical: 4,
+  },
+  productIngredients: {
+    fontSize: 16,
+    marginVertical: 4,
+  },
+  productAllergens: {
+    fontSize: 16,
+    marginVertical: 4,
+  },
+  productAdditives: {
+    fontSize: 16,
+    marginVertical: 4,
+  },
+  productNutritionalInfo: {
+    fontSize: 16,
+    marginVertical: 4,
+  },
 });
 
 export default ProductDetail;

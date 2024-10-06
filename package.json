@@ -15,7 +15,8 @@
   "dependencies": {
     "@expo/vector-icons": "^14.0.2",
     "@react-native-async-storage/async-storage": "^1.23.1",
-    "@react-navigation/native": "^6.0.2",
+    "@react-navigation/native": "^6.1.18",
+    "@react-navigation/native-stack": "^6.11.0",
     "@shopify/react-native-skia": "^1.2.3",
     "expo": "~51.0.28",
     "expo-barcode-scanner": "^13.0.1",

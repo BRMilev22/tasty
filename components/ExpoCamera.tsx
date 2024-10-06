@@ -2,10 +2,10 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, Button, Alert } from 'react-native';
 import { BarCodeScanner, BarCodeScannerResult } from 'expo-barcode-scanner';
-import { useRouter } from 'expo-router'; // Import the useRouter hook
+import { useRouter } from 'expo-router';
 
 const ExpoCamera = () => {
-  const router = useRouter(); // Initialize the router
+  const router = useRouter();
   const [hasPermission, setHasPermission] = useState<boolean | null>(null);
   const [scanned, setScanned] = useState(false);
   const [scannedData, setScannedData] = useState<string | null>(null);
@@ -20,24 +20,12 @@ const ExpoCamera = () => {
   const handleBarCodeScanned = async ({ type, data }: BarCodeScannerResult) => {
     setScanned(true);
     setScannedData(data);
-  
-    try {
-      const response = await fetch(`https://world.openfoodfacts.org/api/v0/product/${data}.json`);
-      const productData = await response.json();
-  
-      if (productData.product) {
-        // Navigate to ProductDetail with product data and scanned data
-        router.push({
-          pathname: '/ProductDetail',
-          params: { product: productData.product, scannedData: data }, // Pass product data and scanned data
-        });
-      } else {
-        Alert.alert('Error', 'Product not found.');
-      }
-    } catch (error) {
-      console.error(error);
-      Alert.alert('Error', 'Failed to fetch product data.');
-    }
+
+    // Navigate to ProductDetail with the barcode value
+    router.push({
+      pathname: '/ProductDetail',
+      params: { barcode: data }, // Pass the barcode here
+    });
   };
 
   if (hasPermission === null) {
