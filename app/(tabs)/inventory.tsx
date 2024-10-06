@@ -10,7 +10,7 @@ import {
   Pressable,
   Alert,
 } from 'react-native';
-import { collection, getDocs } from 'firebase/firestore'; // Import Firestore functions
+import { collection, onSnapshot, addDoc, deleteDoc, doc } from 'firebase/firestore'; // Import Firestore functions
 import { db } from '../../firebaseConfig'; // Import Firebase configuration
 import { getAuth } from 'firebase/auth'; // Import Firebase Auth
 
@@ -34,41 +34,52 @@ const InventoryScreen = () => {
   const user = auth.currentUser;
 
   useEffect(() => {
-    // Fetch inventory data for the authenticated user
-    const fetchInventory = async () => {
-      if (user) {
-        try {
-          const inventoryCollection = collection(db, 'users', user.uid, 'inventory');
-          const inventorySnapshot = await getDocs(inventoryCollection);
-          const items: InventoryItem[] = inventorySnapshot.docs.map((doc) => ({
-            id: doc.id,
-            ...doc.data(),
-          })) as InventoryItem[];
-          setInventoryItems(items);
-        } catch (error) {
-          console.error('Error fetching inventory: ', error);
-          Alert.alert('Error', 'Failed to fetch inventory data.');
-        }
-      } else {
-        Alert.alert('Error', 'User is not logged in.');
-      }
-    };
+    if (user) {
+      // Set up real-time listener for inventory updates
+      const inventoryCollection = collection(db, 'users', user.uid, 'inventory');
 
-    fetchInventory();
+      const unsubscribe = onSnapshot(inventoryCollection, (snapshot) => {
+        const items: InventoryItem[] = snapshot.docs.map((doc) => ({
+          id: doc.id,
+          ...doc.data(),
+        })) as InventoryItem[];
+        setInventoryItems(items);
+      });
+
+      // Clean up listener on component unmount
+      return () => unsubscribe();
+    } else {
+      Alert.alert('Error', 'User is not logged in.');
+    }
   }, [user]);
 
-  // Function to add new item to inventory (you may want to save this to Firestore as well)
-  const addNewItem = () => {
+  // Function to add new item to inventory (and save to Firestore)
+  const addNewItem = async () => {
     if (newItem.name.trim() && newItem.quantity > 0 && newItem.unit.trim()) {
-      const itemId = (inventoryItems.length + 1).toString();
-      setInventoryItems((prevItems) => [
-        ...prevItems,
-        { ...newItem, id: itemId },
-      ]);
-      setNewItem({ id: '', name: '', quantity: 0, unit: '' });
-      setModalVisible(false);
+      try {
+        await addDoc(collection(db, 'users', user!.uid, 'inventory'), {
+          name: newItem.name,
+          quantity: newItem.quantity,
+          unit: newItem.unit,
+        });
+
+        setNewItem({ id: '', name: '', quantity: 0, unit: '' });
+        setModalVisible(false);
+      } catch (error) {
+        console.error('Error adding item: ', error);
+        Alert.alert('Error', 'Failed to add item.');
+      }
     } else {
       Alert.alert('Please fill in all fields correctly!');
+    }
+  };
+
+  const deleteItem = async (id: string) => {
+    try {
+      await deleteDoc(doc(db, 'users', user!.uid, 'inventory', id));
+    } catch (error) {
+      console.error('Error deleting item: ', error);
+      Alert.alert('Error', 'Failed to delete item.');
     }
   };
 
@@ -98,10 +109,6 @@ const InventoryScreen = () => {
       </View>
     </View>
   );
-
-  const deleteItem = (id: string) => {
-    setInventoryItems((prevItems) => prevItems.filter((item) => item.id !== id));
-  };
 
   return (
     <View style={styles.container}>
