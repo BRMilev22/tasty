@@ -1,11 +1,11 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, Image, StyleSheet, ScrollView } from 'react-native';
+import { View, Text, Image, StyleSheet, ScrollView, Button } from 'react-native';
 import { RouteProp } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { useNavigation, useRoute } from '@react-navigation/native';
 
 type RootStackParamList = {
-  ProductDetail: { barcode: string };
+  ProductDetail: { barcode: string; onProductFetched: (name: string) => void }; // Add callback prop
 };
 
 type ProductDetailScreenNavigationProp = StackNavigationProp<RootStackParamList, 'ProductDetail'>;
@@ -14,7 +14,7 @@ type ProductDetailScreenRouteProp = RouteProp<RootStackParamList, 'ProductDetail
 const ProductDetail = () => {
   const navigation = useNavigation<ProductDetailScreenNavigationProp>();
   const route = useRoute<ProductDetailScreenRouteProp>();
-  const { barcode } = route.params;
+  const { barcode, onProductFetched } = route.params; // Destructure the callback
   const [product, setProduct] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -27,6 +27,7 @@ const ProductDetail = () => {
         console.log('API response:', JSON.stringify(data, null, 2)); // Log the full API response
         if (data.product) {
           setProduct(data.product);
+          onProductFetched(data.product.product_name_bg || data.product.product_name); // Call the callback with the product name
         } else {
           setError('Продуктът не е намерен');
         }

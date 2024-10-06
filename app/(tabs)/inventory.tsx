@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   StyleSheet,
   Text,
@@ -10,6 +10,9 @@ import {
   Pressable,
   Alert,
 } from 'react-native';
+import { collection, getDocs } from 'firebase/firestore'; // Import Firestore functions
+import { db } from '../../firebaseConfig'; // Import Firebase configuration
+import { getAuth } from 'firebase/auth'; // Import Firebase Auth
 
 interface InventoryItem {
   id: string;
@@ -19,13 +22,7 @@ interface InventoryItem {
 }
 
 const InventoryScreen = () => {
-  const [inventoryItems, setInventoryItems] = useState<InventoryItem[]>([
-    { id: '1', name: 'Chicken Breast', quantity: 2, unit: 'kg' },
-    { id: '2', name: 'Broccoli', quantity: 1, unit: 'kg' },
-    { id: '3', name: 'Rice', quantity: 5, unit: 'kg' },
-    { id: '4', name: 'Eggs', quantity: 12, unit: 'pcs' },
-  ]);
-
+  const [inventoryItems, setInventoryItems] = useState<InventoryItem[]>([]);
   const [modalVisible, setModalVisible] = useState(false);
   const [newItem, setNewItem] = useState<InventoryItem>({
     id: '',
@@ -33,8 +30,34 @@ const InventoryScreen = () => {
     quantity: 0,
     unit: '',
   });
+  const auth = getAuth();
+  const user = auth.currentUser;
 
-  // Function to add new item to inventory
+  useEffect(() => {
+    // Fetch inventory data for the authenticated user
+    const fetchInventory = async () => {
+      if (user) {
+        try {
+          const inventoryCollection = collection(db, 'users', user.uid, 'inventory');
+          const inventorySnapshot = await getDocs(inventoryCollection);
+          const items: InventoryItem[] = inventorySnapshot.docs.map((doc) => ({
+            id: doc.id,
+            ...doc.data(),
+          })) as InventoryItem[];
+          setInventoryItems(items);
+        } catch (error) {
+          console.error('Error fetching inventory: ', error);
+          Alert.alert('Error', 'Failed to fetch inventory data.');
+        }
+      } else {
+        Alert.alert('Error', 'User is not logged in.');
+      }
+    };
+
+    fetchInventory();
+  }, [user]);
+
+  // Function to add new item to inventory (you may want to save this to Firestore as well)
   const addNewItem = () => {
     if (newItem.name.trim() && newItem.quantity > 0 && newItem.unit.trim()) {
       const itemId = (inventoryItems.length + 1).toString();
