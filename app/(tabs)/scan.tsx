@@ -1,11 +1,11 @@
 import React from 'react';
 import { SafeAreaView, StyleSheet } from 'react-native';
-import BarcodeScanner from '../../components/BarcodeScanner';
+import ExpoCamera from '../../components/ExpoCamera';
 
 const Scan = () => {
   return (
     <SafeAreaView style={styles.container}>
-      <BarcodeScanner />
+      <ExpoCamera />
     </SafeAreaView>
   );
 };

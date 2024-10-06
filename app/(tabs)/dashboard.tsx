@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { StyleSheet, Text, View, TouchableOpacity, ScrollView, Image } from 'react-native';
+import { StyleSheet, Text, View, TouchableOpacity, ScrollView } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import Ionicons from 'react-native-vector-icons/Ionicons'; 
 import { PieChart } from 'react-native-chart-kit';
@@ -9,7 +9,6 @@ import RecipesScreen from './recipes';
 import ScanScreen from './scan';
 import { auth } from '../../firebaseConfig';
 
-const logo = require('../../assets/images/tasty-logo.png');
 const Tab = createBottomTabNavigator();
 
 interface DashboardProps {
@@ -90,7 +89,6 @@ const DashboardScreen: React.FC<DashboardProps> = ({ onLogout }) => {
           <ScrollView contentContainerStyle={styles.container}>
             {/* Dashboard Title */}
             <Text style={styles.header}>Dashboard</Text>
-            <Image source={logo} style={styles.logo} />
 
             <View style={styles.pieChartContainer}>
               <Text style={styles.chartTitle}>Nutritional Breakdown</Text>
@@ -168,12 +166,6 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     padding: 20,
     backgroundColor: '#f0f4f8',
-  },
-  logo: {
-    width: 140,
-    height: 190,
-    alignSelf: 'center',
-    marginBottom: 20,
   },
   header: {
     fontSize: 32,
