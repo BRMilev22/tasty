@@ -7,15 +7,22 @@ import GoalsScreen from './goals';
 import InventoryScreen from './inventory';
 import RecipesScreen from './recipes';
 import ScanScreen from './scan';
-import { auth } from '../../firebaseConfig';
+import { getAuth } from 'firebase/auth';
 
+const auth = getAuth();
 const Tab = createBottomTabNavigator();
 
-interface DashboardProps {
-  onLogout: () => void; 
+interface User {
+  id: string;
+  name: string;
 }
 
-const DashboardScreen: React.FC<DashboardProps> = ({ onLogout }) => {
+interface DashboardProps {
+  user?: User;
+  onLogout: () => void;
+}
+
+const DashboardScreen: React.FC<DashboardProps> = ({ user, onLogout }) => {
   const [isSummaryOpen, setIsSummaryOpen] = useState(false);
   const [isRecentActivitiesOpen, setIsRecentActivitiesOpen] = useState(false);
 
@@ -87,8 +94,7 @@ const DashboardScreen: React.FC<DashboardProps> = ({ onLogout }) => {
       <Tab.Screen name="Dashboard" options={{ headerShown: false }}>
         {() => (
           <ScrollView contentContainerStyle={styles.container}>
-            {/* Dashboard Title */}
-            <Text style={styles.header}>Dashboard</Text>
+            <Text style={styles.header}>Welcome, {user ? user.name : 'Guest'}!</Text>
 
             <View style={styles.pieChartContainer}>
               <Text style={styles.chartTitle}>Nutritional Breakdown</Text>
@@ -113,7 +119,6 @@ const DashboardScreen: React.FC<DashboardProps> = ({ onLogout }) => {
               />
             </View>
 
-            {/* New Features Section */}
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.featuresContainer}>
               <View style={styles.featureBox}>
                 <Text style={styles.featureTitle}>Meals Consumed</Text>
@@ -171,8 +176,8 @@ const styles = StyleSheet.create({
     fontSize: 32,
     fontWeight: 'bold',
     color: '#1e90ff',
-    marginTop: 30, // Added margin to push the text below the dynamic island
-    marginBottom: 20, // Optional: Adds some space below the header
+    marginTop: 30,
+    marginBottom: 20,
   },
   pieChartContainer: {
     marginVertical: 20,
@@ -189,7 +194,7 @@ const styles = StyleSheet.create({
     marginVertical: 20,
   },
   featureBox: {
-    width: 200, // Adjust the width of the feature boxes as needed
+    width: 200,
     backgroundColor: '#ffffff',
     borderRadius: 8,
     padding: 20,

@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { View, TextInput, Text, StyleSheet, TouchableOpacity, Animated } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { signInWithEmailAndPassword, createUserWithEmailAndPassword } from 'firebase/auth';
+import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword } from 'firebase/auth';
 import { useRouter } from 'expo-router';  // Import useRouter for navigation
-import { auth } from '../../firebaseConfig'; // Import Firebase authentication object
 import FlashMessage, { showMessage } from 'react-native-flash-message'; // Import FlashMessage
+
+const auth = getAuth();
 
 interface AuthScreenProps {
     onLogin: () => void;
