@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import {
-  StyleSheet,
   Text,
   View,
   FlatList,
@@ -9,7 +8,18 @@ import {
   Alert,
   Modal,
   Pressable,
+  ImageBackground,
 } from 'react-native';
+import { styled } from 'nativewind';
+
+const StyledView = styled(View);
+const StyledText = styled(Text);
+const StyledFlatList = styled(FlatList);
+const StyledTouchableOpacity = styled(TouchableOpacity);
+const StyledModal = styled(Modal);
+const StyledTextInput = styled(TextInput);
+const StyledPressable = styled(Pressable);
+const StyledImageBackground = styled(ImageBackground);
 
 const GoalsScreen = () => {
   const [goals, setGoals] = useState<string[]>([]);
@@ -55,196 +65,109 @@ const GoalsScreen = () => {
 
   // Render each goal
   const renderGoal = ({ item, index }: { item: string; index: number }) => (
-    <View style={styles.goalContainer}>
-      <Text style={styles.goalText}>{item}</Text>
-      <View style={styles.goalActions}>
-        <TouchableOpacity onPress={() => {
-          setNewGoal(item);
-          setSelectedGoalIndex(index);
-          setModalVisible(true);
-        }}>
-          <Text style={styles.editText}>Edit</Text>
-        </TouchableOpacity>
-        <TouchableOpacity onPress={() => deleteGoal(index)}>
-          <Text style={styles.deleteText}>Delete</Text>
-        </TouchableOpacity>
-      </View>
-    </View>
+    <StyledView className="bg-white p-5 rounded-lg mb-4 shadow-lg">
+      <StyledText className="text-lg font-bold">{item}</StyledText>
+      <StyledView className="flex-row justify-between mt-3">
+        <StyledTouchableOpacity
+          className="bg-blue-500 p-2 rounded-lg"
+          onPress={() => {
+            setNewGoal(item);
+            setSelectedGoalIndex(index);
+            setModalVisible(true);
+          }}
+        >
+          <StyledText className="text-white">Edit</StyledText>
+        </StyledTouchableOpacity>
+        <StyledTouchableOpacity
+          className="bg-red-500 p-2 rounded-lg"
+          onPress={() => deleteGoal(index)}
+        >
+          <StyledText className="text-white">Delete</StyledText>
+        </StyledTouchableOpacity>
+      </StyledView>
+    </StyledView>
   );
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.header}>Your Goals</Text>
-      <FlatList
-        data={goals}
-        renderItem={renderGoal}
-        keyExtractor={(item, index) => index.toString()}
-        contentContainerStyle={styles.listContainer}
-      />
-      <View style={styles.inputContainer}>
-        <TextInput
-          style={styles.input}
-          placeholder="Add a new goal"
-          value={newGoal}
-          onChangeText={setNewGoal}
-        />
-        <TouchableOpacity style={styles.button} onPress={addGoal}>
-          <Text style={styles.buttonText}>Add</Text>
-        </TouchableOpacity>
-      </View>
-
-      {/* Modal for editing goals */}
-      <Modal
-        animationType="slide"
-        transparent={true}
-        visible={isModalVisible}
-        onRequestClose={() => setModalVisible(false)}
-      >
-        <View style={styles.modalContainer}>
-          <View style={styles.modalView}>
-            <Text style={styles.modalHeader}>Edit Goal</Text>
-            <TextInput
-              style={styles.modalInput}
-              placeholder="Update your goal"
+    <StyledImageBackground
+      source={{
+        uri: 'https://img.freepik.com/free-vector/gradient-particle-wave-background_23-2150517309.jpg',
+      }}
+      className="flex-1 justify-center items-center bg-[#141e30]"
+      blurRadius={20}
+    >
+      {/* Main content container */}
+      <StyledView className="flex-1 justify-center items-center p-5">
+        {/* Title and input section, vertically centered */}
+        <StyledView className="flex justify-center items-center mb-5">
+          <StyledText className="text-2xl font-bold text-center text-blue-500 mb-5">
+            Your Goals
+          </StyledText>
+  
+          <StyledView className="flex-row items-center mb-5">
+            <StyledTextInput
+              className="flex-1 border border-gray-300 rounded-lg p-3 mr-3"
+              placeholder="Add a new goal"
               value={newGoal}
               onChangeText={setNewGoal}
             />
-            <View style={styles.modalButtonContainer}>
-              <Pressable
-                style={[styles.modalButton, styles.saveButton]}
-                onPress={editGoal}
-              >
-                <Text style={styles.buttonText}>Save</Text>
-              </Pressable>
-              <Pressable
-                style={[styles.modalButton, styles.cancelButton]}
-                onPress={() => setModalVisible(false)}
-              >
-                <Text style={styles.buttonText}>Cancel</Text>
-              </Pressable>
-            </View>
-          </View>
-        </View>
-      </Modal>
-    </View>
-  );
+            <StyledTouchableOpacity
+              className="bg-blue-500 p-3 rounded-lg items-center"
+              onPress={addGoal}
+            >
+              <StyledText className="text-white font-bold">Add</StyledText>
+            </StyledTouchableOpacity>
+          </StyledView>
+        </StyledView>
+  
+        {/* List of goals */}
+        <FlatList
+          data={goals}
+          renderItem={renderGoal}
+          keyExtractor={(item, index) => index.toString()}
+          contentContainerStyle={{
+            flexGrow: 1,
+            paddingHorizontal: 16,
+            justifyContent: 'flex-start', // Align the list to start below the input fields
+          }}
+        />
+  
+        {/* Modal for editing goals */}
+        <StyledModal
+          animationType="slide"
+          transparent={true}
+          visible={isModalVisible}
+          onRequestClose={() => setModalVisible(false)}
+        >
+          <StyledView className="flex-1 justify-center items-center bg-black/50">
+            <StyledView className="bg-white p-6 rounded-lg w-4/5">
+              <StyledText className="text-2xl font-bold mb-4">Edit Goal</StyledText>
+              <StyledTextInput
+                className="border border-gray-300 p-3 rounded-lg mb-4"
+                placeholder="Update your goal"
+                value={newGoal}
+                onChangeText={setNewGoal}
+              />
+              <StyledView className="flex-row justify-between">
+                <StyledPressable
+                  className="bg-blue-500 p-3 rounded-lg flex-1 mr-2 items-center"
+                  onPress={editGoal}
+                >
+                  <StyledText className="text-white font-bold">Save</StyledText>
+                </StyledPressable>
+                <StyledPressable
+                  className="bg-red-500 p-3 rounded-lg flex-1 ml-2 items-center"
+                  onPress={() => setModalVisible(false)}
+                >
+                  <StyledText className="text-white font-bold">Cancel</StyledText>
+                </StyledPressable>
+              </StyledView>
+            </StyledView>
+          </StyledView>
+        </StyledModal>
+      </StyledView>
+    </StyledImageBackground>
+  );  
 };
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    padding: 20,
-    backgroundColor: '#f0f4f8',
-  },
-  header: {
-    fontSize: 32,
-    fontWeight: 'bold',
-    marginBottom: 20,
-    textAlign: 'center',
-    color: '#1e90ff',
-  },
-  listContainer: {
-    paddingBottom: 20,
-  },
-  goalContainer: {
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    padding: 15,
-    marginBottom: 15,
-    shadowColor: '#000',
-    shadowOpacity: 0.2,
-    shadowRadius: 10,
-    elevation: 5,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  goalText: {
-    fontSize: 18,
-    color: '#333',
-    flex: 1,
-  },
-  goalActions: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  editText: {
-    color: '#1e90ff',
-    marginRight: 10,
-  },
-  deleteText: {
-    color: '#ff4c4c',
-  },
-  inputContainer: {
-    flexDirection: 'row',
-    marginTop: 20,
-    alignItems: 'center',
-  },
-  input: {
-    flex: 1,
-    borderColor: '#ccc',
-    borderWidth: 1,
-    borderRadius: 8,
-    padding: 10,
-    marginRight: 10,
-  },
-  button: {
-    backgroundColor: '#1e90ff',
-    paddingVertical: 12,
-    borderRadius: 8,
-    alignItems: 'center',
-    flexShrink: 0,
-  },
-  buttonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
-  modalContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-  },
-  modalView: {
-    width: '80%',
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    padding: 20,
-    shadowColor: '#000',
-    shadowOpacity: 0.2,
-    shadowRadius: 10,
-    elevation: 10,
-  },
-  modalHeader: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    marginBottom: 10,
-  },
-  modalInput: {
-    borderColor: '#ccc',
-    borderWidth: 1,
-    borderRadius: 8,
-    padding: 10,
-    marginBottom: 20,
-  },
-  modalButtonContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-  },
-  modalButton: {
-    flex: 1,
-    borderRadius: 8,
-    padding: 10,
-    marginHorizontal: 5,
-    alignItems: 'center',
-  },
-  saveButton: {
-    backgroundColor: '#1e90ff',
-  },
-  cancelButton: {
-    backgroundColor: '#ff4c4c',
-  },
-});
 
 export default GoalsScreen;

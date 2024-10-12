@@ -1,18 +1,20 @@
 import React, { useState, useEffect } from 'react';
-import {
-  StyleSheet,
-  Text,
-  View,
-  FlatList,
-  TouchableOpacity,
-  Modal,
-  TextInput,
-  Pressable,
-  Alert,
-} from 'react-native';
-import { collection, onSnapshot, addDoc, deleteDoc, doc } from 'firebase/firestore'; // Import Firestore functions
-import { db } from '../../firebaseConfig'; // Import Firebase configuration
-import { getAuth } from 'firebase/auth'; // Import Firebase Auth
+import { View, Text, FlatList, Modal, TextInput, TouchableOpacity, Pressable, Alert, ImageBackground } from 'react-native';
+import { collection, onSnapshot, addDoc, deleteDoc, doc } from 'firebase/firestore';
+import { db } from '../../firebaseConfig';
+import { getAuth } from 'firebase/auth';
+import { styled } from 'nativewind';
+
+const auth = getAuth();
+
+const StyledView = styled(View);
+const StyledText = styled(Text);
+const StyledFlatList = styled(FlatList);
+const StyledTouchableOpacity = styled(TouchableOpacity);
+const StyledModal = styled(Modal);
+const StyledTextInput = styled(TextInput);
+const StyledPressable = styled(Pressable);
+const StyledImageBackground = styled(ImageBackground);
 
 interface InventoryItem {
   id: string;
@@ -24,20 +26,12 @@ interface InventoryItem {
 const InventoryScreen = () => {
   const [inventoryItems, setInventoryItems] = useState<InventoryItem[]>([]);
   const [modalVisible, setModalVisible] = useState(false);
-  const [newItem, setNewItem] = useState<InventoryItem>({
-    id: '',
-    name: '',
-    quantity: 0,
-    unit: '',
-  });
-  const auth = getAuth();
+  const [newItem, setNewItem] = useState<InventoryItem>({ id: '', name: '', quantity: 0, unit: '' });
   const user = auth.currentUser;
 
   useEffect(() => {
     if (user) {
-      // Set up real-time listener for inventory updates
       const inventoryCollection = collection(db, 'users', user.uid, 'inventory');
-
       const unsubscribe = onSnapshot(inventoryCollection, (snapshot) => {
         const items: InventoryItem[] = snapshot.docs.map((doc) => ({
           id: doc.id,
@@ -46,14 +40,12 @@ const InventoryScreen = () => {
         setInventoryItems(items);
       });
 
-      // Clean up listener on component unmount
       return () => unsubscribe();
     } else {
       Alert.alert('Error', 'User is not logged in.');
     }
   }, [user]);
 
-  // Function to add new item to inventory (and save to Firestore)
   const addNewItem = async () => {
     if (newItem.name.trim() && newItem.quantity > 0 && newItem.unit.trim()) {
       try {
@@ -83,210 +75,101 @@ const InventoryScreen = () => {
     }
   };
 
-  // Render each item in the inventory
   const renderItem = ({ item }: { item: InventoryItem }) => (
-    <View style={styles.itemContainer}>
-      <Text style={styles.itemName}>{item.name}</Text>
-      <Text style={styles.itemDetails}>
-        Quantity: {item.quantity} {item.unit}
-      </Text>
-      <View style={styles.itemActions}>
-        <TouchableOpacity
-          style={styles.editButton}
+    <StyledView className="bg-white p-5 rounded-lg mb-4 shadow-lg">
+      <StyledText className="text-lg font-bold">{item.name}</StyledText>
+      <StyledText className="text-gray-400">Quantity: {item.quantity} {item.unit}</StyledText>
+      <StyledView className="flex-row justify-between mt-3">
+        <StyledTouchableOpacity
+          className="bg-blue-500 p-2 rounded-lg"
           onPress={() => {
             setNewItem(item);
             setModalVisible(true);
           }}
         >
-          <Text style={styles.actionText}>Edit</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={styles.deleteButton}
+          <StyledText className="text-white">Edit</StyledText>
+        </StyledTouchableOpacity>
+        <StyledTouchableOpacity
+          className="bg-red-500 p-2 rounded-lg"
           onPress={() => deleteItem(item.id)}
         >
-          <Text style={styles.actionText}>Delete</Text>
-        </TouchableOpacity>
-      </View>
-    </View>
+          <StyledText className="text-white">Delete</StyledText>
+        </StyledTouchableOpacity>
+      </StyledView>
+    </StyledView>
   );
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.header}>Your Inventory</Text>
-      <FlatList
-        data={inventoryItems}
-        renderItem={renderItem}
-        keyExtractor={(item) => item.id}
-        contentContainerStyle={styles.listContainer}
-      />
-      <TouchableOpacity style={styles.button} onPress={() => setModalVisible(true)}>
-        <Text style={styles.buttonText}>Add New Item</Text>
-      </TouchableOpacity>
+    <StyledImageBackground
+      source={{ uri: 'https://img.freepik.com/free-vector/gradient-particle-wave-background_23-2150517309.jpg' }}
+      className="flex-1 justify-center items-center bg-[#141e30]"
+      blurRadius={20}
+    >
+      <StyledView className="flex-1 justify-center items-center p-5">
+        <StyledText className="text-2xl font-bold text-center text-blue-500 mb-5">Your Inventory</StyledText>
 
-      {/* Modal for adding/editing items */}
-      <Modal
-        animationType="slide"
-        transparent={true}
-        visible={modalVisible}
-        onRequestClose={() => setModalVisible(false)}
-      >
-        <View style={styles.modalContainer}>
-          <View style={styles.modalView}>
-            <Text style={styles.modalHeader}>Add/Edit Item</Text>
-            <TextInput
-              style={styles.modalInput}
-              placeholder="Item Name"
-              value={newItem.name}
-              onChangeText={(text) => setNewItem({ ...newItem, name: text })}
-            />
-            <TextInput
-              style={styles.modalInput}
-              placeholder="Quantity"
-              keyboardType="numeric"
-              value={newItem.quantity ? newItem.quantity.toString() : ''}
-              onChangeText={(text) =>
-                setNewItem({ ...newItem, quantity: Number(text) })
-              }
-            />
-            <TextInput
-              style={styles.modalInput}
-              placeholder="Unit"
-              value={newItem.unit}
-              onChangeText={(text) => setNewItem({ ...newItem, unit: text })}
-            />
-            <View style={styles.modalButtonContainer}>
-              <Pressable style={[styles.modalButton, styles.saveButton]} onPress={addNewItem}>
-                <Text style={styles.buttonText}>Save</Text>
-              </Pressable>
-              <Pressable
-                style={[styles.modalButton, styles.cancelButton]}
-                onPress={() => {
-                  setNewItem({ id: '', name: '', quantity: 0, unit: '' });
-                  setModalVisible(false);
-                }}
-              >
-                <Text style={styles.buttonText}>Cancel</Text>
-              </Pressable>
-            </View>
-          </View>
-        </View>
-      </Modal>
-    </View>
+        <StyledTouchableOpacity
+          className="bg-blue-500 p-4 rounded-lg mt-5"
+          onPress={() => setModalVisible(true)}
+        >
+          <StyledText className="text-white text-center">Add New Item</StyledText>
+        </StyledTouchableOpacity>
+
+        {/* Modal for adding/editing items */}
+        <StyledModal
+          animationType="slide"
+          transparent={true}
+          visible={modalVisible}
+          onRequestClose={() => setModalVisible(false)}
+        >
+          <StyledView className="flex-1 justify-center items-center bg-black/50">
+            <StyledView className="bg-white p-6 rounded-lg w-4/5">
+              <StyledText className="text-xl font-bold mb-4">Add/Edit Item</StyledText>
+
+              <StyledTextInput
+                className="border border-gray-300 p-3 rounded-lg mb-4"
+                placeholder="Item Name"
+                value={newItem.name}
+                onChangeText={(text) => setNewItem({ ...newItem, name: text })}
+              />
+              <StyledTextInput
+                className="border border-gray-300 p-3 rounded-lg mb-4"
+                placeholder="Quantity"
+                keyboardType="numeric"
+                value={newItem.quantity ? newItem.quantity.toString() : ''}
+                onChangeText={(text) => setNewItem({ ...newItem, quantity: Number(text) })}
+              />
+              <StyledTextInput
+                className="border border-gray-300 p-3 rounded-lg mb-4"
+                placeholder="Unit"
+                value={newItem.unit}
+                onChangeText={(text) => setNewItem({ ...newItem, unit: text })}
+              />
+
+              <StyledView className="flex-row justify-between">
+                <StyledPressable
+                  className="bg-blue-500 p-3 rounded-lg flex-1 mr-2"
+                  onPress={addNewItem}
+                >
+                  <StyledText className="text-white text-center">Save</StyledText>
+                </StyledPressable>
+
+                <StyledPressable
+                  className="bg-red-500 p-3 rounded-lg flex-1 ml-2"
+                  onPress={() => {
+                    setNewItem({ id: '', name: '', quantity: 0, unit: '' });
+                    setModalVisible(false);
+                  }}
+                >
+                  <StyledText className="text-white text-center">Cancel</StyledText>
+                </StyledPressable>
+              </StyledView>
+            </StyledView>
+          </StyledView>
+        </StyledModal>
+      </StyledView>
+    </StyledImageBackground>
   );
 };
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    padding: 20,
-    backgroundColor: '#f7f7f7',
-  },
-  header: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    marginBottom: 20,
-    textAlign: 'center',
-    color: '#1e90ff',
-  },
-  listContainer: {
-    paddingBottom: 20,
-  },
-  itemContainer: {
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    padding: 15,
-    marginBottom: 15,
-    shadowColor: '#000',
-    shadowOpacity: 0.1,
-    shadowRadius: 10,
-    elevation: 5,
-  },
-  itemName: {
-    fontSize: 20,
-    fontWeight: 'bold',
-  },
-  itemDetails: {
-    fontSize: 16,
-    color: '#666',
-  },
-  itemActions: {
-    flexDirection: 'row',
-    marginTop: 10,
-    justifyContent: 'space-between',
-  },
-  editButton: {
-    backgroundColor: '#1e90ff',
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-    borderRadius: 8,
-  },
-  deleteButton: {
-    backgroundColor: '#ff4c4c',
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-    borderRadius: 8,
-  },
-  actionText: {
-    color: '#fff',
-    fontWeight: 'bold',
-  },
-  button: {
-    backgroundColor: '#1e90ff',
-    paddingVertical: 12,
-    borderRadius: 8,
-    alignItems: 'center',
-    marginTop: 20,
-  },
-  buttonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
-  modalContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-  },
-  modalView: {
-    width: '80%',
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    padding: 20,
-    shadowColor: '#000',
-    shadowOpacity: 0.2,
-    shadowRadius: 10,
-    elevation: 10,
-  },
-  modalHeader: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    marginBottom: 10,
-  },
-  modalInput: {
-    borderColor: '#ccc',
-    borderWidth: 1,
-    borderRadius: 8,
-    padding: 10,
-    marginBottom: 20,
-  },
-  modalButtonContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-  },
-  modalButton: {
-    flex: 1,
-    borderRadius: 8,
-    padding: 10,
-    marginHorizontal: 5,
-    alignItems: 'center',
-  },
-  saveButton: {
-    backgroundColor: '#1e90ff',
-  },
-  cancelButton: {
-    backgroundColor: '#ff4c4c',
-  },
-});
 
 export default InventoryScreen;

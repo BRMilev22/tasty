@@ -112,7 +112,7 @@ const DashboardScreen: React.FC<DashboardProps> = ({ onLogout }) => {
                 {/* Motivational Quote Section */}
                 <StyledView className="my-5 p-4 bg-white/10 rounded-lg shadow-lg shadow-black/30">
                   <StyledText className="text-xl font-semibold text-[#f0eaff]">“Да си оближеш пръстите.”</StyledText>
-                  <StyledText className="text-gray-300">- Божидар Димов</StyledText>
+                  <StyledText className="text-gray-300">- Борис Милев</StyledText>
                 </StyledView>
 
                 {/* User Statistics Section */}
