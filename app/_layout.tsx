@@ -1,48 +1,55 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import Dashboard from './(tabs)/dashboard';
 import AuthScreen from './auth/AuthScreen';
-
-interface User {
-  id: string;
-  name: string;
-}
-
-interface Auth {
-  isLoggedIn: boolean;
-  user?: User;
-}
-
-interface DashboardProps {
-  user?: User;
-  onLogout: () => void; // Added onLogout prop to Dashboard
-}
-
-interface AuthScreenProps {
-  onLogin: () => void;
-}
+import WelcomeScreen from './welcomeScreen'; // Import the WelcomeScreen
+import RegisterScreen from './auth/RegisterScreen'; // Import the RegisterScreen
 
 const Stack = createNativeStackNavigator();
 
 const _layout = () => {
-  const [isLoggedIn, setIsLoggedIn] = useState(false); // Manage login state
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [isFirstLaunch, setIsFirstLaunch] = useState<boolean | null>(null);
 
   const handleLogin = () => {
-    setIsLoggedIn(true); // Update state to reflect logged-in status
+    setIsLoggedIn(true);
     console.log('Login successful');
-    // Add more login logic here if needed
   };
 
   const handleLogout = () => {
-    setIsLoggedIn(false); // Update state to reflect logged-out status
+    setIsLoggedIn(false);
     console.log('Logout successful');
-    // Add more logout logic here if needed
   };
+
+  useEffect(() => {
+    const checkFirstLaunch = async () => {
+      const hasLaunched = await AsyncStorage.getItem('hasLaunched');
+      if (hasLaunched === null) {
+        setIsFirstLaunch(true);
+        await AsyncStorage.setItem('hasLaunched', 'true');
+      } else {
+        setIsFirstLaunch(false);
+      }
+    };
+    
+    const clearStorage = async () => {
+      await AsyncStorage.removeItem('hasLaunched');
+    }
+    clearStorage();
+    checkFirstLaunch();
+  }, []);
 
   return (
       <Stack.Navigator>
-        {isLoggedIn ? (
+        {isFirstLaunch ? (
+          <Stack.Screen
+            name="welcomeScreen"
+            options={{ headerShown: false }}
+            component={WelcomeScreen} // Show the WelcomeScreen on first launch
+          />
+        ) : isLoggedIn ? (
           <Stack.Screen
             name="(tabs)/dashboard"
             options={{ headerShown: false }}
@@ -55,6 +62,11 @@ const _layout = () => {
             children={() => <AuthScreen onLogin={handleLogin} />} // Pass handleLogin to AuthScreen
           />
         )}
+        <Stack.Screen
+          name="auth/RegisterScreen" // Ensure the name matches the path
+          options={{ headerShown: false }}
+          component={RegisterScreen}
+        />
       </Stack.Navigator>
   );
 };
