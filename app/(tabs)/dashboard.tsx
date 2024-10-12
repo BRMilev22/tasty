@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { collection, onSnapshot, addDoc, deleteDoc, doc } from 'firebase/firestore'; // Import Firestore functions
 import { StyleSheet, Text, View, TouchableOpacity, ScrollView } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import Ionicons from 'react-native-vector-icons/Ionicons'; 
@@ -7,24 +8,33 @@ import GoalsScreen from './goals';
 import InventoryScreen from './inventory';
 import RecipesScreen from './recipes';
 import ScanScreen from './scan';
+import { db } from '../../firebaseConfig'; // Import Firebase configuration
 import { getAuth } from 'firebase/auth';
 
 const auth = getAuth();
 const Tab = createBottomTabNavigator();
 
-interface User {
-  id: string;
-  name: string;
-}
-
 interface DashboardProps {
-  user?: User;
   onLogout: () => void;
 }
 
-const DashboardScreen: React.FC<DashboardProps> = ({ user, onLogout }) => {
+const DashboardScreen: React.FC<DashboardProps> = ({ onLogout }) => {
   const [isSummaryOpen, setIsSummaryOpen] = useState(false);
   const [isRecentActivitiesOpen, setIsRecentActivitiesOpen] = useState(false);
+
+  const auth = getAuth();
+  const user = auth.currentUser;
+
+  useEffect(() => {
+    if (user) {
+      console.log('User is logged in:', {
+        uid: user.uid,
+        email: user.email,
+      });
+    } else {
+      console.log('No user is logged in.');
+    }
+  }, []);
 
   const handleLogout = async () => {
     try {
@@ -94,7 +104,7 @@ const DashboardScreen: React.FC<DashboardProps> = ({ user, onLogout }) => {
       <Tab.Screen name="Dashboard" options={{ headerShown: false }}>
         {() => (
           <ScrollView contentContainerStyle={styles.container}>
-            <Text style={styles.header}>Welcome, {user ? user.name : 'Guest'}!</Text>
+            <Text style={styles.header}>Welcome, to Tasty!</Text>
 
             <View style={styles.pieChartContainer}>
               <Text style={styles.chartTitle}>Nutritional Breakdown</Text>

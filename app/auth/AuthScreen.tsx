@@ -52,10 +52,10 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ onLogin }) => {
             await createUserWithEmailAndPassword(auth, email, password);
             setError('');
             showMessage({
-                message: 'Registration successful! Please select your goal.',
+                message: 'Registration successful!',
                 type: 'success',
             });
-            router.replace('/goalsSelect'); // Navigate to the goal selection screen
+            fadeOut();
         } catch (err) {
             setError('Error registering. Please try again.');
             showMessage({
