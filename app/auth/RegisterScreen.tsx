@@ -1,4 +1,3 @@
-// app/auth/RegisterScreen.tsx
 import React, { useState } from 'react';
 import { View, TextInput, Text, TouchableOpacity, Animated, ImageBackground } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
@@ -6,6 +5,7 @@ import { getAuth, createUserWithEmailAndPassword } from 'firebase/auth';
 import FlashMessage, { showMessage } from 'react-native-flash-message';
 import { styled } from 'nativewind';
 import { StackNavigationProp } from '@react-navigation/stack';
+import Dashboard from '../(tabs)/dashboard';
 
 const StyledImageBackground = styled(ImageBackground);
 const StyledAnimatedView = styled(Animated.View);
@@ -32,11 +32,68 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
             duration: 1000,
             useNativeDriver: true,
         }).start(() => {
-            navigation.navigate('../dashboard');
+            navigation.navigate('Dashboard'); // doesn't work
         });
+    };    
+
+    const isValidEmail = (email: string) => {
+        const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+        return emailRegex.test(email);
+    };
+
+    const isValidPassword = (password: string) => {
+        const containsNumber = /\d/.test(password);
+        const containsLetter = /[a-zA-Z]/.test(password);
+        const containsUpperCase = /[A-Z]/.test(password);
+        const containsSpecialChar = /[!@?#$%&*]/.test(password);
+
+        if (password.length < 8) {
+            setError('Password must be at least 8 characters long.');
+            return false;
+        }
+        if (!containsLetter) {
+            setError('Password must contain at least one letter.');
+            return false;
+        }
+        if (!containsNumber) {
+            setError('Password must contain at least one number.');
+            return false;
+        }
+        if (!containsUpperCase) {
+            setError('Password must contain at least one uppercase letter.');
+            return false;
+        }
+        if (!containsSpecialChar) {
+            setError('Password must contain at least one special character.');
+            return false;
+        }
+        return true;
+    };
+
+    const validateInputs = () => {
+        if (!email || !password) {
+            setError('Email and password fields cannot be empty.');
+            return false;
+        }
+
+        if (!isValidEmail(email)) {
+            setError('Please enter a valid email address.');
+            return false;
+        }
+
+        if (!isValidPassword(password)) {
+            return false;
+        }
+
+        setError('');
+        return true;
     };
 
     const handleRegister = async () => {
+        if (!validateInputs()) {
+            return;
+        }
+
         try {
             await createUserWithEmailAndPassword(auth, email, password);
             setError('');
