@@ -1,30 +1,36 @@
 import React, { useState, useEffect } from 'react';
-import { collection, onSnapshot, addDoc, deleteDoc, doc } from 'firebase/firestore'; // Import Firestore functions
-import { StyleSheet, Text, View, TouchableOpacity, ScrollView } from 'react-native';
+import { ScrollView, View, Alert } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import Ionicons from 'react-native-vector-icons/Ionicons'; 
-import { PieChart } from 'react-native-chart-kit';
+import Ionicons from 'react-native-vector-icons/Ionicons';
 import GoalsScreen from './goals';
 import InventoryScreen from './inventory';
 import RecipesScreen from './recipes';
 import ScanScreen from './scan';
-import { db } from '../../firebaseConfig'; // Import Firebase configuration
 import { getAuth } from 'firebase/auth';
+import { styled } from 'nativewind';
+import { Text, TouchableOpacity, ImageBackground } from 'react-native';
 
 const auth = getAuth();
 const Tab = createBottomTabNavigator();
+
+const StyledScrollView = styled(ScrollView);
+const StyledView = styled(View);
+const StyledText = styled(Text);
+const StyledTouchableOpacity = styled(TouchableOpacity);
+const StyledImageBackground = styled(ImageBackground);
 
 interface DashboardProps {
   onLogout: () => void;
 }
 
 const DashboardScreen: React.FC<DashboardProps> = ({ onLogout }) => {
-  const [isSummaryOpen, setIsSummaryOpen] = useState(false);
-  const [isRecentActivitiesOpen, setIsRecentActivitiesOpen] = useState(false);
-
-  const auth = getAuth();
   const user = auth.currentUser;
-
+  
+  const [mealsConsumed, setMealsConsumed] = useState(5);
+  const [calories, setCalories] = useState(1200);
+  const [waterDrank, setWaterDrank] = useState(2.5);
+  const [proteins, setProteins] = useState(300);
+  
   useEffect(() => {
     if (user) {
       console.log('User is logged in:', {
@@ -38,44 +44,28 @@ const DashboardScreen: React.FC<DashboardProps> = ({ onLogout }) => {
 
   const handleLogout = async () => {
     try {
-      await auth.signOut(); 
-      onLogout(); 
+      await auth.signOut();
+      onLogout();
     } catch (err) {
       console.error('Logout error:', err);
     }
   };
 
-  const toggleSummary = () => {
-    setIsSummaryOpen(prev => !prev);
+  const handleAddMeal = () => {
+    Alert.alert('Add Meal', 'Functionality to add a meal will be implemented.');
   };
 
-  const toggleRecentActivities = () => {
-    setIsRecentActivitiesOpen(prev => !prev);
+  const handleTrackWater = () => {
+    Alert.alert('Track Water', 'Functionality to track water intake will be implemented.');
   };
 
-  const data = [
-    {
-      name: 'Protein',
-      population: 300,
-      color: '#FF6384',
-      legendFontColor: '#7F7F7F',
-      legendFontSize: 15,
-    },
-    {
-      name: 'Carbohydrates',
-      population: 400,
-      color: '#36A2EB',
-      legendFontColor: '#7F7F7F',
-      legendFontSize: 15,
-    },
-    {
-      name: 'Fats',
-      population: 100,
-      color: '#FFCE56',
-      legendFontColor: '#7F7F7F',
-      legendFontSize: 15,
-    },
-  ];
+  const handleViewGoals = () => {
+    Alert.alert('View Goals', 'Functionality to view goals will be implemented.');
+  };
+
+  const handleSeeRecipes = () => {
+    Alert.alert('See Recipes', 'Functionality to view recipes will be implemented.');
+  };
 
   return (
     <Tab.Navigator
@@ -99,176 +89,94 @@ const DashboardScreen: React.FC<DashboardProps> = ({ onLogout }) => {
         },
         tabBarActiveTintColor: '#1e90ff',
         tabBarInactiveTintColor: 'gray',
+        tabBarStyle: {backgroundColor: 'rgba(34, 36, 40, 1)'}
       })}
     >
       <Tab.Screen name="Dashboard" options={{ headerShown: false }}>
         {() => (
-          <ScrollView contentContainerStyle={styles.container}>
-            <Text style={styles.header}>Welcome, to Tasty!</Text>
+          <StyledView className="flex-1">
+            <StyledImageBackground
+              source={{ uri: 'https://img.freepik.com/free-vector/gradient-particle-wave-background_23-2150517309.jpg' }}
+              className="flex-1 justify-center items-center bg-[#141e30]"
+              blurRadius={20}
+            >
+              <StyledScrollView contentContainerStyle={{ flexGrow: 1 }} className="p-5 top-10">
+                {/* Header Section */}
+                <StyledView className="flex-row justify-between items-center mb-5">
+                  <StyledText className="text-3xl font-bold text-[#f0eaff]">Welcome, {user?.email || 'User'}!</StyledText>
+                  <StyledTouchableOpacity onPress={handleLogout} className="bg-red-500 rounded-full px-4 py-2">
+                    <StyledText className="text-white">Logout</StyledText>
+                  </StyledTouchableOpacity>
+                </StyledView>
 
-            <View style={styles.pieChartContainer}>
-              <Text style={styles.chartTitle}>Nutritional Breakdown</Text>
-              <PieChart
-                data={data}
-                width={320}
-                height={220}
-                chartConfig={{
-                  backgroundColor: '#ffffff',
-                  color: (opacity = 1) => `rgba(255, 99, 132, ${opacity})`,
-                  labelColor: (opacity = 1) => `rgba(0, 0, 0, ${opacity})`,
-                  style: { borderRadius: 16 },
-                  propsForDots: {
-                    r: '6',
-                    strokeWidth: '2',
-                    stroke: '#ffffff',
-                  },
-                }}
-                accessor="population"
-                backgroundColor="transparent"
-                paddingLeft="15"
-              />
-            </View>
+                {/* Motivational Quote Section */}
+                <StyledView className="my-5 p-4 bg-white/10 rounded-lg shadow-lg shadow-black/30">
+                  <StyledText className="text-xl font-semibold text-[#f0eaff]">“Да си оближеш пръстите.”</StyledText>
+                  <StyledText className="text-gray-300">- Божидар Димов</StyledText>
+                </StyledView>
 
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.featuresContainer}>
-              <View style={styles.featureBox}>
-                <Text style={styles.featureTitle}>Meals Consumed</Text>
-                <Text style={styles.featureValue}>5</Text>
-              </View>
-              <View style={styles.featureBox}>
-                <Text style={styles.featureTitle}>Liters of Water Drank</Text>
-                <Text style={styles.featureValue}>2.5L</Text>
-              </View>
-              <View style={styles.featureBox}>
-                <Text style={styles.featureTitle}>Calories Eaten</Text>
-                <Text style={styles.featureValue}>1200 kcal</Text>
-              </View>
-            </ScrollView>
+                {/* User Statistics Section */}
+                <StyledView className="bg-white/10 p-5 rounded-lg shadow-lg shadow-black/30">
+                  <StyledText className="text-lg font-bold text-[#f0eaff]">Your Statistics</StyledText>
+                  <StyledView className="flex-row justify-between mt-3">
+                    <StyledText className="text-gray-300">Meals Consumed: {mealsConsumed}</StyledText>
+                    <StyledText className="text-gray-300">Calories: {calories} kcal</StyledText>
+                  </StyledView>
+                  <StyledView className="flex-row justify-between mt-2">
+                    <StyledText className="text-gray-300">Water Drank: {waterDrank}L</StyledText>
+                    <StyledText className="text-gray-300">Proteins: {proteins}g</StyledText>
+                  </StyledView>
 
-            <TouchableOpacity onPress={toggleSummary} style={styles.summaryButton}>
-              <Text style={styles.buttonText}>Summary</Text>
-            </TouchableOpacity>
-            {isSummaryOpen && (
-              <View style={styles.summaryContainer}>
-                <Text style={styles.summaryText}>Your Summary Content Here</Text>
-              </View>
-            )}
+                  {/* Additional Statistics */}
+                  <StyledView className="mt-5">
+                    <StyledText className="text-lg font-bold text-[#f0eaff]">Additional Insights</StyledText>
+                    <StyledView className="flex-row justify-between mt-3">
+                      <StyledView className="bg-white/20 p-3 rounded-lg flex-1 mr-2">
+                        <StyledText className="text-center text-gray-300">Carbs: 150g</StyledText>
+                      </StyledView>
+                      <StyledView className="bg-white/20 p-3 rounded-lg flex-1 ml-2">
+                        <StyledText className="text-center text-gray-300">Fats: 50g</StyledText>
+                      </StyledView>
+                    </StyledView>
+                  </StyledView>
+                </StyledView>
 
-            <TouchableOpacity onPress={toggleRecentActivities} style={styles.activitiesButton}>
-              <Text style={styles.buttonText}>Recent Activities</Text>
-            </TouchableOpacity>
-            {isRecentActivitiesOpen && (
-              <View style={styles.activitiesContainer}>
-                <Text style={styles.activitiesText}>Your Recent Activities Here</Text>
-              </View>
-            )}
+                {/* Action Buttons Section */}
+                <StyledView className="mt-5">
+                  <StyledText className="text-lg font-bold text-[#f0eaff]">Actions</StyledText>
+                  <StyledView className="flex-row justify-between mt-3">
+                    <StyledTouchableOpacity onPress={handleAddMeal} className="bg-[#1e90ff] p-4 rounded-lg flex-1 mr-2">
+                      <StyledText className="text-white text-center">Add Meal</StyledText>
+                    </StyledTouchableOpacity>
+                    <StyledTouchableOpacity onPress={handleTrackWater} className="bg-[#1e90ff] p-4 rounded-lg flex-1 ml-2">
+                      <StyledText className="text-white text-center">Track Water</StyledText>
+                    </StyledTouchableOpacity>
+                  </StyledView>
+                  <StyledView className="flex-row justify-between mt-2">
+                    <StyledTouchableOpacity onPress={handleViewGoals} className="bg-[#1e90ff] p-4 rounded-lg flex-1 mr-2">
+                      <StyledText className="text-white text-center">View Goals</StyledText>
+                    </StyledTouchableOpacity>
+                    <StyledTouchableOpacity onPress={handleSeeRecipes} className="bg-[#1e90ff] p-4 rounded-lg flex-1 ml-2">
+                      <StyledText className="text-white text-center">See Recipes</StyledText>
+                    </StyledTouchableOpacity>
+                  </StyledView>
+                </StyledView>
 
-            <TouchableOpacity onPress={handleLogout} style={styles.logoutButton}>
-              <Text style={styles.buttonText}>Logout</Text>
-            </TouchableOpacity>
-          </ScrollView>
+                {/* Footer Section */}
+                <StyledView className="mt-5 p-4 bg-white/10 rounded-lg shadow-lg shadow-black/30">
+                  <StyledText className="text-center text-gray-300">© 2024 Tasty App. All rights reserved.</StyledText>
+                </StyledView>
+              </StyledScrollView>
+            </StyledImageBackground>
+          </StyledView>
         )}
       </Tab.Screen>
-      <Tab.Screen name="Goals" component={GoalsScreen} />
-      <Tab.Screen name="Inventory" component={InventoryScreen} />
-      <Tab.Screen name="Recipes" component={RecipesScreen} />
-      <Tab.Screen name="Scan" component={ScanScreen} />
+      <Tab.Screen name="Goals" component={GoalsScreen} options={{headerShown: false}} />
+      <Tab.Screen name="Inventory" component={InventoryScreen} options={{headerShown: false}} />
+      <Tab.Screen name="Recipes" component={RecipesScreen} options={{headerShown: false}} />
+      <Tab.Screen name="Scan" component={ScanScreen} options={{headerShown: false}} />
     </Tab.Navigator>
   );
 };
-
-const styles = StyleSheet.create({
-  container: {
-    flexGrow: 1,
-    padding: 20,
-    backgroundColor: '#f0f4f8',
-  },
-  header: {
-    fontSize: 32,
-    fontWeight: 'bold',
-    color: '#1e90ff',
-    marginTop: 30,
-    marginBottom: 20,
-  },
-  pieChartContainer: {
-    marginVertical: 20,
-    alignItems: 'center',
-  },
-  chartTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    marginBottom: 10,
-    color: '#333',
-  },
-  featuresContainer: {
-    flexDirection: 'row',
-    marginVertical: 20,
-  },
-  featureBox: {
-    width: 200,
-    backgroundColor: '#ffffff',
-    borderRadius: 8,
-    padding: 20,
-    marginHorizontal: 5,
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.2,
-    shadowRadius: 3,
-  },
-  featureTitle: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#333',
-  },
-  featureValue: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#1e90ff',
-  },
-  summaryButton: {
-    backgroundColor: '#1e90ff',
-    borderRadius: 8,
-    paddingVertical: 12,
-    marginVertical: 10,
-    alignItems: 'center',
-  },
-  activitiesButton: {
-    backgroundColor: '#1e90ff',
-    borderRadius: 8,
-    paddingVertical: 12,
-    marginVertical: 10,
-    alignItems: 'center',
-  },
-  summaryContainer: {
-    backgroundColor: '#ffffff',
-    padding: 20,
-    borderRadius: 8,
-    marginVertical: 10,
-  },
-  summaryText: {
-    color: '#333',
-  },
-  activitiesContainer: {
-    backgroundColor: '#ffffff',
-    padding: 20,
-    borderRadius: 8,
-    marginVertical: 10,
-  },
-  activitiesText: {
-    color: '#333',
-  },
-  logoutButton: {
-    backgroundColor: '#ff4757',
-    borderRadius: 8,
-    paddingVertical: 12,
-    marginVertical: 20,
-    alignItems: 'center',
-  },
-  buttonText: {
-    color: '#fff',
-    fontSize: 18,
-    fontWeight: 'bold',
-  },
-});
 
 export default DashboardScreen;

@@ -1,9 +1,17 @@
-import React, { useState, useEffect } from 'react';
-import { View, TextInput, Text, StyleSheet, TouchableOpacity, Animated } from 'react-native';
+import React, { useState } from 'react';
+import { View, TextInput, Text, TouchableOpacity, Animated, ImageBackground } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword } from 'firebase/auth';
-import { useRouter } from 'expo-router';  // Import useRouter for navigation
-import FlashMessage, { showMessage } from 'react-native-flash-message'; // Import FlashMessage
+import { useRouter } from 'expo-router';
+import FlashMessage, { showMessage } from 'react-native-flash-message';
+import { styled } from 'nativewind';
+
+const StyledImageBackground = styled(ImageBackground);
+const StyledAnimatedView = styled(Animated.View);
+const StyledView = styled(View);
+const StyledText = styled(Text);
+const StyledTouchableOpacity = styled(TouchableOpacity);
+const StyledTextInput = styled(TextInput);
 
 const auth = getAuth();
 
@@ -16,16 +24,16 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ onLogin }) => {
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
     const [isRegistering, setIsRegistering] = useState(false);
-    const opacity = useState(new Animated.Value(1))[0]; // Initialize animated value
-    const router = useRouter(); // Initialize the router hook for navigation
+    const opacity = useState(new Animated.Value(1))[0];
+    const router = useRouter();
 
     const fadeOut = () => {
         Animated.timing(opacity, {
             toValue: 0,
-            duration: 1500,
+            duration: 1000,
             useNativeDriver: true,
         }).start(() => {
-            onLogin(); // Call onLogin prop after animation is complete
+            onLogin();
         });
     };
 
@@ -37,7 +45,7 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ onLogin }) => {
                 message: 'Login successful!',
                 type: 'success',
             });
-            fadeOut(); // Start fade-out animation
+            fadeOut();
         } catch (err) {
             setError('Invalid credentials. Please try again.');
             showMessage({
@@ -66,102 +74,62 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ onLogin }) => {
     };
 
     return (
-        <Animated.View style={[styles.container, { opacity }]}>
-            <Text style={styles.title}>{isRegistering ? 'Register' : 'Login'}</Text>
-            {error ? <Text style={styles.error}>{error}</Text> : null}
-            
-            <View style={styles.inputContainer}>
-                <Ionicons name="mail" size={20} color="#888" style={styles.icon} />
-                <TextInput
-                    style={styles.input}
-                    placeholder="Email"
-                    value={email}
-                    onChangeText={setEmail}
-                    autoCapitalize="none"
-                />
-            </View>
-            
-            <View style={styles.inputContainer}>
-                <Ionicons name="lock-closed" size={20} color="#888" style={styles.icon} />
-                <TextInput
-                    style={styles.input}
-                    placeholder="Password"
-                    secureTextEntry
-                    value={password}
-                    onChangeText={setPassword}
-                />
-            </View>
-            
-            <TouchableOpacity style={styles.button} onPress={isRegistering ? handleRegister : handleLogin}>
-                <Text style={styles.buttonText}>{isRegistering ? 'Register' : 'Login'}</Text>
-            </TouchableOpacity>
-            
-            <TouchableOpacity onPress={() => setIsRegistering(!isRegistering)}>
-                <Text style={styles.toggleText}>
-                    {isRegistering ? 'Already have an account? Login' : 'Don’t have an account? Register'}
-                </Text>
-            </TouchableOpacity>
+        <StyledImageBackground
+            source={{ uri: 'https://img.freepik.com/free-vector/gradient-particle-wave-background_23-2150517309.jpg' }}
+            className="flex-1 justify-center items-center bg-[#141e30]"
+            blurRadius={20}
+        >
+            <StyledAnimatedView style={{ opacity }} className="flex-1 justify-center items-center">
+                <StyledView className="w-[90%] p-5 rounded-xl bg-white/10 border border-white/20 shadow-lg shadow-black/30 items-center">
+                    <StyledText className="text-2xl font-bold text-[#f0eaff] mb-5">
+                        {isRegistering ? 'Create Account' : 'Welcome Back'}
+                    </StyledText>
+                    {error ? <StyledText className="text-red-500 mb-2">{error}</StyledText> : null}
 
-            {/* Flash Message component */}
-            <FlashMessage position="top" />
-        </Animated.View>
+                    <StyledView className="flex-row items-center bg-white/20 rounded-lg p-3 mb-4 w-full">
+                        <Ionicons name="mail-outline" size={24} color="#c0c0c0" />
+                        <StyledTextInput
+                            className="flex-1 ml-3 text-base text-[#f0eaff]"
+                            placeholder="Email Address"
+                            value={email}
+                            onChangeText={setEmail}
+                            autoCapitalize="none"
+                            placeholderTextColor="#c0c0c0"
+                        />
+                    </StyledView>
+
+                    <StyledView className="flex-row items-center bg-white/20 rounded-lg p-3 mb-4 w-full">
+                        <Ionicons name="lock-closed-outline" size={24} color="#c0c0c0" />
+                        <StyledTextInput
+                            className="flex-1 ml-3 text-base text-[#f0eaff]"
+                            placeholder="Password"
+                            secureTextEntry
+                            value={password}
+                            onChangeText={setPassword}
+                            placeholderTextColor="#c0c0c0"
+                        />
+                    </StyledView>
+
+                    <StyledTouchableOpacity
+                        className="bg-gradient-to-r from-[#6a11cb] to-[#2575fc] rounded-lg py-3 w-full mb-4"
+                        onPress={isRegistering ? handleRegister : handleLogin}
+                    >
+                        <StyledText className="text-white text-center text-lg font-semibold">
+                            {isRegistering ? 'Sign Up' : 'Sign In'}
+                        </StyledText>
+                    </StyledTouchableOpacity>
+
+                    <StyledTouchableOpacity onPress={() => setIsRegistering(!isRegistering)}>
+                        <StyledText className="text-[#a5d6fd] text-center font-bold">
+                            {isRegistering ? 'Already have an account? Sign In' : 'Create an account'}
+                        </StyledText>
+                    </StyledTouchableOpacity>
+
+                    <FlashMessage position="top" />
+                </StyledView>
+            </StyledAnimatedView>
+        </StyledImageBackground>
     );
 };
-
-const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-        justifyContent: 'center',
-        padding: 16,
-        backgroundColor: '#f0f4f8',
-    },
-    title: {
-        fontSize: 32,
-        fontWeight: 'bold',
-        marginBottom: 20,
-        color: '#333',
-        textAlign: 'center',
-    },
-    error: {
-        color: 'red',
-        textAlign: 'center',
-        marginBottom: 12,
-    },
-    inputContainer: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        borderColor: '#ccc',
-        borderWidth: 1,
-        borderRadius: 8,
-        marginBottom: 16,
-        paddingHorizontal: 12,
-        backgroundColor: '#fff',
-    },
-    icon: {
-        marginRight: 8,
-    },
-    input: {
-        flex: 1,
-        height: 40,
-    },
-    button: {
-        backgroundColor: '#1e90ff',
-        borderRadius: 8,
-        paddingVertical: 12,
-        marginTop: 10,
-        alignItems: 'center',
-    },
-    buttonText: {
-        color: '#fff',
-        fontSize: 18,
-        fontWeight: 'bold',
-    },
-    toggleText: {
-        color: '#1e90ff',
-        marginTop: 10,
-        textAlign: 'center',
-        fontWeight: 'bold',
-    },
-});
 
 export default AuthScreen;
