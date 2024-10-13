@@ -5,7 +5,6 @@ import { getAuth, createUserWithEmailAndPassword } from 'firebase/auth';
 import FlashMessage, { showMessage } from 'react-native-flash-message';
 import { styled } from 'nativewind';
 import { StackNavigationProp } from '@react-navigation/stack';
-import Dashboard from '../(tabs)/dashboard';
 
 const StyledImageBackground = styled(ImageBackground);
 const StyledAnimatedView = styled(Animated.View);
@@ -24,6 +23,7 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
+    const [didRegister, setDidRegister] = useState(false); // Add didRegister state
     const opacity = useState(new Animated.Value(1))[0];
 
     const fadeOut = () => {
@@ -32,9 +32,10 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
             duration: 1000,
             useNativeDriver: true,
         }).start(() => {
-            navigation.navigate('Dashboard'); // doesn't work
+            setDidRegister(true); // Set didRegister to true before navigation
+            navigation.navigate("welcomeScreen", { didRegister: true });
         });
-    };    
+    };
 
     const isValidEmail = (email: string) => {
         const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;

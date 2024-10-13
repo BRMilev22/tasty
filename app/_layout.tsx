@@ -42,32 +42,36 @@ const _layout = () => {
   }, []);
 
   return (
-      <Stack.Navigator>
-        {isFirstLaunch ? (
-          <Stack.Screen
-            name="welcomeScreen"
-            options={{ headerShown: false }}
-            component={WelcomeScreen} // Show the WelcomeScreen on first launch
-          />
-        ) : isLoggedIn ? (
-          <Stack.Screen
-            name="(tabs)/dashboard"
-            options={{ headerShown: false }}
-            children={() => <Dashboard onLogout={handleLogout} />} // Pass handleLogout to Dashboard
-          />
-        ) : (
-          <Stack.Screen
-            name="auth/AuthScreen"
-            options={{ headerShown: false }}
-            children={() => <AuthScreen onLogin={handleLogin} />} // Pass handleLogin to AuthScreen
-          />
-        )}
-        <Stack.Screen
-          name="auth/RegisterScreen" // Ensure the name matches the path
-          options={{ headerShown: false }}
-          component={RegisterScreen}
-        />
-      </Stack.Navigator>
+<Stack.Navigator>
+  {isFirstLaunch && !isLoggedIn ? (
+    // If it's the first launch and the user is not logged in, show the WelcomeScreen
+    <Stack.Screen
+      name="welcomeScreen"
+      options={{ headerShown: false }}
+      children={({ navigation, route }) => (<WelcomeScreen navigation={navigation} route={route} onLogin={handleLogin} />
+    )}
+/>
+  ) : !isFirstLaunch && !isLoggedIn ? (
+    // If it's not the first launch and the user is not logged in, show the AuthScreen
+    <Stack.Screen
+      name="auth/AuthScreen"
+      options={{ headerShown: false }}
+      children={() => <AuthScreen onLogin={handleLogin} />}
+    />
+  ) : (
+    // If it's not the first launch and the user is logged in, show the Dashboard
+    <Stack.Screen
+      name="(tabs)/dashboard"
+      options={{ headerShown: false }}
+      children={() => <Dashboard onLogout={handleLogout} />}
+    />
+  )}
+  <Stack.Screen
+    name="auth/RegisterScreen"
+    options={{ headerShown: false }}
+    component={RegisterScreen}
+  />
+</Stack.Navigator>
   );
 };
 
