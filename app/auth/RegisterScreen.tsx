@@ -114,44 +114,44 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
 
     return (
         <StyledImageBackground
-            source={{ uri: 'https://img.freepik.com/free-vector/gradient-particle-wave-background_23-2150517309.jpg' }}
-            className="flex-1 justify-center items-center bg-[#141e30]"
+            source={{ uri: 'https://static.vecteezy.com/system/resources/previews/020/580/331/non_2x/abstract-smooth-blur-blue-color-gradient-mesh-texture-lighting-effect-background-with-blank-space-for-website-banner-and-paper-card-decorative-modern-graphic-design-vector.jpg' }}
+            className="flex-1 justify-center items-center"
             blurRadius={20}
         >
             <StyledAnimatedView style={{ opacity }} className="flex-1 justify-center items-center">
-                <StyledView className="w-[90%] p-5 rounded-xl bg-white/10 border border-white/20 shadow-lg shadow-black/30 items-center">
-                    <StyledText className="text-2xl font-bold text-[#f0eaff] mb-5">Create Account</StyledText>
-                    {error ? <StyledText className="text-red-500 mb-2">{error}</StyledText> : null}
+                <StyledView className="w-[90%] p-6 rounded-3xl bg-white/30 border border-white/20 shadow-md shadow-black/20 items-center backdrop-blur-lg">
+                    <StyledText className="text-3xl font-bold text-gray-800 mb-6">Create Account</StyledText>
+                    {error ? <StyledText className="text-red-500 mb-3">{error}</StyledText> : null}
 
-                    <StyledView className="flex-row items-center bg-white/20 rounded-lg p-3 mb-4 w-full">
-                        <Ionicons name="mail-outline" size={24} color="#c0c0c0" />
+                    <StyledView className="flex-row items-center bg-white/50 rounded-2xl p-4 mb-4 w-full">
+                        <Ionicons name="mail-outline" size={24} color="#a0a0a0" />
                         <StyledTextInput
-                            className="flex-1 ml-3 text-base text-[#f0eaff]"
+                            className="flex-1 ml-3 text-base text-gray-800"
                             placeholder="Email Address"
                             value={email}
                             onChangeText={setEmail}
                             autoCapitalize="none"
-                            placeholderTextColor="#c0c0c0"
+                            placeholderTextColor="#a0a0a0"
                         />
                     </StyledView>
 
-                    <StyledView className="flex-row items-center bg-white/20 rounded-lg p-3 mb-4 w-full">
-                        <Ionicons name="lock-closed-outline" size={24} color="#c0c0c0" />
+                    <StyledView className="flex-row items-center bg-white/50 rounded-2xl p-4 mb-6 w-full">
+                        <Ionicons name="lock-closed-outline" size={24} color="#a0a0a0" />
                         <StyledTextInput
-                            className="flex-1 ml-3 text-base text-[#f0eaff]"
+                            className="flex-1 ml-3 text-base text-gray-800"
                             placeholder="Password"
                             secureTextEntry
                             value={password}
                             onChangeText={setPassword}
-                            placeholderTextColor="#c0c0c0"
+                            placeholderTextColor="#a0a0a0"
                         />
                     </StyledView>
 
                     <StyledTouchableOpacity
-                        className="bg-gradient-to-r from-[#6a11cb] to-[#2575fc] rounded-lg py-3 w-full mb-4"
+                        className="bg-gradient-to-r from-[#ffffff] to-[#e0e0e0] rounded-2xl py-4 w-full mb-4 shadow-md shadow-gray-400"
                         onPress={handleRegister}
                     >
-                        <StyledText className="text-white text-center text-lg font-semibold">Sign Up</StyledText>
+                        <StyledText className="text-gray-800 text-center text-lg font-semibold">Sign Up</StyledText>
                     </StyledTouchableOpacity>
 
                     <FlashMessage position="top" />
