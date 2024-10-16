@@ -6,6 +6,7 @@ import Dashboard from './(tabs)/dashboard';
 import AuthScreen from './auth/AuthScreen';
 import WelcomeScreen from './welcomeScreen'; // Import the WelcomeScreen
 import RegisterScreen from './auth/RegisterScreen'; // Import the RegisterScreen
+import GoalSelectionScreen from './goalsSelect';
 
 const Stack = createNativeStackNavigator();
 
@@ -71,6 +72,7 @@ const _layout = () => {
     options={{ headerShown: false }}
     component={RegisterScreen}
   />
+  <Stack.Screen name="goalsSelect" component={GoalSelectionScreen} />
 </Stack.Navigator>
   );
 };

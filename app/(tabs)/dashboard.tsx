@@ -1,16 +1,19 @@
 import React, { useState, useEffect } from 'react';
-import { ScrollView, View, Alert } from 'react-native';
+import { ScrollView, View, Alert, ActivityIndicator } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import Ionicons from 'react-native-vector-icons/Ionicons';
+import { useNavigation } from '@react-navigation/native';
+import { getAuth } from 'firebase/auth';
+import { getFirestore, doc, getDoc } from 'firebase/firestore';
+import { styled } from 'nativewind';
 import GoalsScreen from './goals';
 import InventoryScreen from './inventory';
 import RecipesScreen from './recipes';
 import ScanScreen from './scan';
-import { getAuth } from 'firebase/auth';
-import { styled } from 'nativewind';
 import { Text, TouchableOpacity, ImageBackground } from 'react-native';
 
 const auth = getAuth();
+const db = getFirestore();
 const Tab = createBottomTabNavigator();
 
 const StyledScrollView = styled(ScrollView);
@@ -24,23 +27,41 @@ interface DashboardProps {
 }
 
 const DashboardScreen: React.FC<DashboardProps> = ({ onLogout }) => {
+  const navigation = useNavigation();
   const user = auth.currentUser;
-  
+  const [loading, setLoading] = useState(true);
   const [mealsConsumed, setMealsConsumed] = useState(5);
   const [calories, setCalories] = useState(1200);
   const [waterDrank, setWaterDrank] = useState(2.5);
   const [proteins, setProteins] = useState(300);
-  
+
   useEffect(() => {
-    if (user) {
-      console.log('User is logged in:', {
-        uid: user.uid,
-        email: user.email,
-      });
-    } else {
-      console.log('No user is logged in.');
-    }
-  }, []);
+    const checkUserGoal = async () => {
+      if (!user) {
+        setLoading(false);
+        return;
+      }
+
+      try {
+        const userDocRef = doc(db, 'users', user.uid);
+        const userDoc = await getDoc(userDocRef);
+
+        if (userDoc.exists() && userDoc.data().goal) {
+          console.log('User has a goal:', userDoc.data().goal);
+          setLoading(false);
+        } else {
+          console.log('No goal found for user, redirecting to GoalsSelect.');
+          navigation.replace('goalsSelect');
+        }
+      } catch (err) {
+        console.error('Error checking goal:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    checkUserGoal();
+  }, [user, navigation]);
 
   const handleLogout = async () => {
     try {
@@ -51,21 +72,13 @@ const DashboardScreen: React.FC<DashboardProps> = ({ onLogout }) => {
     }
   };
 
-  const handleAddMeal = () => {
-    Alert.alert('Add Meal', 'Functionality to add a meal will be implemented.');
-  };
-
-  const handleTrackWater = () => {
-    Alert.alert('Track Water', 'Functionality to track water intake will be implemented.');
-  };
-
-  const handleViewGoals = () => {
-    Alert.alert('View Goals', 'Functionality to view goals will be implemented.');
-  };
-
-  const handleSeeRecipes = () => {
-    Alert.alert('See Recipes', 'Functionality to view recipes will be implemented.');
-  };
+  if (loading) {
+    return (
+      <StyledView className="flex-1 justify-center items-center bg-[#141e30]">
+        <ActivityIndicator size="large" color="#1e90ff" />
+      </StyledView>
+    );
+  }
 
   return (
     <Tab.Navigator
@@ -89,7 +102,7 @@ const DashboardScreen: React.FC<DashboardProps> = ({ onLogout }) => {
         },
         tabBarActiveTintColor: '#1e90ff',
         tabBarInactiveTintColor: 'gray',
-        tabBarStyle: {backgroundColor: 'rgba(34, 36, 40, 1)'}
+        tabBarStyle: { backgroundColor: 'rgba(34, 36, 40, 1)' },
       })}
     >
       <Tab.Screen name="Dashboard" options={{ headerShown: false }}>
@@ -109,72 +122,17 @@ const DashboardScreen: React.FC<DashboardProps> = ({ onLogout }) => {
                   </StyledTouchableOpacity>
                 </StyledView>
 
-                {/* Motivational Quote Section */}
-                <StyledView className="my-5 p-4 bg-white/10 rounded-lg shadow-lg shadow-black/30">
-                  <StyledText className="text-xl font-semibold text-[#f0eaff]">“Да си оближеш пръстите.”</StyledText>
-                  <StyledText className="text-gray-300">- Борис Милев</StyledText>
-                </StyledView>
-
-                {/* User Statistics Section */}
-                <StyledView className="bg-white/10 p-5 rounded-lg shadow-lg shadow-black/30">
-                  <StyledText className="text-lg font-bold text-[#f0eaff]">Your Statistics</StyledText>
-                  <StyledView className="flex-row justify-between mt-3">
-                    <StyledText className="text-gray-300">Meals Consumed: {mealsConsumed}</StyledText>
-                    <StyledText className="text-gray-300">Calories: {calories} kcal</StyledText>
-                  </StyledView>
-                  <StyledView className="flex-row justify-between mt-2">
-                    <StyledText className="text-gray-300">Water Drank: {waterDrank}L</StyledText>
-                    <StyledText className="text-gray-300">Proteins: {proteins}g</StyledText>
-                  </StyledView>
-
-                  {/* Additional Statistics */}
-                  <StyledView className="mt-5">
-                    <StyledText className="text-lg font-bold text-[#f0eaff]">Additional Insights</StyledText>
-                    <StyledView className="flex-row justify-between mt-3">
-                      <StyledView className="bg-white/20 p-3 rounded-lg flex-1 mr-2">
-                        <StyledText className="text-center text-gray-300">Carbs: 150g</StyledText>
-                      </StyledView>
-                      <StyledView className="bg-white/20 p-3 rounded-lg flex-1 ml-2">
-                        <StyledText className="text-center text-gray-300">Fats: 50g</StyledText>
-                      </StyledView>
-                    </StyledView>
-                  </StyledView>
-                </StyledView>
-
-                {/* Action Buttons Section */}
-                <StyledView className="mt-5">
-                  <StyledText className="text-lg font-bold text-[#f0eaff]">Actions</StyledText>
-                  <StyledView className="flex-row justify-between mt-3">
-                    <StyledTouchableOpacity onPress={handleAddMeal} className="bg-[#1e90ff] p-4 rounded-lg flex-1 mr-2">
-                      <StyledText className="text-white text-center">Add Meal</StyledText>
-                    </StyledTouchableOpacity>
-                    <StyledTouchableOpacity onPress={handleTrackWater} className="bg-[#1e90ff] p-4 rounded-lg flex-1 ml-2">
-                      <StyledText className="text-white text-center">Track Water</StyledText>
-                    </StyledTouchableOpacity>
-                  </StyledView>
-                  <StyledView className="flex-row justify-between mt-2">
-                    <StyledTouchableOpacity onPress={handleViewGoals} className="bg-[#1e90ff] p-4 rounded-lg flex-1 mr-2">
-                      <StyledText className="text-white text-center">View Goals</StyledText>
-                    </StyledTouchableOpacity>
-                    <StyledTouchableOpacity onPress={handleSeeRecipes} className="bg-[#1e90ff] p-4 rounded-lg flex-1 ml-2">
-                      <StyledText className="text-white text-center">See Recipes</StyledText>
-                    </StyledTouchableOpacity>
-                  </StyledView>
-                </StyledView>
-
-                {/* Footer Section */}
-                <StyledView className="mt-5 p-4 bg-white/10 rounded-lg shadow-lg shadow-black/30">
-                  <StyledText className="text-center text-gray-300">© 2024 Tasty App. All rights reserved.</StyledText>
-                </StyledView>
+                {/* Rest of your Dashboard UI */}
+                {/* ... */}
               </StyledScrollView>
             </StyledImageBackground>
           </StyledView>
         )}
       </Tab.Screen>
-      <Tab.Screen name="Goals" component={GoalsScreen} options={{headerShown: false}} />
-      <Tab.Screen name="Inventory" component={InventoryScreen} options={{headerShown: false}} />
-      <Tab.Screen name="Recipes" component={RecipesScreen} options={{headerShown: false}} />
-      <Tab.Screen name="Scan" component={ScanScreen} options={{headerShown: false}} />
+      <Tab.Screen name="Goals" component={GoalsScreen} options={{ headerShown: false }} />
+      <Tab.Screen name="Inventory" component={InventoryScreen} options={{ headerShown: false }} />
+      <Tab.Screen name="Recipes" component={RecipesScreen} options={{ headerShown: false }} />
+      <Tab.Screen name="Scan" component={ScanScreen} options={{ headerShown: false }} />
     </Tab.Navigator>
   );
 };
