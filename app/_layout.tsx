@@ -6,7 +6,10 @@ import Dashboard from './(tabs)/dashboard';
 import AuthScreen from './auth/AuthScreen';
 import WelcomeScreen from './welcomeScreen'; // Import the WelcomeScreen
 import RegisterScreen from './auth/RegisterScreen'; // Import the RegisterScreen
+import GenderSelectionScreen from './genderSelect';
 import GoalSelectionScreen from './goalsSelect';
+import HeightSelectionScreen from './heightSelect';
+import WeightSelectionScreen from './weightSelect';
 
 const Stack = createNativeStackNavigator();
 
@@ -73,6 +76,9 @@ const _layout = () => {
     component={RegisterScreen}
   />
   <Stack.Screen name="goalsSelect" component={GoalSelectionScreen} />
+  <Stack.Screen name="heightSelect" component={HeightSelectionScreen} />
+  <Stack.Screen name="weightSelect" component={WeightSelectionScreen} />
+  <Stack.Screen name="genderSelect" component={GenderSelectionScreen} />
 </Stack.Navigator>
   );
 };

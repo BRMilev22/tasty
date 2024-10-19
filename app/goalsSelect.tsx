@@ -31,8 +31,8 @@ const GoalSelectionScreen = () => {
         // Automatically log the user in and navigate to the dashboard
         //await signInWithEmailAndPassword(auth, user.email, user.password);
 
-        // Navigate to the dashboard after saving
-        router.replace('/dashboard');
+        // Navigate to the heightSelect after saving
+        router.replace('/heightSelect');
       } catch (error) {
         console.error('Error saving goal or logging in: ', error);
       } finally {
