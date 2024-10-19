@@ -35,6 +35,69 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ onLogin }) => {
     const [error, setError] = useState('');
     const opacity = useState(new Animated.Value(1))[0];
 
+    const validateFirstName = (firstName: string) => {
+        const nameRegex = /^(?=.*[A-Z])[A-Za-z]{2,}$/; // At least one capital letter, only letters, and at least 2 characters long
+        return nameRegex.test(firstName);
+    };
+
+    const validateLastName = (lastName: string) => {
+        const nameRegex = /^(?=.*[A-Z])[A-Za-z]{2,}$/; // At least one capital letter, only letters, and at least 2 characters long
+        return nameRegex.test(lastName);
+    };
+
+    const isValidEmail = (email: string) => {
+        const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+        return emailRegex.test(email);
+    };
+
+    const isValidPassword = (password: string) => {
+        const containsNumber = /\d/.test(password);
+        const containsLetter = /[a-zA-Z]/.test(password);
+        const containsUpperCase = /[A-Z]/.test(password);
+        const containsSpecialChar = /[!@?#$%&*]/.test(password);
+
+        if (password.length < 8) {
+            setError('Password must be at least 8 characters long.');
+            return false;
+        }
+        if (!containsLetter) {
+            setError('Password must contain at least one letter.');
+            return false;
+        }
+        if (!containsNumber) {
+            setError('Password must contain at least one number.');
+            return false;
+        }
+        if (!containsUpperCase) {
+            setError('Password must contain at least one uppercase letter.');
+            return false;
+        }
+        if (!containsSpecialChar) {
+            setError('Password must contain at least one special character.');
+            return false;
+        }
+        return true;
+    };
+
+    const validateInputs = () => {
+        if (!email || !password) {
+            setError('Email and password fields cannot be empty.');
+            return false;
+        }
+
+        if (!isValidEmail(email)) {
+            setError('Please enter a valid email address.');
+            return false;
+        }
+
+        if (!isValidPassword(password)) {
+            return false;
+        }
+
+        setError('');
+        return true;
+    };
+
     const isValidDateOfBirth = (dob: Date) => {
         const today = new Date();
         const age = today.getFullYear() - dob.getFullYear();
@@ -67,6 +130,16 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ onLogin }) => {
             return false;
         }
 
+        if (!validateFirstName(firstName)) {
+            setError('Invalid first name.');
+            return false;
+        }
+
+        if (!validateLastName(lastName)) {
+            setError('Invalid last name.');
+            return false;
+        }
+
         setError('');
         return true;
     };
@@ -80,6 +153,21 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ onLogin }) => {
             });
             return;
         }
+
+        if (!email || !password) {
+            setError('Email and password fields cannot be empty.');
+            return false;
+        }
+
+        if (!isValidEmail(email)) {
+            setError('Please enter a valid email address.');
+            return false;
+        }
+
+        if (!isValidPassword(password)) {
+            return false;
+        }
+        
         try {
             // Create user with email and password
             const userCredential = await createUserWithEmailAndPassword(auth, email, password);
