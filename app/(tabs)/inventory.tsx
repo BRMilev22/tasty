@@ -101,7 +101,7 @@ const InventoryScreen = () => {
 
   return (
     <StyledImageBackground
-      source={{ uri: 'https://img.freepik.com/free-vector/gradient-particle-wave-background_23-2150517309.jpg' }}
+      source={{ uri: 'https://static.vecteezy.com/system/resources/previews/020/580/331/non_2x/abstract-smooth-blur-blue-color-gradient-mesh-texture-lighting-effect-background-with-blank-space-for-website-banner-and-paper-card-decorative-modern-graphic-design-vector.jpg' }}
       className="flex-1 justify-center items-center bg-[#141e30]"
       blurRadius={20}
     >

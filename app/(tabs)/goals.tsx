@@ -69,7 +69,7 @@ const GoalsScreen = () => {
       <StyledText className="text-lg font-bold">{item}</StyledText>
       <StyledView className="flex-row justify-between mt-3">
         <StyledTouchableOpacity
-          className="bg-blue-500 p-2 rounded-lg"
+          className="bg-blue-500 p-2 rounded-lg mr-2" // Added margin to the right
           onPress={() => {
             setNewGoal(item);
             setSelectedGoalIndex(index);
@@ -91,7 +91,7 @@ const GoalsScreen = () => {
   return (
     <StyledImageBackground
       source={{
-        uri: 'https://img.freepik.com/free-vector/gradient-particle-wave-background_23-2150517309.jpg',
+        uri: 'https://static.vecteezy.com/system/resources/previews/020/580/331/non_2x/abstract-smooth-blur-blue-color-gradient-mesh-texture-lighting-effect-background-with-blank-space-for-website-banner-and-paper-card-decorative-modern-graphic-design-vector.jpg',
       }}
       className="flex-1 justify-center items-center bg-[#141e30]"
       blurRadius={20}
@@ -99,15 +99,16 @@ const GoalsScreen = () => {
       {/* Main content container */}
       <StyledView className="flex-1 justify-center items-center p-5">
         {/* Title and input section, vertically centered */}
-        <StyledView className="flex justify-center items-center mb-5">
+        <StyledView className="flex justify-center items-center mb-5 mt-10">
           <StyledText className="text-2xl font-bold text-center text-blue-500 mb-5">
             Your Goals
           </StyledText>
-  
+
           <StyledView className="flex-row items-center mb-5">
             <StyledTextInput
-              className="flex-1 border border-gray-300 rounded-lg p-3 mr-3"
+              className="flex-1 border border-gray-300 rounded-lg p-3 mr-3 text-white bg-gray-800" // Changed background color and text color
               placeholder="Add a new goal"
+              placeholderTextColor="white" // Change placeholder text color to white
               value={newGoal}
               onChangeText={setNewGoal}
             />
@@ -119,7 +120,7 @@ const GoalsScreen = () => {
             </StyledTouchableOpacity>
           </StyledView>
         </StyledView>
-  
+
         {/* List of goals */}
         <FlatList
           data={goals}
@@ -131,7 +132,7 @@ const GoalsScreen = () => {
             justifyContent: 'flex-start', // Align the list to start below the input fields
           }}
         />
-  
+
         {/* Modal for editing goals */}
         <StyledModal
           animationType="slide"
@@ -167,7 +168,7 @@ const GoalsScreen = () => {
         </StyledModal>
       </StyledView>
     </StyledImageBackground>
-  );  
+  );
 };
 
 export default GoalsScreen;

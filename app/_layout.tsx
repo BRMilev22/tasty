@@ -75,10 +75,10 @@ const _layout = () => {
     options={{ headerShown: false }}
     component={RegisterScreen}
   />
-  <Stack.Screen name="goalsSelect" component={GoalSelectionScreen} />
-  <Stack.Screen name="heightSelect" component={HeightSelectionScreen} />
-  <Stack.Screen name="weightSelect" component={WeightSelectionScreen} />
-  <Stack.Screen name="genderSelect" component={GenderSelectionScreen} />
+  <Stack.Screen name="goalsSelect" component={GoalSelectionScreen} options={{ headerShown: false }} />
+  <Stack.Screen name="heightSelect" component={HeightSelectionScreen} options={{ headerShown: false }} />
+  <Stack.Screen name="weightSelect" component={WeightSelectionScreen} options={{ headerShown: false }} />
+  <Stack.Screen name="genderSelect" component={GenderSelectionScreen} options={{ headerShown: false }} />
 </Stack.Navigator>
   );
 };

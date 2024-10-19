@@ -1,10 +1,17 @@
 import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity, ImageBackground } from 'react-native';
 import { useRouter } from 'expo-router';
 import { doc, setDoc } from 'firebase/firestore'; // Firebase Firestore import
 import { db } from '../firebaseConfig'; // Your Firebase configuration
 import { getAuth } from 'firebase/auth'; // Firebase Auth import
 import { Picker } from '@react-native-picker/picker'; // Import Picker
+import { styled } from 'nativewind';
+
+const StyledImageBackground = styled(ImageBackground);
+const StyledView = styled(View);
+const StyledText = styled(Text);
+const StyledTouchableOpacity = styled(TouchableOpacity);
+const StyledPickerContainer = styled(View);
 
 const WeightSelectionScreen = () => {
   const [selectedWeight, setSelectedWeight] = useState<string>('70'); // Default weight 70 kg
@@ -39,69 +46,39 @@ const WeightSelectionScreen = () => {
   };
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Select Your Weight (kg)</Text>
+    <StyledImageBackground
+      source={{ uri: 'https://static.vecteezy.com/system/resources/previews/020/580/331/non_2x/abstract-smooth-blur-blue-color-gradient-mesh-texture-lighting-effect-background-with-blank-space-for-website-banner-and-paper-card-decorative-modern-graphic-design-vector.jpg' }}
+      className="flex-1 justify-center items-center"
+      blurRadius={20}
+    >
+      <StyledView className="flex-1 justify-center items-center p-6 w-full">
+        <StyledText className="text-black text-3xl font-bold mb-6 text-center">Select Your Weight (kg)</StyledText>
 
-      {/* Weight Picker */}
-      <View style={styles.pickerContainer}>
-        <Picker
-          selectedValue={selectedWeight}
-          onValueChange={(itemValue) => setSelectedWeight(itemValue)}
-          style={styles.picker}
+        {/* Weight Picker */}
+        <StyledPickerContainer className="bg-transparent mb-6 w-full">
+          <Picker
+            selectedValue={selectedWeight}
+            onValueChange={(itemValue) => setSelectedWeight(itemValue as string)} // Type assertion added here
+            style={{ height: 150, width: '100%', color: '#000' }} // Keep the picker transparent
+          >
+            {/* Generate weight values from 30 kg to 150 kg */}
+            {Array.from({ length: 121 }, (_, i) => 30 + i).map((weight) => (
+              <Picker.Item key={weight} label={`${weight} kg`} value={weight.toString()} />
+            ))}
+          </Picker>
+        </StyledPickerContainer>
+
+        {/* Confirm Button */}
+        <StyledTouchableOpacity
+          className="bg-blue-600 p-4 rounded-lg w-full"
+          onPress={handleWeightSelection}
+          disabled={loading}
         >
-          {/* Generate weight values from 30 kg to 150 kg */}
-          {Array.from({ length: 121 }, (_, i) => 30 + i).map((weight) => (
-            <Picker.Item key={weight} label={`${weight} kg`} value={weight.toString()} />
-          ))}
-        </Picker>
-      </View>
-
-      {/* Confirm Button */}
-      <TouchableOpacity
-        style={styles.button}
-        onPress={handleWeightSelection}
-        disabled={loading}
-      >
-        <Text style={styles.buttonText}>Confirm Weight</Text>
-      </TouchableOpacity>
-    </View>
+          <StyledText className="text-white text-lg text-center">Confirm Weight</StyledText>
+        </StyledTouchableOpacity>
+      </StyledView>
+    </StyledImageBackground>
   );
 };
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#f9f9f9',
-  },
-  title: {
-    fontSize: 24,
-    marginBottom: 20,
-  },
-  pickerContainer: {
-    backgroundColor: '#f1f1f1',
-    borderRadius: 8,
-    padding: 10,
-    marginVertical: 20,
-    width: '80%',
-  },
-  picker: {
-    height: 150,
-    width: '100%',
-    color: '#000',
-  },
-  button: {
-    backgroundColor: '#007bff',
-    padding: 15,
-    borderRadius: 8,
-    width: '80%',
-    alignItems: 'center',
-  },
-  buttonText: {
-    color: '#fff',
-    fontSize: 18,
-  },
-});
 
 export default WeightSelectionScreen;

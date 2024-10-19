@@ -1,10 +1,17 @@
 import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity, ImageBackground } from 'react-native';
 import { useRouter } from 'expo-router';
 import { doc, setDoc } from 'firebase/firestore'; // Firebase Firestore import
 import { db } from '../firebaseConfig'; // Your Firebase configuration
 import { getAuth } from 'firebase/auth'; // Firebase Auth import
 import { Picker } from '@react-native-picker/picker'; // Import Picker
+import { styled } from 'nativewind';
+
+const StyledImageBackground = styled(ImageBackground);
+const StyledView = styled(View);
+const StyledText = styled(Text);
+const StyledTouchableOpacity = styled(TouchableOpacity);
+const StyledPickerContainer = styled(View);
 
 const HeightSelectionScreen = () => {
   const [selectedHeight, setSelectedHeight] = useState<string>('170'); // Default height 170cm
@@ -39,69 +46,41 @@ const HeightSelectionScreen = () => {
   };
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Select Your Height (cm)</Text>
+    <StyledImageBackground
+      source={{
+        uri: 'https://static.vecteezy.com/system/resources/previews/020/580/331/non_2x/abstract-smooth-blur-blue-color-gradient-mesh-texture-lighting-effect-background-with-blank-space-for-website-banner-and-paper-card-decorative-modern-graphic-design-vector.jpg',
+      }}
+      className="flex-1 justify-center items-center"
+      blurRadius={20}
+    >
+      <StyledView className="flex-1 justify-center items-center p-6 w-full">
+        <StyledText className="text-black text-3xl font-bold mb-6 text-center">Select Your Height (cm)</StyledText>
 
-      {/* Height Picker */}
-      <View style={styles.pickerContainer}>
-        <Picker
-          selectedValue={selectedHeight}
-          onValueChange={(itemValue) => setSelectedHeight(itemValue)}
-          style={styles.picker}
+        {/* Height Picker */}
+        <StyledPickerContainer className="bg-transparent mb-6 w-full">
+          <Picker
+            selectedValue={selectedHeight}
+            onValueChange={(itemValue) => setSelectedHeight(itemValue as string)}
+            style={{ height: 150, width: '100%', color: '#000' }} // Keep the picker transparent
+          >
+            {/* Generate height values from 130cm to 220cm */}
+            {Array.from({ length: 91 }, (_, i) => 130 + i).map((height) => (
+              <Picker.Item key={height} label={`${height} cm`} value={height.toString()} />
+            ))}
+          </Picker>
+        </StyledPickerContainer>
+
+        {/* Confirm Button */}
+        <StyledTouchableOpacity
+          className="bg-blue-600 p-4 rounded-lg w-full"
+          onPress={handleHeightSelection}
+          disabled={loading}
         >
-          {/* Generate height values from 130cm to 220cm */}
-          {Array.from({ length: 91 }, (_, i) => 130 + i).map((height) => (
-            <Picker.Item key={height} label={`${height} cm`} value={height.toString()} />
-          ))}
-        </Picker>
-      </View>
-
-      {/* Confirm Button */}
-      <TouchableOpacity
-        style={styles.button}
-        onPress={handleHeightSelection}
-        disabled={loading}
-      >
-        <Text style={styles.buttonText}>Confirm Height</Text>
-      </TouchableOpacity>
-    </View>
+          <StyledText className="text-white text-lg font-medium text-center">Confirm Height</StyledText>
+        </StyledTouchableOpacity>
+      </StyledView>
+    </StyledImageBackground>
   );
 };
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#f9f9f9',
-  },
-  title: {
-    fontSize: 24,
-    marginBottom: 20,
-  },
-  pickerContainer: {
-    backgroundColor: '#f1f1f1',
-    borderRadius: 8,
-    padding: 10,
-    marginVertical: 20,
-    width: '80%',
-  },
-  picker: {
-    height: 150,
-    width: '100%',
-    color: '#000',
-  },
-  button: {
-    backgroundColor: '#007bff',
-    padding: 15,
-    borderRadius: 8,
-    width: '80%',
-    alignItems: 'center',
-  },
-  buttonText: {
-    color: '#fff',
-    fontSize: 18,
-  },
-});
 
 export default HeightSelectionScreen;
