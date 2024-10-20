@@ -104,11 +104,11 @@ const GoalsScreen = () => {
             Your Goals
           </StyledText>
 
-          <StyledView className="flex-row items-center mb-5">
+          <StyledView className="flex-row items-center bg-white/50 rounded-2xl p-4 mb-4 w-full">
             <StyledTextInput
-              className="flex-1 border border-gray-300 rounded-lg p-3 mr-3 text-white bg-gray-800" // Changed background color and text color
+              className="flex-1 ml-3 text-base text-gray-800" // Changed background color and text color
               placeholder="Add a new goal"
-              placeholderTextColor="white" // Change placeholder text color to white
+              placeholderTextColor="#a0a0a0" // Change placeholder text color to black
               value={newGoal}
               onChangeText={setNewGoal}
             />

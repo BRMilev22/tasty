@@ -117,10 +117,17 @@ const DashboardScreen: React.FC<DashboardProps> = ({ onLogout }) => {
                 {/* Header Section */}
                 <StyledView className="flex-row justify-between items-center mb-5">
                 <StyledText className="text-3xl font-bold text-black">Welcome, {user?.email || 'User'}!</StyledText>
-                  <StyledTouchableOpacity onPress={handleLogout} className="bg-red-500 rounded-full px-4 py-2">
-                    <StyledText className="text-white">Logout</StyledText>
-                  </StyledTouchableOpacity>
                 </StyledView>
+
+                {/* Logout Button */}
+          <StyledView className="items-center mb-10">
+            <StyledTouchableOpacity
+              onPress={handleLogout}
+              className="bg-red-500 rounded-full px-6 py-3 shadow-lg"
+            >
+              <StyledText className="text-white text-lg">Logout</StyledText>
+            </StyledTouchableOpacity>
+          </StyledView>
 
                 {/* Rest of your Dashboard UI */}
                 {/* ... */}
