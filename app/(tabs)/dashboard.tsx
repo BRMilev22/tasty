@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ScrollView, View, Alert, ActivityIndicator } from 'react-native';
+import { ScrollView, View, Alert, ActivityIndicator, Image } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { useNavigation } from '@react-navigation/native';
@@ -10,6 +10,7 @@ import GoalsScreen from './goals';
 import InventoryScreen from './inventory';
 import RecipesScreen from './recipes';
 import ScanScreen from './scan';
+import EditProfileScreen from '../editProfile';
 import { Text, TouchableOpacity, ImageBackground } from 'react-native';
 
 const auth = getAuth();
@@ -30,10 +31,7 @@ const DashboardScreen: React.FC<DashboardProps> = ({ onLogout }) => {
   const navigation = useNavigation();
   const user = auth.currentUser;
   const [loading, setLoading] = useState(true);
-  const [mealsConsumed, setMealsConsumed] = useState(5);
-  const [calories, setCalories] = useState(1200);
-  const [waterDrank, setWaterDrank] = useState(2.5);
-  const [proteins, setProteins] = useState(300);
+  const [profileImage, setProfileImage] = useState<string | null>(null); // State for profile image
 
   useEffect(() => {
     const checkUserGoal = async () => {
@@ -46,12 +44,13 @@ const DashboardScreen: React.FC<DashboardProps> = ({ onLogout }) => {
         const userDocRef = doc(db, 'users', user.uid);
         const userDoc = await getDoc(userDocRef);
 
-        if (userDoc.exists() && userDoc.data().goal) {
-          console.log('User has a goal:', userDoc.data().goal);
-          setLoading(false);
-        } else {
-          console.log('No goal found for user, redirecting to GoalsSelect.');
-          navigation.replace('goalsSelect');
+        if (userDoc.exists()) {
+          const userData = userDoc.data();
+          setProfileImage(userData.profileImage || ''); // Set profile image URL if exists
+          if (!userData.goal) {
+            console.log('No goal found for user, redirecting to GoalsSelect.');
+            navigation.replace('goalsSelect');
+          }
         }
       } catch (err) {
         console.error('Error checking goal:', err);
@@ -115,19 +114,27 @@ const DashboardScreen: React.FC<DashboardProps> = ({ onLogout }) => {
             >
               <StyledScrollView contentContainerStyle={{ flexGrow: 1 }} className="p-5 top-10">
                 {/* Header Section */}
-                <StyledView className="flex-row justify-between items-center mb-5">
-                <StyledText className="text-3xl font-bold text-black">Welcome, {user?.email || 'User'}!</StyledText>
+                <StyledView className="flex-row justify-between items-center w-full mb-5">
+                  <StyledText className="text-3xl font-bold text-black">
+                    Welcome, {user?.email || 'User'}!
+                  </StyledText>
+                  <TouchableOpacity onPress={() => navigation.navigate('editProfile')}>
+                    <Image
+                      source={{ uri: profileImage || 'https://static.vecteezy.com/system/resources/thumbnails/009/292/244/small/default-avatar-icon-of-social-media-user-vector.jpg' }} // Use profile pic URL
+                      style={{ width: 60, height: 60, borderRadius: 40 }}
+                    />
+                  </TouchableOpacity>
                 </StyledView>
 
                 {/* Logout Button */}
-          <StyledView className="items-center mb-10">
-            <StyledTouchableOpacity
-              onPress={handleLogout}
-              className="bg-red-500 rounded-full px-6 py-3 shadow-lg"
-            >
-              <StyledText className="text-white text-lg">Logout</StyledText>
-            </StyledTouchableOpacity>
-          </StyledView>
+                <StyledView className="items-center mb-10">
+                  <StyledTouchableOpacity
+                    onPress={handleLogout}
+                    className="bg-red-500 rounded-full px-6 py-3 shadow-lg"
+                  >
+                    <StyledText className="text-white text-lg">Logout</StyledText>
+                  </StyledTouchableOpacity>
+                </StyledView>
 
                 {/* Rest of your Dashboard UI */}
                 {/* ... */}
