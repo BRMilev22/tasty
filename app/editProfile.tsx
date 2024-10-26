@@ -6,10 +6,10 @@ import { getStorage } from 'firebase/storage';
 import { styled } from 'nativewind';
 import FlashMessage, { showMessage } from 'react-native-flash-message';
 import * as ImagePicker from 'expo-image-picker';
-import { getFirestore, doc, setDoc } from 'firebase/firestore'; // Import Firestore functions
+import { getFirestore, doc, setDoc } from 'firebase/firestore';
 
 const storage = getStorage();
-const firestore = getFirestore(); // Initialize Firestore
+const firestore = getFirestore();
 
 const StyledImageBackground = styled(ImageBackground);
 const StyledAnimatedView = styled(Animated.View);
@@ -27,12 +27,12 @@ const EditProfileScreen = () => {
         return null;
     }
 
-    // State variables for user details
     const [firstName, setFirstName] = useState('');
     const [lastName, setLastName] = useState('');
     const [email, setEmail] = useState(user?.email || '');
     const [password, setPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
+    const [showPassword, setShowPassword] = useState(false);
     const [height, setHeight] = useState('');
     const [weight, setWeight] = useState('');
     const [profileImage, setProfileImage] = useState(user?.photoURL || '');
@@ -51,39 +51,134 @@ const EditProfileScreen = () => {
         }
     };
 
+    const isValidEmail = (email: string) => {
+        const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+        return emailRegex.test(email);
+    };
+
+    const isValidPassword = (password: string) => {
+        const containsNumber = /\d/.test(password);
+        const containsLetter = /[a-zA-Z]/.test(password);
+        const containsUpperCase = /[A-Z]/.test(password);
+        const containsSpecialChar = /[!@?#$%&*]/.test(password);
+
+        if (password.length < 8) {
+            setError('Password must be at least 8 characters long.');
+            return false;
+        }
+        if (!containsLetter) {
+            setError('Password must contain at least one letter.');
+            return false;
+        }
+        if (!containsNumber) {
+            setError('Password must contain at least one number.');
+            return false;
+        }
+        if (!containsUpperCase) {
+            setError('Password must contain at least one uppercase letter.');
+            return false;
+        }
+        if (!containsSpecialChar) {
+            setError('Password must contain at least one special character.');
+            return false;
+        }
+        return true;
+    };
+
+    const isValidHeight = (height: string) => {
+        if (!height.trim()) return true;
+        const heightNum = Number(height);
+        if (isNaN(heightNum) || heightNum <= 0) {
+            setError('Height must be a positive number.');
+            return false;
+        }
+        return true;
+    };
+
+    const isValidWeight = (weight: string) => {
+        if (!weight.trim()) return true;
+        const weightNum = Number(weight);
+        if (isNaN(weightNum) || weightNum <= 0) {
+            setError('Weight must be a positive number.');
+            return false;
+        }
+        return true;
+    };
+
+    const validateFirstName = (firstName: string) => {
+        const nameRegex = /^(?=.*[A-Z])[A-Za-z]{2,}$/;
+        return nameRegex.test(firstName);
+    };
+
+    const validateLastName = (lastName: string) => {
+        const nameRegex = /^(?=.*[A-Z])[A-Za-z]{2,}$/;
+        return nameRegex.test(lastName);
+    };
+
+    const validateInputs = () => {
+        if (email.trim() && !isValidEmail(email)) {
+            setError('Please enter a valid email address.');
+            return false;
+        }
+
+        if (password && !isValidPassword(password)) {
+            return false;
+        }
+
+        if (firstName.trim() && !validateFirstName(firstName)) {
+            setError('Invalid first name.');
+            return false;
+        }
+
+        if (lastName.trim() && !validateLastName(lastName)) {
+            setError('Invalid last name.');
+            return false;
+        }
+
+        if (!isValidHeight(height)) {
+            return false;
+        }
+
+        if (!isValidWeight(weight)) {
+            return false;
+        }
+
+        setError('');
+        return true;
+    };
+
     const handleSaveChanges = async () => {
+        if (!validateInputs()) {
+            return;
+        }
+
         if (password && password !== confirmPassword) {
             setError('Passwords do not match');
             return;
         }
-    
+
         try {
-            // Update email if it's not empty and different from the current email
             if (email && email !== user?.email) {
                 await updateEmail(user!, email);
             }
-    
-            // Update password if it's not empty
+
             if (password) {
                 await updatePassword(user!, password);
             }
-    
-            // Prepare profile updates, ignoring empty displayName and photoURL
+
             const profileUpdates: { displayName?: string; photoURL?: string } = {};
             if (firstName.trim() || lastName.trim()) {
-                profileUpdates.displayName = `${firstName.trim()} ${lastName.trim()}`.trim(); // Concatenate names if at least one is provided
+                profileUpdates.displayName = `${firstName.trim()} ${lastName.trim()}`.trim();
             }
             if (profileImage) {
-                profileUpdates.photoURL = profileImage; // Update photoURL only if an image is provided
+                profileUpdates.photoURL = profileImage;
             }
-    
-            // Update Firebase profile only if there are changes
+
             if (Object.keys(profileUpdates).length > 0) {
                 await updateProfile(user!, profileUpdates);
             }
-    
-            // Prepare Firestore updates, ignoring empty fields for height, weight, firstName, and lastName
-            const firestoreUpdates: Record<string, any> = {}; // Use Record<string, any> for flexible object
+
+            const firestoreUpdates: Record<string, any> = {};
             if (firstName.trim()) {
                 firestoreUpdates.firstName = firstName.trim();
             }
@@ -99,12 +194,11 @@ const EditProfileScreen = () => {
             if (profileImage) {
                 firestoreUpdates.profileImage = profileImage;
             }
-    
-            // Update Firestore only if there are valid updates
+
             if (Object.keys(firestoreUpdates).length > 0) {
                 await setDoc(doc(firestore, 'users', user.uid), firestoreUpdates, { merge: true });
             }
-    
+
             showMessage({
                 message: 'Profile updated successfully!',
                 type: 'success',
@@ -118,7 +212,6 @@ const EditProfileScreen = () => {
             });
         }
     };
-    
 
     return (
         <KeyboardAvoidingView
@@ -157,11 +250,12 @@ const EditProfileScreen = () => {
                         <StyledView className="flex-row items-center bg-white/50 rounded-2xl p-2 mb-2 w-full">
                             <Ionicons name="person-outline" size={20} color="#a0a0a0" />
                             <StyledTextInput
-                                className="flex-1 ml-2 text-base text-gray-800"
+                                className="flex-1 ml-2 text-base text-gray-800 h-10"
                                 placeholder="First Name"
                                 value={firstName}
                                 onChangeText={setFirstName}
                                 placeholderTextColor="#a0a0a0"
+                                style={{ height: 25 }}
                             />
                         </StyledView>
 
@@ -169,11 +263,12 @@ const EditProfileScreen = () => {
                         <StyledView className="flex-row items-center bg-white/50 rounded-2xl p-2 mb-2 w-full">
                             <Ionicons name="person-outline" size={20} color="#a0a0a0" />
                             <StyledTextInput
-                                className="flex-1 ml-2 text-base text-gray-800"
+                                className="flex-1 ml-2 text-base text-gray-800 h-10"
                                 placeholder="Last Name"
                                 value={lastName}
                                 onChangeText={setLastName}
                                 placeholderTextColor="#a0a0a0"
+                                style={{ height: 25 }}
                             />
                         </StyledView>
 
@@ -181,12 +276,13 @@ const EditProfileScreen = () => {
                         <StyledView className="flex-row items-center bg-white/50 rounded-2xl p-2 mb-2 w-full">
                             <Ionicons name="mail-outline" size={20} color="#a0a0a0" />
                             <StyledTextInput
-                                className="flex-1 ml-2 text-base text-gray-800"
+                                className="flex-1 ml-2 text-base text-gray-800 h-10"
                                 placeholder="Email Address"
                                 value={email}
                                 onChangeText={setEmail}
                                 placeholderTextColor="#a0a0a0"
                                 keyboardType="email-address"
+                                style={{ height: 25 }} 
                             />
                         </StyledView>
 
@@ -194,25 +290,35 @@ const EditProfileScreen = () => {
                         <StyledView className="flex-row items-center bg-white/50 rounded-2xl p-2 mb-2 w-full">
                             <Ionicons name="lock-closed-outline" size={20} color="#a0a0a0" />
                             <StyledTextInput
-                                className="flex-1 ml-2 text-base text-gray-800"
+                                className="flex-1 ml-2 text-base text-gray-800 h-10"
                                 placeholder="New Password"
-                                secureTextEntry
+                                secureTextEntry={!showPassword}
                                 value={password}
                                 onChangeText={setPassword}
                                 placeholderTextColor="#a0a0a0"
+                                style={{ height: 25 }}
                             />
+                            <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
+                                    <Ionicons
+                                        name={showPassword ? "eye-outline" : "eye-off-outline"}
+                                        size={24}
+                                        color="#a0a0a0"
+                                    />
+                                </TouchableOpacity>
                         </StyledView>
+                        
 
                         {/* Confirm Password Input */}
                         <StyledView className="flex-row items-center bg-white/50 rounded-2xl p-2 mb-2 w-full">
                             <Ionicons name="lock-closed-outline" size={20} color="#a0a0a0" />
                             <StyledTextInput
-                                className="flex-1 ml-2 text-base text-gray-800"
+                                className="flex-1 ml-2 text-base text-gray-800 h-10"
                                 placeholder="Confirm Password"
-                                secureTextEntry
+                                secureTextEntry={!showPassword}
                                 value={confirmPassword}
                                 onChangeText={setConfirmPassword}
                                 placeholderTextColor="#a0a0a0"
+                                style={{ height: 25 }}
                             />
                         </StyledView>
 
@@ -220,12 +326,13 @@ const EditProfileScreen = () => {
                         <StyledView className="flex-row items-center bg-white/50 rounded-2xl p-2 mb-2 w-full">
                             <Ionicons name="resize-outline" size={20} color="#a0a0a0" />
                             <StyledTextInput
-                                className="flex-1 ml-2 text-base text-gray-800"
+                                className="flex-1 ml-2 text-base text-gray-800 h-10"
                                 placeholder="Height (cm)"
                                 value={height}
                                 onChangeText={setHeight}
                                 placeholderTextColor="#a0a0a0"
                                 keyboardType="numeric"
+                                style={{ height: 25 }}
                             />
                         </StyledView>
 
@@ -233,17 +340,18 @@ const EditProfileScreen = () => {
                         <StyledView className="flex-row items-center bg-white/50 rounded-2xl p-2 mb-4 w-full">
                             <Ionicons name="barbell-outline" size={20} color="#a0a0a0" />
                             <StyledTextInput
-                                className="flex-1 ml-2 text-base text-gray-800"
+                                className="flex-1 ml-2 text-base text-gray-800 h-10"
                                 placeholder="Weight (kg)"
                                 value={weight}
                                 onChangeText={setWeight}
                                 placeholderTextColor="#a0a0a0"
                                 keyboardType="numeric"
+                                style={{ height: 25 }}
                             />
                         </StyledView>
 
                         <StyledTouchableOpacity
-                            className="bg-gradient-to-r from-[#ffffff] to-[#e0e0e0] rounded-2xl py-4 w-full mb-4 shadow-md shadow-gray-400"
+                            className="bg-gradient-to-r from-[#ffffff] to-[#e0e0e0] rounded-2xl py-3 w-full mb-4 shadow-md shadow-gray-400"
                             onPress={handleSaveChanges}
                         >
                             <StyledText className="text-gray-800 text-center text-lg font-semibold">Confirm Changes</StyledText>
