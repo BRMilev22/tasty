@@ -74,7 +74,7 @@ To get started, ensure you have the following installed:
   Follow the prompts to run the app on your preferred device or emulator.
 
 ### 🧪 Testing
-To run the unit tests for core components and utilities copy the command and paste it in your command prompt:
+- To run the unit tests for core components and utilities copy the command and paste it in your command prompt:
 
   ```bash
   npm test
