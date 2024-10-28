@@ -2,8 +2,7 @@
 
 # 🍽️ Tasty - Meal Planning App
 
-**Tasty** is a powerful meal planning app built with **React Native** and **TypeScript**. It features both mobile and web versions, enabling users to create personalized meal plans, track inventory through barcode scanning, and receive tailored recipe recommendations based on their inventory.
-
+**Tasty** is a meal planning app developed with **React Native** and **TypeScript**, offering both mobile and web versions. Users can create personalized meal plans, track inventory through barcode scanning, and receive recipe recommendations based on their inventory and goals.
 
 ## 📦 Features
 
@@ -11,7 +10,7 @@
   - Create an account with basic information like gender, age, height, and weight.
   
 - **Goals:** 
-  - Choose a goal—**Gain Weight**, **Maintain Weight**, or **Lose Weight**.
+  - Set a goal — **Gain Weight**, **Maintain Weight**, or **Lose Weight**.
 
 - **Dashboard:** 
   - View personalized progress and stats, including calorie intake and recent activities.
@@ -20,36 +19,125 @@
   - Scan products while shopping to automatically add them to your inventory.
 
 - **Recipe Recommendations:** 
-  - Get recipes based on your inventory and dietary goals.
+  - Receive recipes tailored to your inventory and dietary goals.
 
 - **Cross-platform Support:** 
   - Available on mobile and web.
 
 - **Barcode Scanner:** 
-  - Quickly scan items to add to the inventory.
+  - Scan items quickly to add them to your inventory.
 
 ## 🛠️ Tech Stack
 
 - **Frontend:**
-  - [React Native](https://reactnative.dev/) - A framework for building native apps using React.
-  - [TypeScript](https://www.typescriptlang.org/) - A typed superset of JavaScript for building robust applications.
-  - [Expo Go](https://expo.dev/) - An open-source platform for making universal native apps for Android, iOS, and the web.
-  - [Expo Camera](https://docs.expo.dev/versions/latest/sdk/camera/) - For barcode scanning and image capturing.
+  - [React Native](https://reactnative.dev/) - Framework for building native apps using React.
+  - [TypeScript](https://www.typescriptlang.org/) - Typed superset of JavaScript for building robust applications.
+  - [NativeWind](https://www.nativewind.dev/) - A library for using Tailwind CSS with React Native, making styling easier and more consistent across platforms.
+  - [Expo Go](https://expo.dev/) - Platform for universal native apps on Android, iOS, and the web.
+  - [Expo Camera](https://docs.expo.dev/versions/latest/sdk/camera/) - Used for barcode scanning and image capturing.
   
 - **Backend:**
-  - [Node.js](https://nodejs.org/) - A JavaScript runtime built on Chrome's V8 JavaScript engine.
-  - [Express](https://expressjs.com/) - A minimal and flexible Node.js web application framework.
-  - [Firebase](https://firebase.google.com/) - Google's cloud service for creating mobile and web applications.
- 
+  - [Node.js](https://nodejs.org/) - JavaScript runtime.
+  - [Express](https://expressjs.com/) - Minimal and flexible Node.js web application framework.
+  - [Firebase](https://firebase.google.com/) - Google’s platform for mobile and web applications.
+
 ## 🫂 Contributors
-- [Bozhidar Dimov](https://github.com/BADimov21) - Full-Stack Developer - programming and ICT student at VSCPI, Burgas
-- [Boris Milev](https://github.com/BRMilev22) - Full-Stack Developer - programming and ICT student at VSCPI, Burgas
+
+- [Bozhidar Dimov](https://github.com/BADimov21) - Full-Stack Developer, Co-Creator of "Tasty" - Programming and ICT student at VSCPI, Burgas
+- [Boris Milev](https://github.com/BRMilev22) - Full-Stack Developer, Co-Creator of "Tasty" - Programming and ICT student at VSCPI, Burgas
 
 ## 📊 Getting Started
 
-To get a copy of the project up and running on your local machine for development and testing, follow these simple steps:
+### Prerequisites
 
-1. **Clone the repository:**
-   ```bash
-   git clone https://github.com/BRMilev22/tasty.git
-   cd tasty
+To get started, ensure you have the following installed:
+
+- **Node.js**: [Download Node.js](https://nodejs.org/)
+- **Expo CLI**: Install by copying and pasting this command in your command prompt:
+  ```bash
+  npm install -g expo-cli
+  
+### Installation
+- Clone the repository by copying the commands and pasting them in your command prompt:
+  ```bash
+  git clone "https://github.com/BRMilev22/tasty.git"
+  cd tasty
+  ```
+- Install dependencies by copying the commands and pasting them in your command prompt:
+  ```bash
+  npm install
+  ```
+
+  ```bash
+  npx expo start
+  ```
+  Follow the prompts to run the app on your preferred device or emulator.
+
+### 🧪 Testing
+To run the unit tests for core components and utilities copy the command and paste it in your command prompt:
+
+  ```bash
+  npm test
+  ```
+
+### 🔧 Project Structure
+Here’s an overview of the folder structure:
+  ```bash
+TASTY/
+├── .expo/
+├── .firebase/
+├── app/                         # All screen components organized by feature
+│   ├── (tabs)/
+│   │   ├── dashboard.tsx
+│   │   ├── goals.tsx
+│   │   ├── inventory.tsx
+│   │   ├── recipes.tsx
+│   │   └── scan.tsx
+│   ├── auth/                    # Authentication-related screens
+│   │   ├── AuthScreen.tsx
+│   │   └── RegisterScreen.tsx   # Onboarding & Setup screens
+│   ├── _layout_.tsx
+│   ├── editProfile.tsx
+│   ├── genderSelect.tsx
+│   ├── goalsSelect.tsx
+│   ├── heightSelect.tsx
+│   ├── weightSelect.tsx
+│   └── welcomeScreen.tsx
+├── components/                  # Reusable components
+│   ├── __tests__/
+│   ├── EditScreenInfo.tsx
+│   ├── ExpoCamera.tsx
+│   ├── ExternalLink.tsx
+│   ├── StyledText.tsx
+│   ├── Themed.tsx
+│   ├── useClientOnlyValue.ts
+│   ├── useClientOnlyValue.web.ts
+│   ├── useColorScheme.ts
+│   └── useColorScheme.web.ts
+├── assets/                      # Static assets such as images and icons
+│   ├── fonts/
+│   └── images/
+├── constants/                   # Constants and configuration files
+│   └── Colors.ts
+├── node_modules/           
+├── public/                      # Public assets
+│   ├── 404.html
+│   └── index.html
+├── .firebaserc
+├── .gitignore
+├── app.json
+├── babel.config.js
+├── expo-env.d.ts                # Expo environment type definitions
+├── firebase.json                # Firebase configuration file
+├── firebaseConfig.ts            # Firebase SDK initialization and config
+├── package-lock.json
+├── package.json
+├── README.md
+├── tailwind.config.js           # TailwindCSS configuration
+├── tsconfig.json                # TypeScript configuration
+```
+
+<h3 align="center"> Thank you and enjoy using our app! <h3>
+<hr>
+<h4 align="center"> Created by the "Tasty" Team - Bozhidar Dimov and Boris Milev | &copy 2024 All rights reserved.</h4>
+<h2 align="center">Thanks for checking out our repo, show us some ❤️ by giving our repo a ⭐️!</h2>
