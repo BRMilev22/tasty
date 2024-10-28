@@ -48,7 +48,7 @@
 
 ## 📊 Getting Started
 
-### Prerequisites
+### 📋 Prerequisites
 
 To get started, ensure you have the following installed:
 
@@ -57,7 +57,7 @@ To get started, ensure you have the following installed:
   ```bash
   npm install -g expo-cli
   
-### Installation
+### ⚙️ Installation
 - Clone the repository by copying the commands and pasting them in your command prompt:
   ```bash
   git clone "https://github.com/BRMilev22/tasty.git"
@@ -114,7 +114,7 @@ TASTY/
 │   ├── useClientOnlyValue.web.ts
 │   ├── useColorScheme.ts
 │   └── useColorScheme.web.ts
-├── assets/                      # Static assets such as images and icons
+├── assets/                      # Static assets such as images and fonts
 │   ├── fonts/
 │   └── images/
 ├── constants/                   # Constants and configuration files
