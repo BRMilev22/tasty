@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, TextInput, Text, TouchableOpacity, Animated, ImageBackground, Image, KeyboardAvoidingView, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { getAuth, updateEmail, updatePassword, updateProfile } from 'firebase/auth';
@@ -6,7 +6,7 @@ import { getStorage } from 'firebase/storage';
 import { styled } from 'nativewind';
 import FlashMessage, { showMessage } from 'react-native-flash-message';
 import * as ImagePicker from 'expo-image-picker';
-import { getFirestore, doc, setDoc } from 'firebase/firestore';
+import { getFirestore, doc, getDoc, setDoc } from 'firebase/firestore';
 
 const storage = getStorage();
 const firestore = getFirestore();
@@ -29,6 +29,7 @@ const EditProfileScreen = () => {
 
     const [firstName, setFirstName] = useState('');
     const [lastName, setLastName] = useState('');
+    const [goal, setGoal] = useState('');
     const [email, setEmail] = useState(user?.email || '');
     const [password, setPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
@@ -37,6 +38,29 @@ const EditProfileScreen = () => {
     const [weight, setWeight] = useState('');
     const [profileImage, setProfileImage] = useState(user?.photoURL || '');
     const [error, setError] = useState('');
+
+    useEffect(() => {
+        const fetchUserData = async () => {
+            try {
+                const userDocRef = doc(firestore, 'users', user.uid);
+                const userDoc = await getDoc(userDocRef);
+
+                if (userDoc.exists()) {
+                    const userData = userDoc.data();
+                    setFirstName(userData.firstName || '');
+                    setLastName(userData.lastName || '');
+                    setHeight(userData.height || '');
+                    setWeight(userData.weight || '');
+                    setGoal(userData.goal || '');
+                    setProfileImage(userData.profileImage || user.photoURL || '');
+                }
+            } catch (error) {
+                console.error('Error fetching user data:', error);
+            }
+        };
+
+        fetchUserData();
+    }, [user]);
 
     const handlePickImage = async () => {
         const result = await ImagePicker.launchImageLibraryAsync({
@@ -88,8 +112,8 @@ const EditProfileScreen = () => {
     const isValidHeight = (height: string) => {
         if (!height.trim()) return true;
         const heightNum = Number(height);
-        if (isNaN(heightNum) || heightNum <= 0) {
-            setError('Height must be a positive number.');
+        if (isNaN(heightNum) || heightNum <= 0 || heightNum < 30 || heightNum > 300) {
+            setError('Height must be a positive number between 30 cm and 300 cm.');
             return false;
         }
         return true;
@@ -98,8 +122,8 @@ const EditProfileScreen = () => {
     const isValidWeight = (weight: string) => {
         if (!weight.trim()) return true;
         const weightNum = Number(weight);
-        if (isNaN(weightNum) || weightNum <= 0) {
-            setError('Weight must be a positive number.');
+        if (isNaN(weightNum) || weightNum <= 0 || weightNum < 30 || weightNum > 500) {
+            setError('Weight must be a positive number between 30 kg and 500 kg.');
             return false;
         }
         return true;
@@ -282,7 +306,9 @@ const EditProfileScreen = () => {
                                 onChangeText={setEmail}
                                 placeholderTextColor="#a0a0a0"
                                 keyboardType="email-address"
-                                style={{ height: 25 }} 
+                                style={{ height: 25 }}
+                                autoCapitalize='none'
+                                autoCorrect={false}
                             />
                         </StyledView>
 
@@ -348,6 +374,17 @@ const EditProfileScreen = () => {
                                 keyboardType="numeric"
                                 style={{ height: 25 }}
                             />
+                        </StyledView>
+                        
+                        {/* Goal Display */}
+                        <StyledView className="flex-row items-center bg-white/50 rounded-2xl p-2 mb-2 w-full">
+                            <Ionicons name="battery-half-outline" size={20} color="#a0a0a0" />
+                            <StyledText
+                                className="flex-1 ml-2 text-base text-gray-800 h-10"
+                                style={{ height: 25 }}
+                            >
+                                {goal || "Goal"}
+                            </StyledText>
                         </StyledView>
 
                         <StyledTouchableOpacity

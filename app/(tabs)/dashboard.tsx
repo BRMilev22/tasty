@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ScrollView, View, Alert, ActivityIndicator, Image } from 'react-native';
+import { ScrollView, View, ActivityIndicator, Image, StyleSheet } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { useNavigation } from '@react-navigation/native';
@@ -106,39 +106,38 @@ const DashboardScreen: React.FC<DashboardProps> = ({ onLogout }) => {
     >
       <Tab.Screen name="Dashboard" options={{ headerShown: false }}>
         {() => (
-          <StyledView className="flex-1">
+          <StyledView style={styles.container}>
             <StyledImageBackground
-              source={{ uri: 'https://static.vecteezy.com/system/resources/previews/020/580/331/non_2x/abstract-smooth-blur-blue-color-gradient-mesh-texture-lighting-effect-background-with-blank-space-for-website-banner-and-paper-card-decorative-modern-graphic-design-vector.jpg' }}
-              className="flex-1 justify-center items-center bg-[#141e30]"
+              source={{
+                uri: 'https://static.vecteezy.com/system/resources/previews/020/580/331/non_2x/abstract-smooth-blur-blue-color-gradient-mesh-texture-lighting-effect-background-with-blank-space-for-website-banner-and-paper-card-decorative-modern-graphic-design-vector.jpg',
+              }}
+              style={styles.imageBackground}
               blurRadius={20}
             >
-              <StyledScrollView contentContainerStyle={{ flexGrow: 1 }} className="p-5 top-10">
-                {/* Header Section */}
-                <StyledView className="flex-row justify-between items-center w-full mb-5">
-                  <StyledText className="text-3xl font-bold text-black">
-                    Welcome, {user?.email || 'User'}!
-                  </StyledText>
-                  <TouchableOpacity onPress={() => navigation.navigate('editProfile')}>
-                    <Image
-                      source={{ uri: profileImage || 'https://static.vecteezy.com/system/resources/thumbnails/009/292/244/small/default-avatar-icon-of-social-media-user-vector.jpg' }} // Use profile pic URL
-                      style={{ width: 60, height: 60, borderRadius: 40 }}
-                    />
-                  </TouchableOpacity>
-                </StyledView>
+              <StyledView style={styles.headerContainer}>
+                <StyledText style={styles.welcomeText}>
+                  Welcome, {user?.email || 'User'}!
+                </StyledText>
+                <TouchableOpacity onPress={() => navigation.navigate('editProfile')}>
+                  <Image
+                    source={{
+                      uri:
+                        profileImage ||
+                        'https://static.vecteezy.com/system/resources/thumbnails/009/292/244/small/default-avatar-icon-of-social-media-user-vector.jpg',
+                    }} // Use profile pic URL
+                    style={styles.profileImage}
+                  />
+                </TouchableOpacity>
+              </StyledView>
 
-                {/* Logout Button */}
-                <StyledView className="items-center mb-10">
-                  <StyledTouchableOpacity
-                    onPress={handleLogout}
-                    className="bg-red-500 rounded-full px-6 py-3 shadow-lg"
-                  >
-                    <StyledText className="text-white text-lg">Logout</StyledText>
-                  </StyledTouchableOpacity>
-                </StyledView>
-
-                {/* Rest of your Dashboard UI */}
-                {/* ... */}
-              </StyledScrollView>
+              <StyledView style={styles.logoutContainer}>
+                <StyledTouchableOpacity
+                  onPress={handleLogout}
+                  style={styles.logoutButton}
+                >
+                  <StyledText style={styles.logoutText}>Logout</StyledText>
+                </StyledTouchableOpacity>
+              </StyledView>
             </StyledImageBackground>
           </StyledView>
         )}
@@ -150,5 +149,57 @@ const DashboardScreen: React.FC<DashboardProps> = ({ onLogout }) => {
     </Tab.Navigator>
   );
 };
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    flexDirection: 'column',
+  },
+  imageBackground: {
+    flex: 1,
+    justifyContent: 'flex-start',
+    alignItems: 'center',
+  },
+  headerContainer: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      width: '100%',
+      marginBottom: 20,
+      paddingTop: 80,
+      paddingHorizontal: 15,
+  },
+  welcomeText: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#000',
+  },
+  profileImage: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+  },
+  logoutContainer: {
+    alignItems: 'center',
+    marginBottom: 20,
+    flex: 1,  // This ensures the logout button stays at the bottom
+    justifyContent: 'flex-end',  // Aligns the logout button to the bottom of the screen
+  },
+  logoutButton: {
+    backgroundColor: '#ff4f4f',
+    borderRadius: 25,
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.8,
+    shadowRadius: 2,
+  },
+  logoutText: {
+    color: '#fff',
+    fontSize: 18,
+    fontWeight: '600',
+  },
+});
 
 export default DashboardScreen;
