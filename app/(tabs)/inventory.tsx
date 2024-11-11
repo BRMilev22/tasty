@@ -71,7 +71,7 @@ const InventoryScreen = () => {
       className="flex-1 bg-[#141e30]"
       blurRadius={20}
     >
-      <StyledView className="flex-1 p-5">
+      <StyledView className="flex-1 p-5 top-10">
         <StyledText className="text-2xl font-bold text-center text-blue-500 mb-5">Your Inventory</StyledText>
         <StyledFlatList
           data={inventoryItems}

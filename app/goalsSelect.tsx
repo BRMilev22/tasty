@@ -5,6 +5,7 @@ import { doc, setDoc } from 'firebase/firestore'; // Firebase Firestore import
 import { db } from '../firebaseConfig'; // Your Firebase configuration
 import { getAuth } from 'firebase/auth'; // Firebase Auth import
 import { styled } from 'nativewind';
+import Logo from '../components/Logo';
 
 const StyledImageBackground = styled(ImageBackground);
 const StyledView = styled(View);
@@ -49,10 +50,14 @@ const GoalSelectionScreen = () => {
       source={{
         uri: 'https://static.vecteezy.com/system/resources/previews/020/580/331/non_2x/abstract-smooth-blur-blue-color-gradient-mesh-texture-lighting-effect-background-with-blank-space-for-website-banner-and-paper-card-decorative-modern-graphic-design-vector.jpg',
       }}
-      className="flex-1 justify-center items-center"
+      className="flex-1"
       blurRadius={20}
     >
-      <StyledView className="flex-1 justify-center items-center px-4">
+
+      <Logo/>
+
+      <StyledView className="flex-1 justify-center items-center px-4 bottom-44">
+
         <StyledText className="text-black text-3xl font-bold mb-6">Select Your Goal</StyledText>
 
         {/* Gain Weight Button */}

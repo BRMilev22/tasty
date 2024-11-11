@@ -394,10 +394,10 @@ const EditProfileScreen = () => {
                             <StyledText className="text-gray-800 text-center text-lg font-semibold">Confirm Changes</StyledText>
                         </StyledTouchableOpacity>
 
-                        <FlashMessage position="top" />
-                    </StyledView>
-                </StyledAnimatedView>
-            </StyledImageBackground>
+                        </StyledView>
+                    </StyledAnimatedView>
+                </StyledImageBackground>
+            <FlashMessage position="top" />
         </KeyboardAvoidingView>
     );
 };

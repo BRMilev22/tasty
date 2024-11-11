@@ -5,6 +5,7 @@ import { doc, setDoc } from 'firebase/firestore'; // Firebase Firestore import
 import { db } from '../firebaseConfig'; // Your Firebase configuration
 import { getAuth } from 'firebase/auth'; // Firebase Auth import
 import { styled } from 'nativewind';
+import Logo from '@/components/Logo';
 
 const StyledImageBackground = styled(ImageBackground);
 const StyledView = styled(View);
@@ -52,7 +53,10 @@ const GenderSelectionScreen = () => {
       className="flex-1 justify-center items-center"
       blurRadius={20}
     >
-      <StyledView className="flex-1 justify-center items-center p-6 w-full">
+
+      <Logo/>
+
+      <StyledView className="flex-1 justify-center items-center p-6 w-full bottom-44">
         <StyledText className="text-black text-3xl font-bold mb-6 text-center">Select Your Gender</StyledText>
 
         {/* Male Button */}

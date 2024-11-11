@@ -6,6 +6,7 @@ import { styled } from 'nativewind';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import FlashMessage, { showMessage } from 'react-native-flash-message';
 import { getFirestore, doc, setDoc } from 'firebase/firestore';
+import Logo from '../../components/Logo';
 
 const firestore = getFirestore();
 
@@ -250,7 +251,10 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ onLogin }) => {
             className="flex-1 justify-center items-center"
             blurRadius={20}
         >
-            <StyledAnimatedView style={{ opacity }} className="flex-1 justify-center items-center">
+
+            <Logo/>
+
+            <StyledAnimatedView style={{ opacity }} className="flex-1 bottom-28">
                 <StyledView className="w-[90%] p-6 rounded-3xl bg-white/30 border border-white/20 shadow-md shadow-black/20 backdrop-blur-lg">
                     <StyledText className="text-3xl font-bold text-gray-800 mb-6 text-center">
                         {isLoginMode ? 'Login' : step === 1 ? 'Create Account' : 'Account Details'}

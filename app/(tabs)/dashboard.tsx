@@ -4,7 +4,7 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { useNavigation } from '@react-navigation/native';
 import { getAuth } from 'firebase/auth';
-import { getFirestore, doc, getDoc } from 'firebase/firestore';
+import { getFirestore, doc, getDoc, onSnapshot } from 'firebase/firestore';
 import { styled } from 'nativewind';
 import GoalsScreen from './goals';
 import InventoryScreen from './inventory';
@@ -31,7 +31,7 @@ const DashboardScreen: React.FC<DashboardProps> = ({ onLogout }) => {
   const navigation = useNavigation();
   const user = auth.currentUser;
   const [loading, setLoading] = useState(true);
-  const [profileImage, setProfileImage] = useState<string | null>(null); // State for profile image
+  const [profileImage, setProfileImage] = useState<string | null>(null);
 
   useEffect(() => {
     const checkUserGoal = async () => {
@@ -61,6 +61,19 @@ const DashboardScreen: React.FC<DashboardProps> = ({ onLogout }) => {
 
     checkUserGoal();
   }, [user, navigation]);
+  useEffect(() => {
+    if (user) {
+      const userDocRef = doc(db, 'users', user.uid);
+      const unsubscribe = onSnapshot(userDocRef, (docSnapshot) => {
+        if (docSnapshot.exists()) {
+          const userData = docSnapshot.data();
+          setProfileImage(userData.profileImage || '');
+        }
+      });
+
+      return () => unsubscribe();
+    }
+  }, [user]);
 
   const handleLogout = async () => {
     try {
@@ -73,8 +86,8 @@ const DashboardScreen: React.FC<DashboardProps> = ({ onLogout }) => {
 
   if (loading) {
     return (
-      <StyledView className="flex-1 justify-center items-center bg-[#141e30]">
-        <ActivityIndicator size="large" color="#1e90ff" />
+      <StyledView className="flex-1 justify-center items-center bg-[#f4f7fa]">
+        <ActivityIndicator size="large" color="#00aaff" />
       </StyledView>
     );
   }
@@ -82,9 +95,9 @@ const DashboardScreen: React.FC<DashboardProps> = ({ onLogout }) => {
   return (
     <Tab.Navigator
       screenOptions={({ route }) => ({
-        tabBarIcon: ({ color, size }) => {
+        tabBarIcon: ({ focused, color, size }) => {
           let iconName;
-
+          size = focused ? 36 : 24;
           if (route.name === 'Dashboard') {
             iconName = 'home';
           } else if (route.name === 'Goals') {
@@ -99,9 +112,21 @@ const DashboardScreen: React.FC<DashboardProps> = ({ onLogout }) => {
 
           return <Ionicons name={iconName || 'home'} size={size} color={color} />;
         },
-        tabBarActiveTintColor: '#1e90ff',
-        tabBarInactiveTintColor: 'gray',
-        tabBarStyle: { backgroundColor: 'rgba(34, 36, 40, 1)' },
+        tabBarActiveTintColor: '#00aaff',
+        tabBarInactiveTintColor: '#b0bec5',
+        tabBarStyle: {
+          backgroundColor: '#ffffff',
+          height: 65,
+          paddingBottom: 14,
+          paddingTop: 6,
+          borderTopWidth: 0,
+          shadowColor: '#000',
+          shadowOffset: { width: 0, height: 2 },
+          shadowOpacity: 0.2,
+          shadowRadius: 4,
+          elevation: 5,
+        },
+        tabBarShowLabel: false,
       })}
     >
       <Tab.Screen name="Dashboard" options={{ headerShown: false }}>
@@ -161,18 +186,18 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   headerContainer: {
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      alignItems: 'center',
-      width: '100%',
-      marginBottom: 20,
-      paddingTop: 80,
-      paddingHorizontal: 15,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    width: '100%',
+    marginBottom: 20,
+    paddingTop: 80,
+    paddingHorizontal: 15,
   },
   welcomeText: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: '#000',
+    color: '#2c3e50',
   },
   profileImage: {
     width: 60,
@@ -182,11 +207,11 @@ const styles = StyleSheet.create({
   logoutContainer: {
     alignItems: 'center',
     marginBottom: 20,
-    flex: 1,  // This ensures the logout button stays at the bottom
-    justifyContent: 'flex-end',  // Aligns the logout button to the bottom of the screen
+    flex: 1,
+    justifyContent: 'flex-end',
   },
   logoutButton: {
-    backgroundColor: '#ff4f4f',
+    backgroundColor: '#e74c3c',
     borderRadius: 25,
     paddingHorizontal: 24,
     paddingVertical: 12,
