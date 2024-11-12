@@ -7,27 +7,29 @@ const cohere = new CohereClientV2({
 export const fetchRecipesFromCohere = async (inventory: string[]) => {
   try {
     if (!inventory || inventory.length === 0) {
-      throw new Error("Inventory is empty or undefined.");
+      throw new Error("Инвентарът е празен или неопределен.");
     }
 
-    // Generate the prompt to ask the AI to provide the full recipe
-    const prompt = `Suggest recipes using these ingredients: ${inventory.join(', ')}. For each recipe, please provide the following fields:
-    - title: The name of the recipe.
-    - description: A short description of the recipe.
-    - fullRecipe: The full recipe instructions without extra text or explanations. Each step should be a separate entry in the array.
-    - rating: A rating from 1 to 5 stars based on the complexity or tastiness of the recipe.
-    Format the response as follows:
+    // Enhanced prompt to improve the quality and relevance of the response
+    const prompt = `Представи пълни и практични рецепти с разнообразни български ястия, използвайки следните съставки: ${inventory.join(', ')}. Избери подходящи и популярни рецепти в българския кулинарен стил, които ще са лесни за приготвяне у дома. За всяка рецепта, моля, включи следната информация:
+    - title: Име на рецептата (напр. "Мусака", "Шопска салата").
+    - description: Кратко описание на рецептата и основните й съставки.
+    - fullRecipe: Стъпка по стъпка инструкции за приготвяне. Всяка стъпка трябва да бъде отделен елемент в масива.
+    - rating: Оценка от 1 до 5 звезди, базирана на сложността и вкуса на рецептата.
+
+    Пример: 
     {
-      "title": "Recipe Name",
-      "description": "Short description of the recipe",
-      "fullRecipe": ["Step 1: ...", "Step 2: ...", "Step 3: ..."],
-      "rating": 4
+      "title": "Шопска салата",
+      "description": "Освежаваща българска салата със свежи домати, краставици, сирене и лук.",
+      "fullRecipe": ["Стъпка 1: Нарежете доматите и краставиците на кубчета.", "Стъпка 2: Добавете нарязания на ситно лук.", "Стъпка 3: Поръсете с настъргано сирене и зехтин."],
+      "rating": 5
     }
-    Provide at least 1 recipe.`;
+
+    Представи една рецепта, следвайки този формат, на български език. Избери рецепта, подходяща за ежедневни ястия в българската кухня.`;
 
     // Send the request to the Cohere API
     const response = await cohere.chat({
-      model: 'command-r-plus', // or another appropriate model you are using
+      model: 'command-r-plus-08-2024',
       messages: [
         {
           role: 'user',
@@ -36,7 +38,7 @@ export const fetchRecipesFromCohere = async (inventory: string[]) => {
       ],
     });
 
-    // Log the full response to understand the structure
+    // Log the response for debugging
     console.log('Cohere API response:', response);
 
     // Check if the response has the expected structure
@@ -45,34 +47,29 @@ export const fetchRecipesFromCohere = async (inventory: string[]) => {
     if (content && Array.isArray(content)) {
       console.log("Content is an array of objects:", content);
 
-      // Map through each object in the array to create recipes with full details
       const recipes = content.map((item: any) => {
         const recipeData = item?.text || '';
         if (!recipeData) {
           return {
-            title: "Untitled Recipe",
-            description: "No description available.",
-            fullRecipe: ["No full recipe instructions available."],
+            title: "Без име на рецептата",
+            description: "Няма налично описание.",
+            fullRecipe: ["Няма налични инструкции за рецептата."],
             rating: Math.floor(Math.random() * 5) + 1,
           };
         }
 
-        // Clean up and format the recipe data by removing unwanted parts
+        // Parse and format the recipe data
         const lines = recipeData.split('\n').map(line => line.trim()).filter(line => line !== "");
 
-        // Extract the title (should be the first part)
         const titleMatch = lines.find(line => line.includes("title"));
-        const title = titleMatch ? titleMatch.split(':')[1]?.trim() : "Untitled Recipe"; 
+        const title = titleMatch ? titleMatch.split(':')[1]?.trim() : "Без име на рецептата"; 
         
-        // Extract the description (should be the second part)
         const descriptionMatch = lines.find(line => line.includes("description"));
-        const description = descriptionMatch ? descriptionMatch.split(':')[1]?.trim() : "No description available."; 
+        const description = descriptionMatch ? descriptionMatch.split(':')[1]?.trim() : "Няма налично описание."; 
         
-        // Extract the steps (the full recipe instructions are below the first two lines)
-        const fullRecipeLines = lines.slice(2).map((line, index) => `Step ${index + 1}: ${line.trim()}`).filter(line => line !== "");
-        const fullRecipe = Array.isArray(fullRecipeLines) ? fullRecipeLines : ["No full recipe instructions available."];
+        const fullRecipeLines = lines.slice(2).map((line, index) => line.trim()).filter(line => line !== "");
+        const fullRecipe = Array.isArray(fullRecipeLines) ? fullRecipeLines : ["Няма налични инструкции за рецептата."];
 
-        // Rating should be the last line, if present
         const ratingMatch = lines.find(line => line.includes("rating"));
         const rating = ratingMatch ? parseInt(ratingMatch.replace(/[^0-9]/g, '')) : Math.floor(Math.random() * 5) + 1;
 
@@ -82,9 +79,9 @@ export const fetchRecipesFromCohere = async (inventory: string[]) => {
       return recipes;
     }
 
-    throw new Error("Invalid API response structure.");
+    throw new Error("Невалидна структура на отговора от API.");
   } catch (error) {
-    console.error('Error generating recipes:', error);
+    console.error('Грешка при генериране на рецепти:', error);
     return [];
   }
 };

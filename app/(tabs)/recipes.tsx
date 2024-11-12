@@ -111,16 +111,16 @@ const RecipesScreen = () => {
       source={{
         uri: 'https://static.vecteezy.com/system/resources/previews/020/580/331/non_2x/abstract-smooth-blur-blue-color-gradient-mesh-texture-lighting-effect-background-with-blank-space-for-website-banner-and-paper-card-decorative-modern-graphic-design-vector.jpg',
       }}
-      className="flex-1 justify-center items-center bg-[#141e30]"
+      className="flex-1 bg-[#141e30]"
       blurRadius={20}
     >
-      <StyledView className="flex-1 justify-center items-center p-5">
+      <StyledView className="flex-1 top-10 p-5">
         <StyledText className="text-2xl font-bold text-center text-blue-500 mb-5">
           Your Recipes
         </StyledText>
 
         <StyledTouchableOpacity
-          className="bg-blue-500 p-4 rounded-lg mt-5"
+          className="bg-blue-500 p-4 rounded-lg bottom-5 mt-5"
           onPress={generateRecipesFromInventory}
         >
           <StyledText className="text-white text-center">
@@ -141,11 +141,8 @@ const RecipesScreen = () => {
               <StyledTouchableOpacity
                 className="mt-3 p-2 bg-blue-500 rounded"
                 onPress={() => {
-                  // Display the full recipe steps as a list
-                  const fullRecipeText = item.fullRecipe.join('\n\n');
-
-                  // Show the full recipe in an alert
-                  Alert.alert(item.title, fullRecipeText, [{ text: 'Close' }], { cancelable: true });
+                    const fullRecipeText = item.fullRecipe.join('\n\n');
+                    Alert.alert(item.title, fullRecipeText, [{ text: 'Close' }], { cancelable: true });
                 }}
               >
                 <StyledText className="text-white text-center">View Full Recipe</StyledText>
