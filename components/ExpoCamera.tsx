@@ -9,7 +9,7 @@ const ExpoCamera = () => {
   const [hasPermission, setHasPermission] = useState<boolean | null>(null);
   const [scanned, setScanned] = useState(false);
   const [scannedData, setScannedData] = useState<string | null>(null);
-  const [productInfo, setProductInfo] = useState<any | null>(null); // Stores product information
+  const [productTitle, setProductTitle] = useState<string | null>(null); // Store product title
 
   const auth = getAuth();
   const user = auth.currentUser;
@@ -24,15 +24,20 @@ const ExpoCamera = () => {
   const handleBarCodeScanned = async ({ type, data }: BarCodeScannerResult) => {
     setScanned(true);
     setScannedData(data);
-    try {
-      const response = await fetch(`https://world.openfoodfacts.org/api/v0/product/${data}.json`);
-      const productData = await response.json();
 
-      if (productData.product) {
-        setProductInfo(productData.product);
+    try {
+      // Fetch product title from the barcode URL
+      const titleResponse = await fetch(`https://barcode.bg/barcode/BG/%D0%98%D0%BD%D1%84%D0%BE%D1%80%D0%BC%D0%B0%D1%86%D0%B8%D1%8F-%D0%B7%D0%B0-%D0%B1%D0%B0%D1%80%D0%BA%D0%BE%D0%B4.htm?barcode=${data}`);
+      const htmlContent = await titleResponse.text();
+
+      // Extract title from the HTML content
+      const titleMatch = htmlContent.match(/<title>(.*?)<\/title>/);
+      if (titleMatch && titleMatch[1]) {
+        setProductTitle(titleMatch[1]);
       } else {
-        Alert.alert('Error', 'Product not found.');
+        setProductTitle('No title found');
       }
+
     } catch (error) {
       console.error('Error fetching product data:', error);
       Alert.alert('Error', 'Failed to retrieve product data.');
@@ -41,15 +46,18 @@ const ExpoCamera = () => {
 
   const addToInventory = async (barcode: string) => {
     const itemDocRef = doc(db, 'users', user!.uid, 'inventory', barcode);
-
+  
     try {
       const itemDoc = await getDoc(itemDocRef);
       const currentQuantity = itemDoc.exists() ? itemDoc.data().quantity || 0 : 0;
-
+  
+      // Remove the barcode part from the product name using regex
+      const cleanedProductName = productTitle ? productTitle.replace(/ - Баркод: \d+$/, '') : 'Unknown Product';
+  
       await setDoc(
         itemDocRef,
         {
-          name: productInfo?.product_name || 'Unknown Product',
+          name: cleanedProductName, // Use the cleaned product name
           quantity: currentQuantity + 1,
           unit: 'pcs',
           barcode,
@@ -57,16 +65,16 @@ const ExpoCamera = () => {
         },
         { merge: true }
       );
-
+  
       Alert.alert('Success', 'Product added to inventory.');
       setScannedData(null); // Clear the barcode input field
-      setProductInfo(null); // Clear the product info
+      setProductTitle(null); // Clear the title
       setScanned(false); // Reset scanning state
     } catch (error) {
       console.error('Error adding document:', error);
       Alert.alert('Error', 'Failed to add product to inventory.');
     }
-  };
+  };  
 
   if (hasPermission === null) {
     return <Text>Requesting camera permission...</Text>;
@@ -94,14 +102,10 @@ const ExpoCamera = () => {
         placeholder="Scanned Barcode"
       />
 
-      {productInfo && (
+      {productTitle && (
         <View style={styles.productInfoContainer}>
           <ScrollView>
-            <Text style={styles.productInfoText}>Product: {productInfo.product_name || 'Unknown'}</Text>
-            <Text style={styles.productInfoText}>Calories: {productInfo.nutriments?.energy_kcal || 'No data'}</Text>
-            <Text style={styles.productInfoText}>Proteins: {productInfo.nutriments?.proteins || 'No data'}</Text>
-            <Text style={styles.productInfoText}>Carbohydrates: {productInfo.nutriments?.carbohydrates || 'No data'}</Text>
-            <Text style={styles.productInfoText}>Fats: {productInfo.nutriments?.fat || 'No data'}</Text>
+            <Text style={styles.productInfoText}>Title: {productTitle || 'No title available'}</Text>
           </ScrollView>
           <TouchableOpacity onPress={() => addToInventory(scannedData!)} style={styles.addButton}>
             <Text style={styles.addButtonText}>Add to Inventory</Text>

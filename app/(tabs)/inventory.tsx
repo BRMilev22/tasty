@@ -130,26 +130,30 @@ const InventoryScreen = () => {
               <StyledText className="text-lg font-bold text-center mb-4">Add New Item</StyledText>
               
               <StyledTextInput
-                value={itemName}
-                onChangeText={setItemName}
-                placeholder="Item Name"
-                className="bg-gray-200 p-2 mb-3 rounded"
-              />
-              
-              <StyledTextInput
-                value={itemQuantity}
-                onChangeText={setItemQuantity}
-                placeholder="Quantity"
-                keyboardType="numeric"
-                className="bg-gray-200 p-2 mb-3 rounded"
-              />
-              
-              <StyledTextInput
-                value={itemUnit}
-                onChangeText={setItemUnit}
-                placeholder="Unit"
-                className="bg-gray-200 p-2 mb-3 rounded"
-              />
+              value={itemName}
+              onChangeText={setItemName}
+              placeholder="Item Name"
+              placeholderTextColor="#B0B0B0" // Set the placeholder color to a light shade
+              className="bg-gray-200 p-2 mb-3 rounded"
+            />
+
+            <StyledTextInput
+              value={itemQuantity}
+              onChangeText={setItemQuantity}
+              placeholder="Quantity"
+              keyboardType="numeric"
+              placeholderTextColor="#B0B0B0" // Set the placeholder color to a light shade
+              className="bg-gray-200 p-2 mb-3 rounded"
+            />
+
+            <StyledTextInput
+              value={itemUnit}
+              onChangeText={setItemUnit}
+              placeholder="Unit"
+              placeholderTextColor="#B0B0B0" // Set the placeholder color to a light shade
+              className="bg-gray-200 p-2 mb-3 rounded"
+            />
+
               
               <StyledView className="flex-row justify-between">
                 <StyledTouchableOpacity
