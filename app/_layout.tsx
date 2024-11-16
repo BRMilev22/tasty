@@ -38,10 +38,12 @@ const _layout = () => {
         setIsFirstLaunch(false);
       }
     };
-    
+   
+    /*
     const clearStorage = async () => {
       await AsyncStorage.removeItem('hasLaunched');
     }
+      */
     //clearStorage();
     checkFirstLaunch();
   }, []);

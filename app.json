@@ -4,6 +4,7 @@
     "slug": "tasty",
     "version": "1.0.0",
     "orientation": "portrait",
+    "newArchEnabled": true,
     "icon": "./assets/images/icon.png",
     "scheme": "myapp",
     "userInterfaceStyle": "automatic",
@@ -39,7 +40,8 @@
         {
           "cameraPermission": "Allow $(PRODUCT_NAME) to access your camera"
         }
-      ]
+      ],
+      "expo-font"
     ],
     "experiments": {
       "typedRoutes": true
