@@ -1,23 +1,23 @@
-# Security Policy
+# Политика за сигурност
 
-## Supported Versions
+## Поддържани версии
 
-| Version | Supported          |
+| Версия  | Поддържана?        |
 | ------- | ------------------ |
 | 1.0     |  ✅                |
 
-## 🛡️ Reporting a Vulnerability
+## 🛡️ Докладване на уязвимост
 
-If you discover a security vulnerability, please report it to us by sending an email to BADimov21@codingburgas.bg or BRMilev22@codingburgas.bg. We will respond promptly to your report.
+Ако откриете уязвимост в сигурността, моля, докладвайте ни за нея, като изпратите имейл на BADimov21@codingburgas.bg или BRMilev22@codingburgas.bg. Ние ще отговорим незабавно на вашата заявка.
 
-## 🌐 Scope
+## 🌐 Обхват
 
-This security policy applies to all aspects of Tasty's online services and associated repositories.
+Тази политика за сигурност се прилага за всички аспекти на онлайн услугите на „Tasty“ и свързаните с тях хранилища.
 
-## ⚓ Safe Harbor
+## ⚓ „Сигурно пристанище“
 
-We consider security research and vulnerability disclosure activities conducted in a responsible manner to be protected under the Safe Harbor provisions of this policy.
+Смятаме, че дейностите по изследване на сигурността и разкриване на уязвимости, извършвани по отговорен начин, са защитени от разпоредбите на тази политика за „сигурно пристанище“.
 
-## 📧 Contact
+## 📧 Контакт
 
-For security-related inquiries, please contact our team at BADimov21@codingburgas.bg or BRMilev22@codingburgas.bg.
+За запитвания, свързани със сигурността, моля, свържете се с нашия екип на BADimov21@codingburgas.bg или BRMilev22@codingburgas.bg.
