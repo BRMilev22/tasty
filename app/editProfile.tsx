@@ -87,23 +87,23 @@ const EditProfileScreen = () => {
         const containsSpecialChar = /[!@?#$%&*]/.test(password);
 
         if (password.length < 8) {
-            setError('Password must be at least 8 characters long.');
+            setError('Паролата трябва да е с дължина от поне 8 символа.');
             return false;
         }
         if (!containsLetter) {
-            setError('Password must contain at least one letter.');
+            setError('Паролата трябва да съдържа поне една буква.');
             return false;
         }
         if (!containsNumber) {
-            setError('Password must contain at least one number.');
+            setError('Паролата трябва да съдържа поне едно число');
             return false;
         }
         if (!containsUpperCase) {
-            setError('Password must contain at least one uppercase letter.');
+            setError('Паролата трябва да съдържа поне една главна буква.');
             return false;
         }
         if (!containsSpecialChar) {
-            setError('Password must contain at least one special character.');
+            setError('Паролата трябва да съдържа поне един специален символ.');
             return false;
         }
         return true;
@@ -113,7 +113,7 @@ const EditProfileScreen = () => {
         if (!height.trim()) return true;
         const heightNum = Number(height);
         if (isNaN(heightNum) || heightNum <= 0 || heightNum < 30 || heightNum > 300) {
-            setError('Height must be a positive number between 30 cm and 300 cm.');
+            setError('Височината трябва да бъде положително число между 30 cm и 300 cm.');
             return false;
         }
         return true;
@@ -123,7 +123,7 @@ const EditProfileScreen = () => {
         if (!weight.trim()) return true;
         const weightNum = Number(weight);
         if (isNaN(weightNum) || weightNum <= 0 || weightNum < 30 || weightNum > 500) {
-            setError('Weight must be a positive number between 30 kg and 500 kg.');
+            setError('Теглото трябва да бъде положително число между 30 kg и 500 kg.');
             return false;
         }
         return true;
@@ -141,7 +141,7 @@ const EditProfileScreen = () => {
 
     const validateInputs = () => {
         if (email.trim() && !isValidEmail(email)) {
-            setError('Please enter a valid email address.');
+            setError('Моля, добавете валиден имейл.');
             return false;
         }
 
@@ -150,12 +150,12 @@ const EditProfileScreen = () => {
         }
 
         if (firstName.trim() && !validateFirstName(firstName)) {
-            setError('Invalid first name.');
+            setError('Невалидно име.');
             return false;
         }
 
         if (lastName.trim() && !validateLastName(lastName)) {
-            setError('Invalid last name.');
+            setError('Невалидна фамилия.');
             return false;
         }
 
@@ -177,7 +177,7 @@ const EditProfileScreen = () => {
         }
 
         if (password && password !== confirmPassword) {
-            setError('Passwords do not match');
+            setError('Паролите не съвпадат');
             return;
         }
 
@@ -224,14 +224,14 @@ const EditProfileScreen = () => {
             }
 
             showMessage({
-                message: 'Profile updated successfully!',
+                message: 'Профилът бе актуализиран успешно!',
                 type: 'success',
             });
         } catch (err) {
             console.error('Error updating profile:', err);
-            setError('Error updating profile, please try again');
+            setError('Грешка при актуализирането на профила. Моля, опитайте отново');
             showMessage({
-                message: 'Error updating profile',
+                message: 'Грешка при актуализирането на профила.',
                 type: 'danger',
             });
         }
@@ -339,7 +339,7 @@ const EditProfileScreen = () => {
                             <Ionicons name="lock-closed-outline" size={20} color="#a0a0a0" />
                             <StyledTextInput
                                 className="flex-1 ml-2 text-base text-gray-800 h-10"
-                                placeholder="Потвърди нова парола"
+                                placeholder="Потвърдете новата парола"
                                 secureTextEntry={!showPassword}
                                 value={confirmPassword}
                                 onChangeText={setConfirmPassword}
