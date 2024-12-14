@@ -57,7 +57,7 @@ const GenderSelectionScreen = () => {
       <Logo/>
 
       <StyledView className="flex-1 justify-center items-center p-6 w-full bottom-44">
-        <StyledText className="text-black text-3xl font-bold mb-6 text-center">Select Your Gender</StyledText>
+        <StyledText className="text-black text-3xl font-bold mb-6 text-center">Изберете пол</StyledText>
 
         {/* Male Button */}
         <StyledTouchableOpacity
@@ -67,7 +67,7 @@ const GenderSelectionScreen = () => {
           onPress={() => handleGenderSelection('Male')}
           disabled={loading} // Disable button while loading
         >
-          <StyledText className="text-white text-lg font-semibold">Male</StyledText>
+          <StyledText className="text-white text-lg font-semibold">Мъж</StyledText>
         </StyledTouchableOpacity>
 
         {/* Female Button */}
@@ -78,7 +78,7 @@ const GenderSelectionScreen = () => {
           onPress={() => handleGenderSelection('Female')}
           disabled={loading}
         >
-          <StyledText className="text-white text-lg font-semibold">Female</StyledText>
+          <StyledText className="text-white text-lg font-semibold">Жена</StyledText>
         </StyledTouchableOpacity>
       </StyledView>
     </StyledImageBackground>

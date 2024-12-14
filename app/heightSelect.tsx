@@ -58,7 +58,7 @@ const HeightSelectionScreen = () => {
       <Logo/>
 
       <StyledView className="flex-1 justify-center items-center p-6 w-full bottom-44">
-        <StyledText className="text-black text-3xl font-bold mb-6 text-center">Select Your Height (cm)</StyledText>
+        <StyledText className="text-black text-3xl font-bold mb-6 text-center">Изберете височина (cm)</StyledText>
 
         {/* Height Picker */}
         <StyledPickerContainer className="bg-transparent mb-6 w-full">
@@ -80,7 +80,7 @@ const HeightSelectionScreen = () => {
           onPress={handleHeightSelection}
           disabled={loading}
         >
-          <StyledText className="text-white text-lg font-medium text-center">Confirm Height</StyledText>
+          <StyledText className="text-white text-lg font-medium text-center">Потвърдете височината</StyledText>
         </StyledTouchableOpacity>
       </StyledView>
     </StyledImageBackground>

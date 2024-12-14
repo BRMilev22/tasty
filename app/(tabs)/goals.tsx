@@ -37,13 +37,13 @@ const GoalsScreen = () => {
 
   // Function to delete a goal
   const deleteGoal = (index: number) => {
-    Alert.alert('Delete Goal', 'Are you sure you want to delete this goal?', [
+    Alert.alert('Изтрийте целта', 'Сигурни ли сте, че искате да изтриете тази цел?', [
       {
-        text: 'Cancel',
+        text: 'Откажете',
         style: 'cancel',
       },
       {
-        text: 'Delete',
+        text: 'Изтрийте',
         onPress: () => {
           setGoals((prevGoals) => prevGoals.filter((_, i) => i !== index));
         },
@@ -76,13 +76,13 @@ const GoalsScreen = () => {
             setModalVisible(true);
           }}
         >
-          <StyledText className="text-white">Edit</StyledText>
+          <StyledText className="text-white">Редактирайте</StyledText>
         </StyledTouchableOpacity>
         <StyledTouchableOpacity
           className="bg-red-500 p-2 rounded-lg"
           onPress={() => deleteGoal(index)}
         >
-          <StyledText className="text-white">Delete</StyledText>
+          <StyledText className="text-white">Изтрийте</StyledText>
         </StyledTouchableOpacity>
       </StyledView>
     </StyledView>
@@ -101,13 +101,13 @@ const GoalsScreen = () => {
         {/* Title and input section, vertically centered */}
         <StyledView className="flex justify-center items-center mb-5 mt-10">
           <StyledText className="text-2xl font-bold text-center text-blue-500 mb-5">
-            Your Goals
+            Вашите цели
           </StyledText>
 
           <StyledView className="flex-row items-center bg-white/50 rounded-2xl p-4 mb-4 w-full">
             <StyledTextInput
               className="flex-1 ml-3 text-base text-gray-800" // Changed background color and text color
-              placeholder="Add a new goal"
+              placeholder="Добавете нова цел"
               placeholderTextColor="#a0a0a0" // Change placeholder text color to black
               value={newGoal}
               onChangeText={setNewGoal}
@@ -116,7 +116,7 @@ const GoalsScreen = () => {
               className="bg-blue-500 p-3 rounded-lg items-center"
               onPress={addGoal}
             >
-              <StyledText className="text-white font-bold">Add</StyledText>
+              <StyledText className="text-white font-bold">Добавете</StyledText>
             </StyledTouchableOpacity>
           </StyledView>
         </StyledView>
@@ -142,7 +142,7 @@ const GoalsScreen = () => {
         >
           <StyledView className="flex-1 justify-center items-center bg-black/50">
             <StyledView className="bg-white p-6 rounded-lg w-4/5">
-              <StyledText className="text-2xl font-bold mb-4">Edit Goal</StyledText>
+              <StyledText className="text-2xl font-bold mb-4">Редактирайте цел</StyledText>
               <StyledTextInput
                 className="border border-gray-300 p-3 rounded-lg mb-4"
                 placeholder="Update your goal"
@@ -154,13 +154,13 @@ const GoalsScreen = () => {
                   className="bg-blue-500 p-3 rounded-lg flex-1 mr-2 items-center"
                   onPress={editGoal}
                 >
-                  <StyledText className="text-white font-bold">Save</StyledText>
+                  <StyledText className="text-white font-bold">Запазете</StyledText>
                 </StyledPressable>
                 <StyledPressable
                   className="bg-red-500 p-3 rounded-lg flex-1 ml-2 items-center"
                   onPress={() => setModalVisible(false)}
                 >
-                  <StyledText className="text-white font-bold">Cancel</StyledText>
+                  <StyledText className="text-white font-bold">Откажете</StyledText>
                 </StyledPressable>
               </StyledView>
             </StyledView>

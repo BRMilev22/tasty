@@ -250,7 +250,7 @@ const EditProfileScreen = () => {
             >
                 <StyledAnimatedView className="flex-1 justify-center items-center">
                     <StyledView className="w-[85%] p-4 rounded-2xl bg-white/30 border border-white/20 shadow-md shadow-black/20 items-center backdrop-blur-lg">
-                        <StyledText className="text-2xl font-bold text-gray-800 mb-4">Edit Profile</StyledText>
+                        <StyledText className="text-2xl font-bold text-gray-800 mb-4">Редактирайте профила</StyledText>
                         {error ? <StyledText className="text-red-500 mb-2">{error}</StyledText> : null}
 
                         <TouchableOpacity onPress={handlePickImage} style={{ marginBottom: 8 }}>
@@ -275,7 +275,7 @@ const EditProfileScreen = () => {
                             <Ionicons name="person-outline" size={20} color="#a0a0a0" />
                             <StyledTextInput
                                 className="flex-1 ml-2 text-base text-gray-800 h-10"
-                                placeholder="First Name"
+                                placeholder="Име"
                                 value={firstName}
                                 onChangeText={setFirstName}
                                 placeholderTextColor="#a0a0a0"
@@ -288,7 +288,7 @@ const EditProfileScreen = () => {
                             <Ionicons name="person-outline" size={20} color="#a0a0a0" />
                             <StyledTextInput
                                 className="flex-1 ml-2 text-base text-gray-800 h-10"
-                                placeholder="Last Name"
+                                placeholder="Фамилия"
                                 value={lastName}
                                 onChangeText={setLastName}
                                 placeholderTextColor="#a0a0a0"
@@ -301,7 +301,7 @@ const EditProfileScreen = () => {
                             <Ionicons name="mail-outline" size={20} color="#a0a0a0" />
                             <StyledTextInput
                                 className="flex-1 ml-2 text-base text-gray-800 h-10"
-                                placeholder="Email Address"
+                                placeholder="Имейл"
                                 value={email}
                                 onChangeText={setEmail}
                                 placeholderTextColor="#a0a0a0"
@@ -317,7 +317,7 @@ const EditProfileScreen = () => {
                             <Ionicons name="lock-closed-outline" size={20} color="#a0a0a0" />
                             <StyledTextInput
                                 className="flex-1 ml-2 text-base text-gray-800 h-10"
-                                placeholder="New Password"
+                                placeholder="Нова парола"
                                 secureTextEntry={!showPassword}
                                 value={password}
                                 onChangeText={setPassword}
@@ -339,7 +339,7 @@ const EditProfileScreen = () => {
                             <Ionicons name="lock-closed-outline" size={20} color="#a0a0a0" />
                             <StyledTextInput
                                 className="flex-1 ml-2 text-base text-gray-800 h-10"
-                                placeholder="Confirm Password"
+                                placeholder="Потвърди нова парола"
                                 secureTextEntry={!showPassword}
                                 value={confirmPassword}
                                 onChangeText={setConfirmPassword}
@@ -353,7 +353,7 @@ const EditProfileScreen = () => {
                             <Ionicons name="resize-outline" size={20} color="#a0a0a0" />
                             <StyledTextInput
                                 className="flex-1 ml-2 text-base text-gray-800 h-10"
-                                placeholder="Height (cm)"
+                                placeholder="Височина (cm)"
                                 value={height}
                                 onChangeText={setHeight}
                                 placeholderTextColor="#a0a0a0"
@@ -367,7 +367,7 @@ const EditProfileScreen = () => {
                             <Ionicons name="barbell-outline" size={20} color="#a0a0a0" />
                             <StyledTextInput
                                 className="flex-1 ml-2 text-base text-gray-800 h-10"
-                                placeholder="Weight (kg)"
+                                placeholder="Маса (kg)"
                                 value={weight}
                                 onChangeText={setWeight}
                                 placeholderTextColor="#a0a0a0"
@@ -391,7 +391,7 @@ const EditProfileScreen = () => {
                             className="bg-gradient-to-r from-[#ffffff] to-[#e0e0e0] rounded-2xl py-3 w-full mb-4 shadow-md shadow-gray-400"
                             onPress={handleSaveChanges}
                         >
-                            <StyledText className="text-gray-800 text-center text-lg font-semibold">Confirm Changes</StyledText>
+                            <StyledText className="text-gray-800 text-center text-lg font-semibold">Потвърдете промените</StyledText>
                         </StyledTouchableOpacity>
 
                         </StyledView>

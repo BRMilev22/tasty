@@ -43,7 +43,7 @@ const InventoryScreen = () => {
 
       return () => unsubscribe();
     } else {
-      Alert.alert('Error', 'User is not logged in.');
+      Alert.alert('Грешка', 'Потребителят не е вписан.');
     }
   }, [user]);
 
@@ -52,13 +52,13 @@ const InventoryScreen = () => {
       await deleteDoc(doc(db, 'users', user!.uid, 'inventory', id));
     } catch (error) {
       console.error('Error deleting item: ', error);
-      Alert.alert('Error', 'Failed to delete item.');
+      Alert.alert('Грешка', 'Артикулът не бе изтрит.');
     }
   };
 
   const addItem = async () => {
     if (!itemName || !itemQuantity || !itemUnit) {
-      Alert.alert('Error', 'Please fill in all fields.');
+      Alert.alert('Грешка', 'Моля, попълнете всички полета.');
       return;
     }
 
@@ -76,20 +76,20 @@ const InventoryScreen = () => {
       setIsModalVisible(false); // Close the modal after adding the item
     } catch (error) {
       console.error('Error adding item: ', error);
-      Alert.alert('Error', 'Failed to add item.');
+      Alert.alert('Грешка', 'Артикулът не бе добавен.');
     }
   };
 
   const renderItem = ({ item }: { item: InventoryItem }) => (
     <StyledView className="bg-white p-4 rounded-lg mb-4 shadow-lg">
       <StyledText className="text-lg font-bold text-left">{item.name}</StyledText>
-      <StyledText className="text-gray-400 text-left">Quantity: {item.quantity} {item.unit}</StyledText>
+      <StyledText className="text-gray-400 text-left">Количество: {item.quantity} {item.unit}</StyledText>
       <StyledView className="flex-row justify-start mt-3">
         <StyledTouchableOpacity
           className="bg-red-500 p-2 rounded-lg"
           onPress={() => deleteItem(item.id)}
         >
-          <StyledText className="text-white">Delete</StyledText>
+          <StyledText className="text-white">Изтрийте</StyledText>
         </StyledTouchableOpacity>
       </StyledView>
     </StyledView>
@@ -102,16 +102,17 @@ const InventoryScreen = () => {
       blurRadius={20}
     >
       <StyledView className="flex-1 p-5 top-10">
+      <StyledText className="text-2xl font-bold text-blue-500 mb-5 text-center">Вашият инвентар</StyledText>
+
         {/* Add Item Button */}
         <StyledTouchableOpacity
           className="bg-blue-500 p-3 rounded-lg mb-5"
           onPress={() => setIsModalVisible(true)}
         >
-          <StyledText className="text-white text-center text-lg">Add New Item</StyledText>
+          <StyledText className="text-white text-center text-lg">Добавете нов артикул</StyledText>
         </StyledTouchableOpacity>
 
         {/* Inventory List */}
-        <StyledText className="text-2xl font-bold text-blue-500 mb-5">Your Inventory</StyledText>
         <StyledFlatList
           data={inventoryItems}
           renderItem={renderItem}
@@ -127,12 +128,12 @@ const InventoryScreen = () => {
         >
           <StyledView className="flex-1 justify-center items-center bg-black bg-opacity-50">
             <StyledView className="bg-white p-6 rounded-lg w-80">
-              <StyledText className="text-lg font-bold text-center mb-4">Add New Item</StyledText>
+              <StyledText className="text-lg font-bold text-center mb-4">Добавете нов артикул</StyledText>
               
               <StyledTextInput
               value={itemName}
               onChangeText={setItemName}
-              placeholder="Item Name"
+              placeholder="Име на артикула"
               placeholderTextColor="#B0B0B0" // Set the placeholder color to a light shade
               className="bg-gray-200 p-2 mb-3 rounded"
             />
@@ -140,7 +141,7 @@ const InventoryScreen = () => {
             <StyledTextInput
               value={itemQuantity}
               onChangeText={setItemQuantity}
-              placeholder="Quantity"
+              placeholder="Количество"
               keyboardType="numeric"
               placeholderTextColor="#B0B0B0" // Set the placeholder color to a light shade
               className="bg-gray-200 p-2 mb-3 rounded"
@@ -149,7 +150,7 @@ const InventoryScreen = () => {
             <StyledTextInput
               value={itemUnit}
               onChangeText={setItemUnit}
-              placeholder="Unit"
+              placeholder="Единица (бр, L)"
               placeholderTextColor="#B0B0B0" // Set the placeholder color to a light shade
               className="bg-gray-200 p-2 mb-3 rounded"
             />
@@ -160,13 +161,13 @@ const InventoryScreen = () => {
                   className="bg-gray-400 p-2 rounded-lg"
                   onPress={() => setIsModalVisible(false)}
                 >
-                  <StyledText className="text-white">Cancel</StyledText>
+                  <StyledText className="text-white">Откажете</StyledText>
                 </StyledTouchableOpacity>
                 <StyledTouchableOpacity
                   className="bg-green-500 p-2 rounded-lg"
                   onPress={addItem}
                 >
-                  <StyledText className="text-white">Add</StyledText>
+                  <StyledText className="text-white">Добавете</StyledText>
                 </StyledTouchableOpacity>
               </StyledView>
             </StyledView>

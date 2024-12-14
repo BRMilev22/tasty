@@ -44,7 +44,7 @@ const WelcomeScreen: React.FC<WelcomeScreenProps> = ({ navigation, route, onLogi
                     Tasty
                 </StyledText>
                 <StyledText className="text-black text-lg text-center mb-8">
-                    Effortless meal planning and recipe recommendations
+                    Безпроблемно планиране на хранене и препоръки за рецепти
                 </StyledText>
 
                 <StyledTouchableOpacity
@@ -52,7 +52,7 @@ const WelcomeScreen: React.FC<WelcomeScreenProps> = ({ navigation, route, onLogi
                     onPress={() => navigation.navigate('auth/RegisterScreen')}
                 >
                     <StyledText className="text-white font-bold text-center">
-                        Start Now
+                        Започнете сега
                     </StyledText>
                 </StyledTouchableOpacity>
             </StyledView>

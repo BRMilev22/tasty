@@ -56,7 +56,7 @@ const WeightSelectionScreen = () => {
       <Logo/>
 
       <StyledView className="flex-1 justify-center items-center p-6 w-full bottom-44">
-        <StyledText className="text-black text-3xl font-bold mb-6 text-center">Select Your Weight (kg)</StyledText>
+        <StyledText className="text-black text-3xl font-bold mb-6 text-center">Изберете тегло (kg)</StyledText>
 
         {/* Weight Picker */}
         <StyledPickerContainer className="bg-transparent mb-6 w-full">
@@ -78,7 +78,7 @@ const WeightSelectionScreen = () => {
           onPress={handleWeightSelection}
           disabled={loading}
         >
-          <StyledText className="text-white text-lg text-center">Confirm Weight</StyledText>
+          <StyledText className="text-white text-lg text-center">Потвърдете теглото</StyledText>
         </StyledTouchableOpacity>
       </StyledView>
     </StyledImageBackground>

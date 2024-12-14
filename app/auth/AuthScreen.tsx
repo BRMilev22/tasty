@@ -58,23 +58,23 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ onLogin }) => {
         const containsSpecialChar = /[!@?#$%&*]/.test(password);
 
         if (password.length < 8) {
-            setError('Password must be at least 8 characters long.');
+            setError('Паролата трябва да е с дължина от поне 8 символа.');
             return false;
         }
         if (!containsLetter) {
-            setError('Password must contain at least one letter.');
+            setError('Паролата трябва да съдържа поне една буква.');
             return false;
         }
         if (!containsNumber) {
-            setError('Password must contain at least one number.');
+            setError('Паролата трябва да съдържа поне едно число');
             return false;
         }
         if (!containsUpperCase) {
-            setError('Password must contain at least one uppercase letter.');
+            setError('Паролата трябва да съдържа поне една главна буква.');
             return false;
         }
         if (!containsSpecialChar) {
-            setError('Password must contain at least one special character.');
+            setError('Паролата трябва да съдържа поне един специален символ.');
             return false;
         }
         return true;
@@ -82,12 +82,12 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ onLogin }) => {
 
     const validateInputs = () => {
         if (!email || !password) {
-            setError('Email and password fields cannot be empty.');
+            setError('Полетата за имейл и парола не могат да бъдат празни.');
             return false;
         }
 
         if (!isValidEmail(email)) {
-            setError('Please enter a valid email address.');
+            setError('Моля, добавете валиден имейл.');
             return false;
         }
 
@@ -114,30 +114,30 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ onLogin }) => {
 
     const canProceedToNextStep = () => {
         if (!firstName || !lastName || !dateOfBirth) {
-            setError('Please fill out all fields');
+            setError('Моля, попълнете всички полета');
             showMessage({
-                message: 'Please fill out all fields',
+                message: 'Моля, попълнете всички полета',
                 type: 'danger',
             });
             return false;
         }
 
         if (!isValidDateOfBirth(dateOfBirth)) {
-            setError('You must be at least 18 years old');
+            setError('Трябва да бъдете минимум на 18-годишна възраст');
             showMessage({
-                message: 'You must be at least 18 years old',
+                message: 'Трябва да бъдете минимум на 18-годишна възраст',
                 type: 'danger',
             });
             return false;
         }
 
         if (!validateFirstName(firstName)) {
-            setError('Invalid first name.');
+            setError('Невалидно име.');
             return false;
         }
 
         if (!validateLastName(lastName)) {
-            setError('Invalid last name.');
+            setError('Невалидна фамилия.');
             return false;
         }
 
@@ -147,21 +147,21 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ onLogin }) => {
 
     const handleRegister = async () => {
         if (password !== confirmPassword) {
-            setError('Passwords do not match');
+            setError('Паролите не съвпадат.');
             showMessage({
-                message: 'Passwords do not match',
+                message: 'Паролите не съвпадат.',
                 type: 'danger',
             });
             return;
         }
 
         if (!email || !password) {
-            setError('Email and password fields cannot be empty.');
+            setError('Полетата за имейл и парола не могат да бъдат празни.');
             return false;
         }
 
         if (!isValidEmail(email)) {
-            setError('Please enter a valid email address.');
+            setError('Моля, въведете валиден имейл.');
             return false;
         }
 
@@ -187,14 +187,14 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ onLogin }) => {
     
             setError('');
             showMessage({
-                message: 'Registration successful!',
+                message: 'Регистрацията бе успешна!',
                 type: 'success',
             });
             onLogin();
         } catch (err) {
-            setError('Error registering. Please try again.');
+            setError('Грешка при регистрирането. Моля, опитайте отново.');
             showMessage({
-                message: 'Error registering. Please try again.',
+                message: 'Грешка при регистрирането. Моля, опитайте отново.',
                 type: 'danger',
             });
         }
@@ -205,14 +205,14 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ onLogin }) => {
             await signInWithEmailAndPassword(auth, email, password);
             setError('');
             showMessage({
-                message: 'Login successful!',
+                message: 'Вписването бе успешно!',
                 type: 'success',
             });
             onLogin();
         } catch (err) {
-            setError('Error logging in. Please try again.');
+            setError('Грешка при вписването. Моля, опитайте отново.');
             showMessage({
-                message: 'Error logging in. Please try again.',
+                message: 'Грешка при вписването. Моля, опитайте отново.',
                 type: 'danger',
             });
         }
@@ -257,7 +257,7 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ onLogin }) => {
             <StyledAnimatedView style={{ opacity }} className="flex-1 bottom-28">
                 <StyledView className="w-[90%] p-6 rounded-3xl bg-white/30 border border-white/20 shadow-md shadow-black/20 backdrop-blur-lg">
                     <StyledText className="text-3xl font-bold text-gray-800 mb-6 text-center">
-                        {isLoginMode ? 'Login' : step === 1 ? 'Create Account' : 'Account Details'}
+                        {isLoginMode ? 'Впишете се' : step === 1 ? 'Създайте профил' : 'Информация за профила'}
                     </StyledText>
                     {error ? <StyledText className="text-red-500 mb-3">{error}</StyledText> : null}
 
@@ -265,7 +265,7 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ onLogin }) => {
                         <>
                             <StyledTextInput
                                 className="bg-white/50 rounded-2xl p-4 mb-4 text-gray-800"
-                                placeholder="Email Address"
+                                placeholder="Имейл"
                                 value={email}
                                 onChangeText={setEmail}
                                 autoCapitalize="none"
@@ -275,7 +275,7 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ onLogin }) => {
                                 <Ionicons name="lock-closed-outline" size={24} color="#a0a0a0" />
                                 <StyledTextInput
                                     className="flex-1 ml-3 text-base text-gray-800"
-                                    placeholder="Password"
+                                    placeholder="Парола"
                                     secureTextEntry={!showPassword}
                                     value={password}
                                     onChangeText={setPassword}
@@ -300,14 +300,14 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ onLogin }) => {
                         <>
                             <StyledTextInput
                                 className="bg-white/50 rounded-2xl p-4 mb-4 text-gray-800"
-                                placeholder="First Name"
+                                placeholder="Име"
                                 value={firstName}
                                 onChangeText={setFirstName}
                                 placeholderTextColor="#a0a0a0"
                             />
                             <StyledTextInput
                                 className="bg-white/50 rounded-2xl p-4 mb-4 text-gray-800"
-                                placeholder="Last Name"
+                                placeholder="Фамилия"
                                 value={lastName}
                                 onChangeText={setLastName}
                                 placeholderTextColor="#a0a0a0"
@@ -317,7 +317,7 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ onLogin }) => {
                                 onPress={() => setDateOfBirth(new Date())}
                             >
                                 <StyledText className="text-gray-800">
-                                    {dateOfBirth ? dateOfBirth.toDateString() : 'Date of Birth'}
+                                    {dateOfBirth ? dateOfBirth.toDateString() : 'Дата на раждане'}
                                 </StyledText>
                                 <Ionicons name="calendar-outline" size={24} color="#a0a0a0" />
                             </StyledTouchableOpacity>
@@ -340,7 +340,7 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ onLogin }) => {
                         <>
                             <StyledTextInput
                                 className="bg-white/50 rounded-2xl p-4 mb-4 text-gray-800"
-                                placeholder="Email Address"
+                                placeholder="Имейл"
                                 value={email}
                                 onChangeText={setEmail}
                                 autoCapitalize="none"
@@ -350,7 +350,7 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ onLogin }) => {
                                 <Ionicons name="lock-closed-outline" size={24} color="#a0a0a0" />
                                 <StyledTextInput
                                     className="flex-1 ml-3 text-base text-gray-800"
-                                    placeholder="Password"
+                                    placeholder="Парола"
                                     secureTextEntry={!showPassword}
                                     value={password}
                                     onChangeText={setPassword}
@@ -366,7 +366,7 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ onLogin }) => {
                             </StyledView>
                             <StyledTextInput
                                 className="bg-white/50 rounded-2xl p-4 mb-4 text-gray-800"
-                                placeholder="Confirm Password"
+                                placeholder="Потвърдете паролата"
                                 secureTextEntry={!showPassword}
                                 value={confirmPassword}
                                 onChangeText={setConfirmPassword}
@@ -393,7 +393,7 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ onLogin }) => {
                         className="mt-4"
                     >
                         <StyledText className="text-gray-800">
-                            {isLoginMode ? 'Create Account' : 'Already have an account? Login'}
+                            {isLoginMode ? 'Създайте профил' : 'Вече имате профил? Впишете се!'}
                         </StyledText>
                     </StyledTouchableOpacity>
                 </StyledView>

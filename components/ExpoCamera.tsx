@@ -39,11 +39,11 @@ const ExpoCamera = () => {
       if (titleMatch && titleMatch[1]) {
         setProductTitle(titleMatch[1]);
       } else {
-        setProductTitle('No title found');
+        setProductTitle('Името на продукта не бе намерено');
       }
     } catch (error) {
       console.error('Error fetching product data:', error);
-      Alert.alert('Error', 'Failed to retrieve product data.');
+      Alert.alert('Грешка', 'Данните за продукта не бяха извлечени.');
     }
   };
 
@@ -55,7 +55,7 @@ const ExpoCamera = () => {
       const itemDoc = await getDoc(itemDocRef);
       const currentQuantity = itemDoc.exists() ? itemDoc.data().quantity || 0 : 0;
 
-      const cleanedProductName = productTitle.replace(/ - Баркод: \d+$/, '') || 'Unknown Product';
+      const cleanedProductName = productTitle.replace(/ - Баркод: \d+$/, '') || 'Непознат продукт';
 
       // Add or update the product in Firestore
       await setDoc(
@@ -63,14 +63,14 @@ const ExpoCamera = () => {
         {
           name: cleanedProductName,
           quantity: currentQuantity + 1,
-          unit: 'pcs',
+          unit: 'бр',
           barcode: barcode,
           createdAt: itemDoc.exists() ? itemDoc.data().createdAt : new Date(),
         },
         { merge: true }
       );
 
-      Alert.alert('Success', 'Product added to inventory.');
+      Alert.alert('Добавянето бе успешно', 'Продуктът бе добавен в инвентара.');
       setIsConfirming(false); // Reset confirming state
     }
   };
@@ -83,11 +83,11 @@ const ExpoCamera = () => {
   };
 
   if (hasPermission === null) {
-    return <Text>Requesting camera permission...</Text>;
+    return <Text>Искане за позволение за използване на камерата...</Text>;
   }
 
   if (hasPermission === false) {
-    return <Text>No access to camera</Text>;
+    return <Text>Липса на достъп до камерата</Text>;
   }
 
   return (
@@ -99,20 +99,20 @@ const ExpoCamera = () => {
         <View style={styles.overlay}>
           {scanned && barcode ? (
             <View style={styles.resultContainer}>
-              <Text style={styles.resultText}>Scanned Code: {barcode}</Text>
-              <Text style={styles.resultText}>Product: {productTitle || 'No title available'}</Text>
-              <Text style={styles.confirmText}>Do you want to add this item to your inventory?</Text>
+              <Text style={styles.resultText}>Сканиран баркод: {barcode}</Text>
+              <Text style={styles.resultText}>Продукт: {productTitle || 'Непознато име'}</Text>
+              <Text style={styles.confirmText}>Искате ли да добавите този продукт в инвентара?</Text>
               <View style={styles.buttonContainer}>
                 <TouchableOpacity onPress={handleAddToInventory} style={styles.button}>
-                  <Text style={styles.buttonText}>Yes</Text>
+                  <Text style={styles.buttonText}>Да</Text>
                 </TouchableOpacity>
                 <TouchableOpacity onPress={handleScanAgain} style={styles.button}>
-                  <Text style={styles.buttonText}>No, Scan Again</Text>
+                  <Text style={styles.buttonText}>Не, сканирай отново</Text>
                 </TouchableOpacity>
               </View>
             </View>
           ) : (
-            <Text style={styles.instructions}>Scan a barcode to get started</Text>
+            <Text style={styles.instructions}>Сканирайте баркод, за да започнете</Text>
           )}
         </View>
       </CameraView>

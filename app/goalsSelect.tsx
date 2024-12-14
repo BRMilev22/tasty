@@ -58,7 +58,7 @@ const GoalSelectionScreen = () => {
 
       <StyledView className="flex-1 justify-center items-center px-4 bottom-44">
 
-        <StyledText className="text-black text-3xl font-bold mb-6">Select Your Goal</StyledText>
+        <StyledText className="text-black text-3xl font-bold mb-6">Изберете цел</StyledText>
 
         {/* Gain Weight Button */}
         <StyledTouchableOpacity
@@ -66,7 +66,7 @@ const GoalSelectionScreen = () => {
           onPress={() => handleGoalSelection('Gain Weight')}
           disabled={loading} // Disable button while loading
         >
-          <StyledText className="text-white text-lg font-medium">Gain Weight</StyledText>
+          <StyledText className="text-white text-lg font-medium">Повишаване на теглото</StyledText>
         </StyledTouchableOpacity>
 
         {/* Maintain Weight Button */}
@@ -75,7 +75,7 @@ const GoalSelectionScreen = () => {
           onPress={() => handleGoalSelection('Maintain Weight')}
           disabled={loading}
         >
-          <StyledText className="text-white text-lg font-medium">Maintain Weight</StyledText>
+          <StyledText className="text-white text-lg font-medium">Поддържане на теглото</StyledText>
         </StyledTouchableOpacity>
 
         {/* Lose Weight Button */}
@@ -84,7 +84,7 @@ const GoalSelectionScreen = () => {
           onPress={() => handleGoalSelection('Lose Weight')}
           disabled={loading}
         >
-          <StyledText className="text-white text-lg font-medium">Lose Weight</StyledText>
+          <StyledText className="text-white text-lg font-medium">Отслабване</StyledText>
         </StyledTouchableOpacity>
       </StyledView>
     </StyledImageBackground>

@@ -49,23 +49,23 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
         const containsSpecialChar = /[!@?#$%&*]/.test(password);
 
         if (password.length < 8) {
-            setError('Password must be at least 8 characters long.');
+            setError('Паролата трябва да е с дължина от поне 8 символа.');
             return false;
         }
         if (!containsLetter) {
-            setError('Password must contain at least one letter.');
+            setError('Паролата трябва да съдържа поне една буква.');
             return false;
         }
         if (!containsNumber) {
-            setError('Password must contain at least one number.');
+            setError('Паролата трябва да съдържа поне едно число');
             return false;
         }
         if (!containsUpperCase) {
-            setError('Password must contain at least one uppercase letter.');
+            setError('Паролата трябва да съдържа поне една главна буква.');
             return false;
         }
         if (!containsSpecialChar) {
-            setError('Password must contain at least one special character.');
+            setError('Паролата трябва да съдържа поне един специален символ.');
             return false;
         }
         return true;
@@ -73,12 +73,12 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
 
     const validateInputs = () => {
         if (!email || !password) {
-            setError('Email and password fields cannot be empty.');
+            setError('Полетата за имейл и парола не могат да бъдат празни.');
             return false;
         }
 
         if (!isValidEmail(email)) {
-            setError('Please enter a valid email address.');
+            setError('Моля, добавете валиден имейл.');
             return false;
         }
 
@@ -99,14 +99,14 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
             await createUserWithEmailAndPassword(auth, email, password);
             setError('');
             showMessage({
-                message: 'Registration successful!',
+                message: 'Регистрацията бе успешна!',
                 type: 'success',
             });
             fadeOut();
         } catch (err) {
-            setError('Error registering. Please try again.');
+            setError('Грешка при регистрирането. Моля, опитайте отново.');
             showMessage({
-                message: 'Error registering. Please try again.',
+                message: 'Грешка при регистрирането. Моля, опитайте отново.',
                 type: 'danger',
             });
         }
@@ -120,14 +120,14 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
         >
             <StyledAnimatedView style={{ opacity }} className="flex-1 justify-center items-center">
                 <StyledView className="w-[90%] p-6 rounded-3xl bg-white/30 border border-white/20 shadow-md shadow-black/20 items-center backdrop-blur-lg">
-                    <StyledText className="text-3xl font-bold text-gray-800 mb-6">Create Account</StyledText>
+                    <StyledText className="text-3xl font-bold text-gray-800 mb-6">Създайте профил</StyledText>
                     {error ? <StyledText className="text-red-500 mb-3">{error}</StyledText> : null}
 
                     <StyledView className="flex-row items-center bg-white/50 rounded-2xl p-4 mb-4 w-full">
                         <Ionicons name="mail-outline" size={24} color="#a0a0a0" />
                         <StyledTextInput
                             className="flex-1 ml-3 text-base text-gray-800"
-                            placeholder="Email Address"
+                            placeholder="Имейл"
                             value={email}
                             onChangeText={setEmail}
                             autoCapitalize="none"
@@ -139,7 +139,7 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
                         <Ionicons name="lock-closed-outline" size={24} color="#a0a0a0" />
                         <StyledTextInput
                             className="flex-1 ml-3 text-base text-gray-800"
-                            placeholder="Password"
+                            placeholder="Парола"
                             secureTextEntry
                             value={password}
                             onChangeText={setPassword}
@@ -151,7 +151,7 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
                         className="bg-gradient-to-r from-[#ffffff] to-[#e0e0e0] rounded-2xl py-4 w-full mb-4 shadow-md shadow-gray-400"
                         onPress={handleRegister}
                     >
-                        <StyledText className="text-gray-800 text-center text-lg font-semibold">Sign Up</StyledText>
+                        <StyledText className="text-gray-800 text-center text-lg font-semibold">Създайте профила</StyledText>
                     </StyledTouchableOpacity>
 
                     <FlashMessage position="top" />

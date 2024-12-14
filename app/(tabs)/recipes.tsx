@@ -63,7 +63,7 @@ const RecipesScreen = () => {
       const inventory = inventorySnapshot.docs.map((doc) => doc.data().name);
 
       if (inventory.length === 0) {
-        Alert.alert('No ingredients', 'Your inventory is empty.');
+        Alert.alert('Няма съставки', 'Инвентарът Ви е празен.');
         return;
       }
 
@@ -75,10 +75,10 @@ const RecipesScreen = () => {
         await addDoc(collection(db, `users/${userId}/recipes`), recipe);
       }
 
-      Alert.alert('Recipes Generated', 'AI-generated recipes have been added!');
+      Alert.alert('Рецептите са генерирани', 'Рецептите, генерирани с изкуствен интелект, са добавени!');
     } catch (error) {
       console.error('Error generating recipes:', error);
-      Alert.alert('Error', 'Could not generate recipes.');
+      Alert.alert('Грешка', 'Рецептите не са създадени.');
     } finally {
       setLoading(false);
     }
@@ -99,10 +99,10 @@ const RecipesScreen = () => {
 
     try {
       await deleteDoc(doc(db, `users/${userId}/recipes`, id)); // Delete recipe from Firestore
-      Alert.alert('Recipe Deleted', 'The recipe has been deleted successfully.');
+      Alert.alert('Рецептата е изтрита', 'Рецептата бе изтрита успешно.');
     } catch (error) {
       console.error('Error deleting recipe:', error);
-      Alert.alert('Error', 'Could not delete the recipe.');
+      Alert.alert('Грешка', 'Рецептата не бе изтрита.');
     }
   };
 
@@ -116,7 +116,7 @@ const RecipesScreen = () => {
     >
       <StyledView className="flex-1 top-10 p-5">
         <StyledText className="text-2xl font-bold text-center text-blue-500 mb-5">
-          Your Recipes
+          Вашите рецепти
         </StyledText>
 
         <StyledTouchableOpacity
@@ -124,7 +124,7 @@ const RecipesScreen = () => {
           onPress={generateRecipesFromInventory}
         >
           <StyledText className="text-white text-center">
-            {loading ? 'Generating Recipes...' : 'Generate Recipes from Inventory'}
+            {loading ? 'Рецептите се генерират...' : 'Генерирайте рецепти със съставките от инвентара'}
           </StyledText>
         </StyledTouchableOpacity>
 
@@ -135,17 +135,17 @@ const RecipesScreen = () => {
             <StyledView className="bg-white p-5 rounded-lg mb-4 shadow-lg">
               <StyledText className="text-lg font-bold">{item.title}</StyledText>
               <StyledText className="text-gray-400">{item.description}</StyledText>
-              <StyledText className="text-gray-600">Rating: {'⭐'.repeat(item.rating)}</StyledText>
+              <StyledText className="text-gray-600">Оценка: {'⭐'.repeat(item.rating)}</StyledText>
 
               {/* Show full recipe when clicked */}
               <StyledTouchableOpacity
                 className="mt-3 p-2 bg-blue-500 rounded"
                 onPress={() => {
                     const fullRecipeText = item.fullRecipe.join('\n\n');
-                    Alert.alert(item.title, fullRecipeText, [{ text: 'Close' }], { cancelable: true });
+                    Alert.alert(item.title, fullRecipeText, [{ text: 'Затворете' }], { cancelable: true });
                 }}
               >
-                <StyledText className="text-white text-center">View Full Recipe</StyledText>
+                <StyledText className="text-white text-center">Вижте цялата рецепта</StyledText>
               </StyledTouchableOpacity>
 
               {/* Delete Button */}
@@ -154,17 +154,17 @@ const RecipesScreen = () => {
                 onPress={() => {
                   // Ask for confirmation before deleting
                   Alert.alert(
-                    'Confirm Delete',
-                    'Are you sure you want to delete this recipe?',
+                    'Потвърдете изтриването',
+                    'Сигурни ли сте, че искате да изтриете рецептата?',
                     [
-                      { text: 'Cancel' },
-                      { text: 'Delete', onPress: () => deleteRecipe(item.id) },
+                      { text: 'Откажете' },
+                      { text: 'Изтрийте', onPress: () => deleteRecipe(item.id) },
                     ],
                     { cancelable: true }
                   );
                 }}
               >
-                <StyledText className="text-white text-center">Delete Recipe</StyledText>
+                <StyledText className="text-white text-center">Изтрийте рецептата</StyledText>
               </StyledTouchableOpacity>
             </StyledView>
           )}
@@ -181,7 +181,7 @@ const RecipesScreen = () => {
               {/* Ensure fullRecipe is displayed */}
               <StyledText className="text-lg mb-4">{selectedRecipe.fullRecipe || "No full recipe available."}</StyledText>
               <StyledPressable onPress={closeModal} className="bg-red-500 p-2 rounded-md">
-                <StyledText className="text-white text-center">Close</StyledText>
+                <StyledText className="text-white text-center">Затворете</StyledText>
               </StyledPressable>
             </StyledView>
           </StyledView>

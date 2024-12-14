@@ -141,7 +141,7 @@ const DashboardScreen: React.FC<DashboardProps> = ({ onLogout }) => {
             >
               <StyledView style={styles.headerContainer}>
                 <StyledText style={styles.welcomeText}>
-                  Welcome, {user?.email || 'User'}!
+                  Добре дошли, {user?.email || 'User'}!
                 </StyledText>
                 <TouchableOpacity onPress={() => navigation.navigate('editProfile')}>
                   <Image
@@ -160,7 +160,7 @@ const DashboardScreen: React.FC<DashboardProps> = ({ onLogout }) => {
                   onPress={handleLogout}
                   style={styles.logoutButton}
                 >
-                  <StyledText style={styles.logoutText}>Logout</StyledText>
+                  <StyledText style={styles.logoutText}>Отпишете се</StyledText>
                 </StyledTouchableOpacity>
               </StyledView>
             </StyledImageBackground>
