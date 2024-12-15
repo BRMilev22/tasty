@@ -11,7 +11,7 @@ import InventoryScreen from './inventory';
 import RecipesScreen from './recipes';
 import ScanScreen from './scan';
 import EditProfileScreen from '../editProfile';
-import { Text, TouchableOpacity, ImageBackground } from 'react-native';
+import { Text, TouchableOpacity, ImageBackground, FlatList } from 'react-native';
 
 const auth = getAuth();
 const db = getFirestore();
@@ -32,6 +32,7 @@ const DashboardScreen: React.FC<DashboardProps> = ({ onLogout }) => {
   const user = auth.currentUser;
   const [loading, setLoading] = useState(true);
   const [profileImage, setProfileImage] = useState<string | null>(null);
+  const [dashboardData, setDashboardData] = useState<any[]>([]); // Placeholder for additional data
 
   useEffect(() => {
     const checkUserGoal = async () => {
@@ -61,6 +62,7 @@ const DashboardScreen: React.FC<DashboardProps> = ({ onLogout }) => {
 
     checkUserGoal();
   }, [user, navigation]);
+
   useEffect(() => {
     if (user) {
       const userDocRef = doc(db, 'users', user.uid);
@@ -74,6 +76,18 @@ const DashboardScreen: React.FC<DashboardProps> = ({ onLogout }) => {
       return () => unsubscribe();
     }
   }, [user]);
+
+  useEffect(() => {
+    // Fetch additional dashboard data (placeholder example)
+    const fetchDashboardData = async () => {
+      setDashboardData([
+        { id: '1', title: 'Card 1', description: 'Placeholder for feature 1' },
+        { id: '2', title: 'Card 2', description: 'Placeholder for feature 2' },
+        { id: '3', title: 'Card 3', description: 'Placeholder for feature 3' },
+      ]);
+    };
+    fetchDashboardData();
+  }, []);
 
   const handleLogout = async () => {
     try {
@@ -91,6 +105,13 @@ const DashboardScreen: React.FC<DashboardProps> = ({ onLogout }) => {
       </StyledView>
     );
   }
+
+  const renderCard = ({ item }: { item: any }) => (
+    <View style={styles.cardContainer}>
+      <Text style={styles.cardTitle}>{item.title}</Text>
+      <Text style={styles.cardDescription}>{item.description}</Text>
+    </View>
+  );
 
   return (
     <Tab.Navigator
@@ -149,20 +170,17 @@ const DashboardScreen: React.FC<DashboardProps> = ({ onLogout }) => {
                       uri:
                         profileImage ||
                         'https://static.vecteezy.com/system/resources/thumbnails/009/292/244/small/default-avatar-icon-of-social-media-user-vector.jpg',
-                    }} // Use profile pic URL
+                    }}
                     style={styles.profileImage}
                   />
                 </TouchableOpacity>
               </StyledView>
-
-              <StyledView style={styles.logoutContainer}>
-                <StyledTouchableOpacity
-                  onPress={handleLogout}
-                  style={styles.logoutButton}
-                >
-                  <StyledText style={styles.logoutText}>Отпишете се</StyledText>
-                </StyledTouchableOpacity>
-              </StyledView>
+              <FlatList
+                data={dashboardData}
+                renderItem={renderCard}
+                keyExtractor={(item) => item.id}
+                style={styles.cardList}
+              />
             </StyledImageBackground>
           </StyledView>
         )}
@@ -178,19 +196,15 @@ const DashboardScreen: React.FC<DashboardProps> = ({ onLogout }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    flexDirection: 'column',
   },
   imageBackground: {
     flex: 1,
     justifyContent: 'flex-start',
-    alignItems: 'center',
   },
   headerContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    width: '100%',
-    marginBottom: 20,
     paddingTop: 80,
     paddingHorizontal: 15,
   },
@@ -204,26 +218,30 @@ const styles = StyleSheet.create({
     height: 60,
     borderRadius: 30,
   },
-  logoutContainer: {
-    alignItems: 'center',
-    marginBottom: 20,
-    flex: 1,
-    justifyContent: 'flex-end',
+  cardList: {
+    marginTop: 20,
   },
-  logoutButton: {
-    backgroundColor: '#e74c3c',
-    borderRadius: 25,
-    paddingHorizontal: 24,
-    paddingVertical: 12,
+  cardContainer: {
+    backgroundColor: '#ffffff',
+    borderRadius: 10,
+    padding: 15,
+    marginHorizontal: 20,
+    marginBottom: 10,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.8,
-    shadowRadius: 2,
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
   },
-  logoutText: {
-    color: '#fff',
+  cardTitle: {
     fontSize: 18,
-    fontWeight: '600',
+    fontWeight: 'bold',
+    color: '#2c3e50',
+  },
+  cardDescription: {
+    fontSize: 14,
+    color: '#7f8c8d',
+    marginTop: 5,
   },
 });
 

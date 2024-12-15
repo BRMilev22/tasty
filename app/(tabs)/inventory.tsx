@@ -20,6 +20,12 @@ interface InventoryItem {
   name: string;
   quantity: number;
   unit: string;
+  nutriments: {
+    energy: number;
+    fat: number;
+    carbohydrates: number;
+    proteins: number;
+  };
 }
 
 const InventoryScreen = () => {
@@ -36,7 +42,10 @@ const InventoryScreen = () => {
       const unsubscribe = onSnapshot(inventoryCollection, (snapshot) => {
         const items: InventoryItem[] = snapshot.docs.map((doc) => ({
           id: doc.id,
-          ...doc.data(),
+          name: doc.data().name,
+          quantity: doc.data().quantity,
+          unit: doc.data().unit,
+          nutriments: doc.data().nutriments, // Extract nutriments directly
         })) as InventoryItem[];
         setInventoryItems(items);
       });
@@ -67,6 +76,12 @@ const InventoryScreen = () => {
         name: itemName,
         quantity: parseInt(itemQuantity),
         unit: itemUnit,
+        nutriments: {
+          energy: 0,  // Default value
+          fat: 0,     // Default value
+          carbohydrates: 0,  // Default value
+          proteins: 0,      // Default value
+        },
       };
 
       await addDoc(collection(db, 'users', user!.uid, 'inventory'), newItem);
@@ -84,6 +99,17 @@ const InventoryScreen = () => {
     <StyledView className="bg-white p-4 rounded-lg mb-4 shadow-lg">
       <StyledText className="text-lg font-bold text-left">{item.name}</StyledText>
       <StyledText className="text-gray-400 text-left">Количество: {item.quantity} {item.unit}</StyledText>
+      
+      {/* Nutritional Info Display */}
+      {item.nutriments && (
+        <StyledView className="mt-3">
+          <StyledText className="text-gray-500">Енергийност: {item.nutriments.energy} kcal</StyledText>
+          <StyledText className="text-gray-500">Мазнини: {item.nutriments.fat} g</StyledText>
+          <StyledText className="text-gray-500">Въглехидрати: {item.nutriments.carbohydrates} g</StyledText>
+          <StyledText className="text-gray-500">Протеини: {item.nutriments.proteins} g</StyledText>
+        </StyledView>
+      )}
+
       <StyledView className="flex-row justify-start mt-3">
         <StyledTouchableOpacity
           className="bg-red-500 p-2 rounded-lg"
@@ -102,7 +128,7 @@ const InventoryScreen = () => {
       blurRadius={20}
     >
       <StyledView className="flex-1 p-5 top-10">
-      <StyledText className="text-2xl font-bold text-blue-500 mb-5 text-center">Вашият инвентар</StyledText>
+        <StyledText className="text-2xl font-bold text-blue-500 mb-5 text-center">Вашият инвентар</StyledText>
 
         {/* Add Item Button */}
         <StyledTouchableOpacity
@@ -131,31 +157,30 @@ const InventoryScreen = () => {
               <StyledText className="text-lg font-bold text-center mb-4">Добавете нов артикул</StyledText>
               
               <StyledTextInput
-              value={itemName}
-              onChangeText={setItemName}
-              placeholder="Име на артикула"
-              placeholderTextColor="#B0B0B0" // Set the placeholder color to a light shade
-              className="bg-gray-200 p-2 mb-3 rounded"
-            />
+                value={itemName}
+                onChangeText={setItemName}
+                placeholder="Име на артикула"
+                placeholderTextColor="#B0B0B0" // Set the placeholder color to a light shade
+                className="bg-gray-200 p-2 mb-3 rounded"
+              />
 
-            <StyledTextInput
-              value={itemQuantity}
-              onChangeText={setItemQuantity}
-              placeholder="Количество"
-              keyboardType="numeric"
-              placeholderTextColor="#B0B0B0" // Set the placeholder color to a light shade
-              className="bg-gray-200 p-2 mb-3 rounded"
-            />
+              <StyledTextInput
+                value={itemQuantity}
+                onChangeText={setItemQuantity}
+                placeholder="Количество"
+                keyboardType="numeric"
+                placeholderTextColor="#B0B0B0" // Set the placeholder color to a light shade
+                className="bg-gray-200 p-2 mb-3 rounded"
+              />
 
-            <StyledTextInput
-              value={itemUnit}
-              onChangeText={setItemUnit}
-              placeholder="Единица (бр, L)"
-              placeholderTextColor="#B0B0B0" // Set the placeholder color to a light shade
-              className="bg-gray-200 p-2 mb-3 rounded"
-            />
+              <StyledTextInput
+                value={itemUnit}
+                onChangeText={setItemUnit}
+                placeholder="Единица (бр, L)"
+                placeholderTextColor="#B0B0B0" // Set the placeholder color to a light shade
+                className="bg-gray-200 p-2 mb-3 rounded"
+              />
 
-              
               <StyledView className="flex-row justify-between">
                 <StyledTouchableOpacity
                   className="bg-gray-400 p-2 rounded-lg"

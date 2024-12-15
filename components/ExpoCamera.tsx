@@ -10,6 +10,7 @@ const ExpoCamera = () => {
   const [scanned, setScanned] = useState(false);
   const [barcode, setBarcode] = useState<string | null>(null);
   const [productTitle, setProductTitle] = useState<string | null>(null);
+  const [nutritionalInfo, setNutritionalInfo] = useState<any>(null); // To store nutritional info
   const [isConfirming, setIsConfirming] = useState(false);
 
   const auth = getAuth();
@@ -29,17 +30,44 @@ const ExpoCamera = () => {
     setBarcode(data);
 
     try {
-      // Fetch product information from your API based on the scanned barcode
-      const titleResponse = await fetch(
-        `https://barcode.bg/barcode/BG/%D0%98%D0%BD%D1%84%D0%BE%D1%80%D0%BC%D0%B0%D1%86%D0%B8%D1%8F-%D0%B7%D0%B0-%D0%B1%D0%B0%D1%80%D0%BA%D0%BE%D0%B4.htm?barcode=${data}`
-      );
-      const htmlContent = await titleResponse.text();
-      const titleMatch = htmlContent.match(/<title>(.*?)<\/title>/);
+      // First try to get product information from Open Food Facts API
+      const openFoodFactsResponse = await fetch(`https://world.openfoodfacts.org/api/v0/product/${data}.json`);
+      const openFoodFactsData = await openFoodFactsResponse.json();
 
-      if (titleMatch && titleMatch[1]) {
-        setProductTitle(titleMatch[1]);
+      if (openFoodFactsData.status === 1 && openFoodFactsData.product) {
+        // If product is found, use the product name from the Open Food Facts API
+        const productName = openFoodFactsData.product.product_name || 'Няма име на продукта';
+        setProductTitle(productName);
+
+        // Extracting nutritional information if available
+        const productNutritionalInfo = {
+          energy: openFoodFactsData.product.nutriments?.['energy-kcal'] || 'Не е налично',
+          fat: openFoodFactsData.product.nutriments?.fat || 'Не е налично',
+          //fatValue: openFoodFactsData.product.nutriments?.fat_value || 'Не е налично',
+          carbohydrates: openFoodFactsData.product.nutriments?.carbohydrates || 'Не е налично',
+          proteins: openFoodFactsData.product.nutriments?.proteins || 'Не е налично',
+          //proteinsValue: openFoodFactsData.product.nutriments?.proteins_value || 'Не е налично',
+        };
+        setNutritionalInfo(productNutritionalInfo); // Store the nutritional information
       } else {
-        setProductTitle('Името на продукта не бе намерено');
+        // If not found, fall back to the current logic
+        const titleResponse = await fetch(
+          `https://barcode.bg/barcode/BG/%D0%98%D0%BD%D1%84%D0%BE%D1%80%D0%BC%D0%B0%D1%86%D0%B8%D1%8F-%D0%B7%D0%B0-%D0%B1%D0%B0%D1%80%D0%BA%D0%BE%D0%B4.htm?barcode=${data}`
+        );
+        if (titleResponse.status === 404) {
+          setProductTitle('Името на продукта не бе намерено');
+          setNutritionalInfo(null); // Clear nutritional info if not found
+        } else {
+          const htmlContent = await titleResponse.text();
+          const titleMatch = htmlContent.match(/<title>(.*?)<\/title>/);
+          if (titleMatch && titleMatch[1]) {
+            setProductTitle(titleMatch[1]);
+            setNutritionalInfo(null); // No nutritional info available in fallback
+          } else {
+            setProductTitle('Името на продукта не бе намерено');
+            setNutritionalInfo(null); // Clear nutritional info if not found
+          }
+        }
       }
     } catch (error) {
       console.error('Error fetching product data:', error);
@@ -50,14 +78,14 @@ const ExpoCamera = () => {
   const handleAddToInventory = async () => {
     if (user && barcode && productTitle) {
       const itemDocRef = doc(db, 'users', user.uid, 'inventory', barcode);
-
+  
       // Get the current item details (if any)
       const itemDoc = await getDoc(itemDocRef);
       const currentQuantity = itemDoc.exists() ? itemDoc.data().quantity || 0 : 0;
-
+  
       const cleanedProductName = productTitle.replace(/ - Баркод: \d+$/, '') || 'Непознат продукт';
-
-      // Add or update the product in Firestore
+  
+      // Add or update the product in Firestore, including nutritional info
       await setDoc(
         itemDocRef,
         {
@@ -66,10 +94,11 @@ const ExpoCamera = () => {
           unit: 'бр',
           barcode: barcode,
           createdAt: itemDoc.exists() ? itemDoc.data().createdAt : new Date(),
+          nutriments: nutritionalInfo || {}, // Save nutritional info
         },
-        { merge: true }
+        { merge: true } // Merge data, so we don't overwrite other fields
       );
-
+  
       Alert.alert('Добавянето бе успешно', 'Продуктът бе добавен в инвентара.');
       setIsConfirming(false); // Reset confirming state
     }
@@ -79,6 +108,7 @@ const ExpoCamera = () => {
     setScanned(false);
     setBarcode(null);
     setProductTitle(null);
+    setNutritionalInfo(null); // Clear nutritional info on rescan
     setIsConfirming(false);
   };
 
@@ -101,6 +131,18 @@ const ExpoCamera = () => {
             <View style={styles.resultContainer}>
               <Text style={styles.resultText}>Сканиран баркод: {barcode}</Text>
               <Text style={styles.resultText}>Продукт: {productTitle || 'Непознато име'}</Text>
+              {nutritionalInfo && (
+                <View>
+                  <Text style={styles.nutritionalText}>Енергийност: {nutritionalInfo.energy} kcal</Text>
+                  <Text style={styles.nutritionalText}>
+                    Мазнини: {nutritionalInfo.fat} {nutritionalInfo.fatValue && nutritionalInfo.fat !== nutritionalInfo.fatValue ? `(${nutritionalInfo.fatValue})` : ''}
+                  </Text>
+                  <Text style={styles.nutritionalText}>Въглехидрати: {nutritionalInfo.carbohydrates}</Text>
+                  <Text style={styles.nutritionalText}>
+                    Протеини: {nutritionalInfo.proteins} {nutritionalInfo.proteinsValue && nutritionalInfo.proteins !== nutritionalInfo.proteinsValue ? `(${nutritionalInfo.proteinsValue})` : ''}
+                  </Text>
+                </View>
+              )}
               <Text style={styles.confirmText}>Искате ли да добавите този продукт в инвентара?</Text>
               <View style={styles.buttonContainer}>
                 <TouchableOpacity onPress={handleAddToInventory} style={styles.button}>
@@ -157,6 +199,10 @@ const styles = StyleSheet.create({
   confirmText: {
     fontSize: 16,
     marginBottom: 10,
+  },
+  nutritionalText: {
+    fontSize: 16,
+    marginBottom: 5,
   },
   buttonContainer: {
     flexDirection: 'row',
