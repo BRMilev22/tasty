@@ -11,6 +11,7 @@ import InventoryScreen from './inventory';
 import RecipesScreen from './recipes';
 import ScanScreen from './scan';
 import { Text, TouchableOpacity, ImageBackground, FlatList } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const auth = getAuth();
 const db = getFirestore();
@@ -37,8 +38,9 @@ const DashboardScreen: React.FC<DashboardProps> = ({ onLogout }) => {
 
   useEffect(() => {
     const fetchUserData = async () => {
+      const user = getAuth().currentUser;
       if (!user) {
-        setLoading(false);
+        console.log("User not logged in");
         return;
       }
   
@@ -97,8 +99,14 @@ const DashboardScreen: React.FC<DashboardProps> = ({ onLogout }) => {
         setLoading(false);
       }
     };
-  
-    fetchUserData();
+
+    const unsubscribe = auth.onAuthStateChanged((user) => {
+      if (user) {
+        fetchUserData();
+      }
+    });
+
+    return () => unsubscribe();
   }, [user, navigation]);  
 
   useEffect(() => {
@@ -111,11 +119,13 @@ const DashboardScreen: React.FC<DashboardProps> = ({ onLogout }) => {
   const handleLogout = async () => {
     try {
       await auth.signOut();
+      await AsyncStorage.removeItem('userToken'); // Remove user ID
       onLogout();
     } catch (err) {
       console.error('Logout error:', err);
     }
   };
+  
 
   const renderCard = ({ item }: { item: any }) => {
     if (item.id === '1') {

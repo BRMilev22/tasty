@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import { getAuth } from 'firebase/auth';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Dashboard from './(tabs)/dashboard';
 import AuthScreen from './auth/AuthScreen';
@@ -38,6 +39,20 @@ const _layout = () => {
         setIsFirstLaunch(false);
       }
     };
+
+    const checkLoginState = async () => {
+      const storedUser = await AsyncStorage.getItem('userToken');
+  
+      const unsubscribe = getAuth().onAuthStateChanged((user) => {
+        if (user || storedUser) {
+          setIsLoggedIn(true);
+        } else {
+          setIsLoggedIn(false);
+        }
+      });
+  
+      return () => unsubscribe(); // Cleanup the listener when component unmounts
+    };
    
     /*
     const clearStorage = async () => {
@@ -46,6 +61,7 @@ const _layout = () => {
       */
     //clearStorage();
     checkFirstLaunch();
+    checkLoginState();
   }, []);
 
   return (

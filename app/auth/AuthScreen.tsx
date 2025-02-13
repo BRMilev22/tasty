@@ -7,6 +7,7 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import FlashMessage, { showMessage } from 'react-native-flash-message';
 import { getFirestore, doc, setDoc } from 'firebase/firestore';
 import Logo from '../../components/Logo';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const firestore = getFirestore();
 
@@ -176,6 +177,8 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ onLogin }) => {
             // Get the user ID
             const userId = userCredential.user.uid;
     
+            await AsyncStorage.setItem('userToken', userId);
+
             // Create a Firestore document for the user
             await setDoc(doc(firestore, 'users', userId), {
                 firstName,
@@ -202,21 +205,15 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ onLogin }) => {
 
     const handleLogin = async () => {
         try {
-            await signInWithEmailAndPassword(auth, email, password);
-            setError('');
-            showMessage({
-                message: 'Вписването бе успешно!',
-                type: 'success',
-            });
-            onLogin();
+          const userCredential = await signInWithEmailAndPassword(auth, email, password);
+          await AsyncStorage.setItem('userToken', userCredential.user.uid); // Store user ID
+          showMessage({ message: 'Вписването бе успешно!', type: 'success' });
+          onLogin();
         } catch (err) {
-            setError('Грешка при вписването. Моля, опитайте отново.');
-            showMessage({
-                message: 'Грешка при вписването. Моля, опитайте отново.',
-                type: 'danger',
-            });
+          setError('Грешка при вписването. Моля, опитайте отново.');
+          showMessage({ message: 'Грешка при вписването. Моля, опитайте отново.', type: 'danger' });
         }
-    };
+      };      
 
     const fadeIn = () => {
         Animated.timing(opacity, {
