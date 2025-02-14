@@ -15,6 +15,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import NutritionCard from '../components/NutritionCard';
 import AddMealButton from '../components/AddMealButton';
 import AddMealScreen from '../(tabs)/addMeal';
+import ExpoCamera from '../(tabs)/scan'
 
 const auth = getAuth();
 const db = getFirestore();
@@ -304,7 +305,7 @@ const DashboardScreen: React.FC<DashboardProps> = ({ onLogout }) => {
             iconName = 'cart';
           } else if (route.name === 'Recipes') {
             iconName = 'restaurant';
-          } else if (route.name === 'Scan') {
+          } else if (route.name === 'scan') {
             iconName = 'scan';
           }
 
@@ -380,11 +381,7 @@ const DashboardScreen: React.FC<DashboardProps> = ({ onLogout }) => {
       <Tab.Screen name="Goals" component={GoalsScreen} options={{ headerShown: false }} />
       <Tab.Screen name="Inventory" component={InventoryScreen} options={{ headerShown: false }} />
       <Tab.Screen name="Recipes" component={RecipesScreen} options={{ headerShown: false }} />
-      <Tab.Screen name="Scan" component={ScanScreen} options={{ headerShown: false }} />
-      <Tab.Screen name="addMeal" component={AddMealScreen} options={{ 
-        headerShown: false,
-        tabBarButton: () => null // This hides the tab bar button for this screen
-      }} />
+      <Tab.Screen name="scan" component={ExpoCamera} options={{ headerShown: false }} />
     </Tab.Navigator>
   );
 };
