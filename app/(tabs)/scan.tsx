@@ -1,19 +1,12 @@
 import React from 'react';
-import { SafeAreaView, StyleSheet } from 'react-native';
-import ExpoCamera from '../../components/ExpoCamera';
+import { View, Text } from 'react-native';
 
-const Scan = () => {
+const ScanScreen = () => {
   return (
-    <SafeAreaView style={styles.container}>
-      <ExpoCamera />
-    </SafeAreaView>
+    <View>
+      <Text>Scan Screen</Text>
+    </View>
   );
 };
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-});
-
-export default Scan;
+export default ScanScreen;

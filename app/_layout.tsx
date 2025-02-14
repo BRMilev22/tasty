@@ -12,6 +12,7 @@ import GoalSelectionScreen from './goalsSelect';
 import HeightSelectionScreen from './heightSelect';
 import WeightSelectionScreen from './weightSelect';
 import EditProfileScreen from './editProfile';
+import AddMealScreen from './(tabs)/addMeal';
 
 const Stack = createNativeStackNavigator();
 
@@ -99,6 +100,7 @@ const _layout = () => {
   <Stack.Screen name="heightSelect" component={HeightSelectionScreen} options={{ headerShown: false }} />
   <Stack.Screen name="weightSelect" component={WeightSelectionScreen} options={{ headerShown: false }} />
   <Stack.Screen name="genderSelect" component={GenderSelectionScreen} options={{ headerShown: false }} />
+  <Stack.Screen name="addMeal" component={AddMealScreen} options={{ headerShown: false }} />
 </Stack.Navigator>
   );
 };

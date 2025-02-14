@@ -4,7 +4,7 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { useNavigation } from '@react-navigation/native';
 import { getAuth } from 'firebase/auth';
-import { getFirestore, doc, getDoc, onSnapshot } from 'firebase/firestore';
+import { getFirestore, doc, getDoc, onSnapshot, collection, query, where, orderBy } from 'firebase/firestore';
 import { styled } from 'nativewind';
 import GoalsScreen from './goals';
 import InventoryScreen from './inventory';
@@ -12,6 +12,9 @@ import RecipesScreen from './recipes';
 import ScanScreen from './scan';
 import { Text, TouchableOpacity, ImageBackground, FlatList } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import NutritionCard from '../components/NutritionCard';
+import AddMealButton from '../components/AddMealButton';
+import AddMealScreen from '../(tabs)/addMeal';
 
 const auth = getAuth();
 const db = getFirestore();
@@ -27,6 +30,24 @@ interface DashboardProps {
   onLogout: () => void;
 }
 
+interface DashboardItem {
+  id: string;
+  title: string;
+  description: string;
+  type: 'bmi' | 'water' | 'nutrition';
+}
+
+interface NutritionStats {
+  calories: number;
+  protein: number;
+  carbs: number;
+  fats: number;
+  targetCalories: number;
+  targetProtein: number;
+  targetCarbs: number;
+  targetFats: number;
+}
+
 const DashboardScreen: React.FC<DashboardProps> = ({ onLogout }) => {
   const navigation = useNavigation();
   const user = auth.currentUser;
@@ -35,6 +56,18 @@ const DashboardScreen: React.FC<DashboardProps> = ({ onLogout }) => {
   const [dashboardData, setDashboardData] = useState<any[]>([]);
   const [bmi, setBmi] = useState<number | null>(null);
   const [water, setWaterConsumption] = useState<number | null>(null);
+  const [nutritionStats, setNutritionStats] = useState<NutritionStats>({
+    calories: 0,
+    protein: 0,
+    carbs: 0,
+    fats: 0,
+    targetCalories: 2000,
+    targetProtein: 150,
+    targetCarbs: 250,
+    targetFats: 70,
+  });
+  const [todaysMeals, setTodaysMeals] = useState<any[]>([]);
+  const [currentDate, setCurrentDate] = useState(new Date());
 
   useEffect(() => {
     const fetchUserData = async () => {
@@ -116,6 +149,73 @@ const DashboardScreen: React.FC<DashboardProps> = ({ onLogout }) => {
     ]);
   }, []);
 
+  useEffect(() => {
+    const interval = setInterval(() => {
+      const now = new Date();
+      if (currentDate.getDate() !== now.getDate()) {
+        setCurrentDate(now);
+        setNutritionStats(prev => ({
+          ...prev,
+          calories: 0,
+          protein: 0,
+          carbs: 0,
+          fats: 0,
+        }));
+        setTodaysMeals([]);
+      }
+    }, 60000);
+
+    return () => clearInterval(interval);
+  }, [currentDate]);
+
+  useEffect(() => {
+    const user = auth.currentUser;
+    if (!user) return;
+
+    const today = new Date(currentDate);
+    today.setHours(0, 0, 0, 0);
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+
+    const mealsRef = collection(db, 'users', user.uid, 'meals');
+    const q = query(
+      mealsRef,
+      where('timestamp', '>=', today),
+      where('timestamp', '<', tomorrow),
+      orderBy('timestamp', 'desc')
+    );
+
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      let totalCalories = 0;
+      let totalProtein = 0;
+      let totalCarbs = 0;
+      let totalFats = 0;
+      
+      const meals = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      }));
+      
+      meals.forEach((meal) => {
+        totalCalories += meal.calories || 0;
+        totalProtein += meal.protein || 0;
+        totalCarbs += meal.carbs || 0;
+        totalFats += meal.fats || 0;
+      });
+
+      setTodaysMeals(meals);
+      setNutritionStats(prev => ({
+        ...prev,
+        calories: totalCalories,
+        protein: totalProtein,
+        carbs: totalCarbs,
+        fats: totalFats,
+      }));
+    });
+
+    return () => unsubscribe();
+  }, [currentDate]);
+
   const handleLogout = async () => {
     try {
       await auth.signOut();
@@ -126,6 +226,9 @@ const DashboardScreen: React.FC<DashboardProps> = ({ onLogout }) => {
     }
   };
   
+  const handleAddMeal = () => {
+    navigation.navigate('addMeal'); // You'll need to create this screen
+  };
 
   const renderCard = ({ item }: { item: any }) => {
     if (item.id === '1') {
@@ -249,20 +352,27 @@ const DashboardScreen: React.FC<DashboardProps> = ({ onLogout }) => {
                   />
                 </TouchableOpacity>
               </StyledView>
+              <AddMealButton onPress={handleAddMeal} />
               <FlatList
                 data={dashboardData}
                 renderItem={renderCard}
                 keyExtractor={(item) => item.id}
                 style={styles.cardList}
+                ListHeaderComponent={
+                  <NutritionCard 
+                    stats={nutritionStats}
+                    meals={todaysMeals}
+                  />
+                }
               />
-              <StyledView style={styles.logoutContainer}>
-                <StyledTouchableOpacity
+              <View style={styles.logoutContainer}>
+                <TouchableOpacity
                   onPress={handleLogout}
                   style={styles.logoutButton}
                 >
-                  <StyledText style={styles.logoutText}>Отпишете се</StyledText>
-                </StyledTouchableOpacity>
-              </StyledView>
+                <Text style={styles.logoutText}>Отпишете се</Text>
+                </TouchableOpacity>
+              </View>
             </StyledImageBackground>
           </StyledView>
         )}
@@ -271,6 +381,10 @@ const DashboardScreen: React.FC<DashboardProps> = ({ onLogout }) => {
       <Tab.Screen name="Inventory" component={InventoryScreen} options={{ headerShown: false }} />
       <Tab.Screen name="Recipes" component={RecipesScreen} options={{ headerShown: false }} />
       <Tab.Screen name="Scan" component={ScanScreen} options={{ headerShown: false }} />
+      <Tab.Screen name="addMeal" component={AddMealScreen} options={{ 
+        headerShown: false,
+        tabBarButton: () => null // This hides the tab bar button for this screen
+      }} />
     </Tab.Navigator>
   );
 };
@@ -354,7 +468,6 @@ const styles = StyleSheet.create({
   logoutContainer: {
     alignItems: 'center',
     marginBottom: 20,
-    flex: 1,
     justifyContent: 'flex-end',
   },
   logoutButton: {
@@ -362,15 +475,19 @@ const styles = StyleSheet.create({
     borderRadius: 25,
     paddingHorizontal: 24,
     paddingVertical: 12,
+    minWidth: 120,
+    alignItems: 'center',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.8,
-    shadowRadius: 2,
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
   },
   logoutText: {
-    color: '#fff',
+    color: '#ffffff',
     fontSize: 18,
-    fontWeight: '600',
+    fontWeight: 'bold',
+    textAlign: 'center',
   },
 });
 
