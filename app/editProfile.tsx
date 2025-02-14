@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, TextInput, Text, TouchableOpacity, Animated, ImageBackground, Image, KeyboardAvoidingView, Platform } from 'react-native';
+import { View, TextInput, Text, TouchableOpacity, Animated, ImageBackground, Image, KeyboardAvoidingView, Platform, Modal } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { getAuth, updateEmail, updatePassword, updateProfile } from 'firebase/auth';
 import { getStorage } from 'firebase/storage';
@@ -7,6 +7,7 @@ import { styled } from 'nativewind';
 import FlashMessage, { showMessage } from 'react-native-flash-message';
 import * as ImagePicker from 'expo-image-picker';
 import { getFirestore, doc, getDoc, setDoc } from 'firebase/firestore';
+import { Picker } from '@react-native-picker/picker';
 
 const storage = getStorage();
 const firestore = getFirestore();
@@ -38,6 +39,24 @@ const EditProfileScreen = () => {
     const [weight, setWeight] = useState('');
     const [profileImage, setProfileImage] = useState(user?.photoURL || '');
     const [error, setError] = useState('');
+    const [showGoalPicker, setShowGoalPicker] = useState(false);
+    const [activityLevel, setActivityLevel] = useState(1.55);
+    const [showActivityPicker, setShowActivityPicker] = useState(false);
+    const [goalWeight, setGoalWeight] = useState('');
+    
+    const availableGoals = [
+        'Maintain Weight',
+        'Lose Weight',
+        'Gain Weight'
+    ];
+
+    const availableActivityLevels = [
+        { label: 'Заседнал начин на живот', value: 1.2 },
+        { label: 'Леко активен (1-3 пъти седмично)', value: 1.375 },
+        { label: 'Умерено активен (3-5 пъти седмично)', value: 1.55 },
+        { label: 'Много активен (6-7 пъти седмично)', value: 1.725 },
+        { label: 'Изключително активен', value: 1.9 }
+    ];
 
     useEffect(() => {
         const fetchUserData = async () => {
@@ -53,6 +72,7 @@ const EditProfileScreen = () => {
                     setWeight(userData.weight || '');
                     setGoal(userData.goal || '');
                     setProfileImage(userData.profileImage || user.photoURL || '');
+                    setGoalWeight(userData.goalWeight || '');
                 }
             } catch (error) {
                 console.error('Error fetching user data:', error);
@@ -129,6 +149,16 @@ const EditProfileScreen = () => {
         return true;
     };
 
+    const isValidGoalWeight = (weight: string) => {
+        if (!weight.trim()) return true;
+        const weightNum = Number(weight);
+        if (isNaN(weightNum) || weightNum <= 0 || weightNum < 30 || weightNum > 500) {
+            setError('Целевото тегло трябва да бъде между 30 kg и 500 kg.');
+            return false;
+        }
+        return true;
+    };
+
     const validateFirstName = (firstName: string) => {
         const nameRegex = /^(?=.*[A-Z])[A-Za-z]{2,}$/;
         return nameRegex.test(firstName);
@@ -164,6 +194,10 @@ const EditProfileScreen = () => {
         }
 
         if (!isValidWeight(weight)) {
+            return false;
+        }
+
+        if (!isValidGoalWeight(goalWeight)) {
             return false;
         }
 
@@ -217,6 +251,12 @@ const EditProfileScreen = () => {
             }
             if (profileImage) {
                 firestoreUpdates.profileImage = profileImage;
+            }
+            if (goal) {
+                firestoreUpdates.goal = goal;
+            }
+            if (goalWeight.trim()) {
+                firestoreUpdates.goalWeight = goalWeight.trim();
             }
 
             if (Object.keys(firestoreUpdates).length > 0) {
@@ -376,16 +416,139 @@ const EditProfileScreen = () => {
                             />
                         </StyledView>
                         
-                        {/* Goal Display */}
+                        {/* Goal Weight Input */}
                         <StyledView className="flex-row items-center bg-white/50 rounded-2xl p-2 mb-2 w-full">
-                            <Ionicons name="battery-half-outline" size={20} color="#a0a0a0" />
-                            <StyledText
+                            <Ionicons name="trending-up-outline" size={20} color="#a0a0a0" />
+                            <StyledTextInput
                                 className="flex-1 ml-2 text-base text-gray-800 h-10"
+                                placeholder="Целево тегло (kg)"
+                                value={goalWeight}
+                                onChangeText={setGoalWeight}
+                                placeholderTextColor="#a0a0a0"
+                                keyboardType="numeric"
                                 style={{ height: 25 }}
-                            >
-                                {goal || "Goal"}
-                            </StyledText>
+                            />
                         </StyledView>
+
+                        {/* Goal Selection */}
+                        <StyledTouchableOpacity 
+                            className="flex-row items-center bg-white/50 rounded-2xl p-2 mb-2 w-full"
+                            onPress={() => setShowGoalPicker(true)}
+                        >
+                            <Ionicons name="battery-half-outline" size={20} color="#a0a0a0" />
+                            <StyledText className="flex-1 ml-2 text-base text-gray-800 h-10">
+                                {goal || "Изберете цел"}
+                            </StyledText>
+                        </StyledTouchableOpacity>
+
+                        {/* Goal Picker Modal */}
+                        <Modal
+                            visible={showGoalPicker}
+                            transparent={true}
+                            animationType="slide"
+                        >
+                            <TouchableOpacity
+                                style={{ flex: 1 }}
+                                onPress={() => setShowGoalPicker(false)}
+                                activeOpacity={1}
+                            >
+                                <View className="flex-1 justify-end bg-black/50">
+                                    <View className="bg-white rounded-t-3xl">
+                                        <View className="flex-row justify-between items-center p-4 border-b border-gray-200">
+                                            <TouchableOpacity onPress={() => setShowGoalPicker(false)}>
+                                                <StyledText className="text-gray-500 font-semibold text-lg">Отказ</StyledText>
+                                            </TouchableOpacity>
+                                            <StyledText className="text-gray-800 font-bold text-lg">Изберете цел</StyledText>
+                                            <TouchableOpacity onPress={() => setShowGoalPicker(false)}>
+                                                <StyledText className="text-blue-500 font-semibold text-lg">Готово</StyledText>
+                                            </TouchableOpacity>
+                                        </View>
+                                        <View className="px-4">
+                                            <Picker
+                                                selectedValue={goal}
+                                                onValueChange={(itemValue) => {
+                                                    setGoal(itemValue);
+                                                    setShowGoalPicker(false);
+                                                }}
+                                                style={{ height: 215 }}
+                                            >
+                                                {availableGoals.map((g) => (
+                                                    <Picker.Item 
+                                                        key={g} 
+                                                        label={g} 
+                                                        value={g}
+                                                        style={{
+                                                            fontSize: 18,
+                                                            color: '#1f2937'
+                                                        }}
+                                                    />
+                                                ))}
+                                            </Picker>
+                                        </View>
+                                    </View>
+                                </View>
+                            </TouchableOpacity>
+                        </Modal>
+
+                        {/* Activity Level Selection */}
+                        <StyledTouchableOpacity 
+                            className="flex-row items-center bg-white/50 rounded-2xl p-2 mb-2 w-full"
+                            onPress={() => setShowActivityPicker(true)}
+                        >
+                            <Ionicons name="fitness-outline" size={20} color="#a0a0a0" />
+                            <StyledText className="flex-1 ml-2 text-base text-gray-800 h-10">
+                                {activityLevel.toFixed(2)}
+                            </StyledText>
+                        </StyledTouchableOpacity>
+
+                        {/* Activity Level Picker Modal */}
+                        <Modal
+                            visible={showActivityPicker}
+                            transparent={true}
+                            animationType="slide"
+                        >
+                            <TouchableOpacity
+                                style={{ flex: 1 }}
+                                onPress={() => setShowActivityPicker(false)}
+                                activeOpacity={1}
+                            >
+                                <View className="flex-1 justify-end bg-black/50">
+                                    <View className="bg-white rounded-t-3xl">
+                                        <View className="flex-row justify-between items-center p-4 border-b border-gray-200">
+                                            <TouchableOpacity onPress={() => setShowActivityPicker(false)}>
+                                                <StyledText className="text-gray-500 font-semibold text-lg">Отказ</StyledText>
+                                            </TouchableOpacity>
+                                            <StyledText className="text-gray-800 font-bold text-lg">Изберете активност</StyledText>
+                                            <TouchableOpacity onPress={() => setShowActivityPicker(false)}>
+                                                <StyledText className="text-blue-500 font-semibold text-lg">Готово</StyledText>
+                                            </TouchableOpacity>
+                                        </View>
+                                        <View className="px-4">
+                                            <Picker
+                                                selectedValue={activityLevel}
+                                                onValueChange={(itemValue) => {
+                                                    setActivityLevel(itemValue);
+                                                    setShowActivityPicker(false);
+                                                }}
+                                                style={{ height: 215 }}
+                                            >
+                                                {availableActivityLevels.map((level) => (
+                                                    <Picker.Item 
+                                                        key={level.value} 
+                                                        label={level.label} 
+                                                        value={level.value}
+                                                        style={{
+                                                            fontSize: 18,
+                                                            color: '#1f2937'
+                                                        }}
+                                                    />
+                                                ))}
+                                            </Picker>
+                                        </View>
+                                    </View>
+                                </View>
+                            </TouchableOpacity>
+                        </Modal>
 
                         <StyledTouchableOpacity
                             className="bg-gradient-to-r from-[#ffffff] to-[#e0e0e0] rounded-2xl py-3 w-full mb-4 shadow-md shadow-gray-400"
