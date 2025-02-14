@@ -57,6 +57,7 @@ interface UserData {
   gender: string;
   dateOfBirth: any; // Firebase Timestamp
   goal: string;
+  activityLevel: number;
 }
 
 interface WeightRecord {
@@ -104,6 +105,7 @@ const calculateNutritionTargets = (userData: UserData) => {
   const height = parseFloat(userData.height);
   const age = calculateAge(userData.dateOfBirth);
   const isMale = userData.gender.toLowerCase() === 'male';
+  const activityLevel = userData.activityLevel || 1.55; // Get activity level with fallback
 
   // Calculate BMR using Harris-Benedict equation
   let bmr;
@@ -113,9 +115,8 @@ const calculateNutritionTargets = (userData: UserData) => {
     bmr = 447.593 + (9.247 * weight) + (3.098 * height) - (4.330 * age);
   }
 
-  // Activity factor (using moderate activity as default)
-  const activityFactor = 1.55;
-  let maintenanceCalories = bmr * activityFactor;
+  // Use the actual activity level from user data
+  let maintenanceCalories = bmr * activityLevel;
 
   // Adjust calories based on goal
   let targetCalories;
@@ -445,15 +446,12 @@ const DashboardScreen: React.FC<DashboardProps> = ({ onLogout }) => {
           icon: 'trophy',
           earned: false,
           permanent: true
-        },
-        // Add more achievements here
+        }
       ];
 
-      // Check each achievement
       const updatedAchievements = await Promise.all(newAchievements.map(async (achievement) => {
         const existingAchievement = existingAchievements.get(achievement.id);
         
-        // If achievement was already earned and is permanent, keep it earned
         if (existingAchievement?.earned && achievement.permanent) {
           return {
             ...achievement,
@@ -462,27 +460,34 @@ const DashboardScreen: React.FC<DashboardProps> = ({ onLogout }) => {
           };
         }
 
-        // Check if achievement should be earned
         let shouldBeEarned = false;
         switch (achievement.id) {
           case 'first_meal':
             shouldBeEarned = meals.length > 0;
             break;
           case 'weight_goal':
-            if (userData?.weight && userData?.goal) {
+            if (userData?.weight && userData?.goalWeight && userData?.goal) {
               const currentWeight = parseFloat(userData.weight);
-              const targetWeight = parseFloat(userData.targetWeight || '0');
+              const targetWeight = parseFloat(userData.goalWeight);
               
-              if (userData.goal === 'Lose Weight') {
-                shouldBeEarned = currentWeight <= targetWeight;
-              } else if (userData.goal === 'Gain Weight') {
-                shouldBeEarned = currentWeight >= targetWeight;
+              if (!isNaN(currentWeight) && !isNaN(targetWeight)) {
+                switch (userData.goal) {
+                  case 'Lose Weight':
+                    shouldBeEarned = currentWeight <= targetWeight;
+                    break;
+                  case 'Gain Weight':
+                    shouldBeEarned = currentWeight >= targetWeight;
+                    break;
+                  case 'Maintain Weight':
+                    // For maintain weight, we'll say they achieved it if they're within 1kg of their target
+                    shouldBeEarned = Math.abs(currentWeight - targetWeight) <= 1;
+                    break;
+                }
               }
             }
             break;
         }
 
-        // If achievement should be earned and wasn't earned before
         if (shouldBeEarned && !existingAchievement?.earned) {
           const achievementData = {
             ...achievement,
@@ -490,7 +495,6 @@ const DashboardScreen: React.FC<DashboardProps> = ({ onLogout }) => {
             earnedDate: Timestamp.fromDate(new Date())
           };
 
-          // Store in Firestore
           if (existingAchievement?.dbId) {
             await updateDoc(doc(db, 'users', user.uid, 'achievements', existingAchievement.dbId), achievementData);
           } else {

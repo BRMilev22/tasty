@@ -40,7 +40,7 @@ const EditProfileScreen = () => {
     const [profileImage, setProfileImage] = useState(user?.photoURL || '');
     const [error, setError] = useState('');
     const [showGoalPicker, setShowGoalPicker] = useState(false);
-    const [activityLevel, setActivityLevel] = useState(1.55);
+    const [activityLevel, setActivityLevel] = useState<number>(1.55);
     const [showActivityPicker, setShowActivityPicker] = useState(false);
     const [goalWeight, setGoalWeight] = useState('');
     
@@ -58,6 +58,13 @@ const EditProfileScreen = () => {
         { label: 'Изключително активен', value: 1.9 }
     ];
 
+    // First, let's create a translation map for the goals
+    const goalTranslations: { [key: string]: string } = {
+        'Maintain Weight': 'Поддържане на тегло',
+        'Lose Weight': 'Отслабване',
+        'Gain Weight': 'Качване на тегло'
+    };
+
     useEffect(() => {
         const fetchUserData = async () => {
             try {
@@ -73,6 +80,14 @@ const EditProfileScreen = () => {
                     setGoal(userData.goal || '');
                     setProfileImage(userData.profileImage || user.photoURL || '');
                     setGoalWeight(userData.goalWeight || '');
+                    
+                    // Make sure we handle the activity level as a number
+                    const savedActivityLevel = userData.activityLevel;
+                    if (typeof savedActivityLevel === 'number' && !isNaN(savedActivityLevel)) {
+                        setActivityLevel(savedActivityLevel);
+                    } else {
+                        setActivityLevel(1.55); // Default value
+                    }
                 }
             } catch (error) {
                 console.error('Error fetching user data:', error);
@@ -236,39 +251,25 @@ const EditProfileScreen = () => {
                 await updateProfile(user!, profileUpdates);
             }
 
-            const firestoreUpdates: Record<string, any> = {};
-            if (firstName.trim()) {
-                firestoreUpdates.firstName = firstName.trim();
-            }
-            if (lastName.trim()) {
-                firestoreUpdates.lastName = lastName.trim();
-            }
-            if (height.trim()) {
-                firestoreUpdates.height = height.trim();
-            }
-            if (weight.trim()) {
-                firestoreUpdates.weight = weight.trim();
-            }
-            if (profileImage) {
-                firestoreUpdates.profileImage = profileImage;
-            }
-            if (goal) {
-                firestoreUpdates.goal = goal;
-            }
-            if (goalWeight.trim()) {
-                firestoreUpdates.goalWeight = goalWeight.trim();
-            }
-
-            if (Object.keys(firestoreUpdates).length > 0) {
-                await setDoc(doc(firestore, 'users', user.uid), firestoreUpdates, { merge: true });
-            }
+            const userDocRef = doc(firestore, 'users', user.uid);
+            await setDoc(userDocRef, {
+                firstName,
+                lastName,
+                height,
+                weight,
+                goal,
+                goalWeight,
+                activityLevel,
+                profileImage,
+                // ... other user data ...
+            }, { merge: true });
 
             showMessage({
                 message: 'Профилът бе актуализиран успешно!',
                 type: 'success',
             });
-        } catch (err) {
-            console.error('Error updating profile:', err);
+        } catch (error) {
+            console.error('Error updating profile:', error);
             setError('Грешка при актуализирането на профила. Моля, опитайте отново');
             showMessage({
                 message: 'Грешка при актуализирането на профила.',
@@ -437,7 +438,7 @@ const EditProfileScreen = () => {
                         >
                             <Ionicons name="battery-half-outline" size={20} color="#a0a0a0" />
                             <StyledText className="flex-1 ml-2 text-base text-gray-800 h-10">
-                                {goal || "Изберете цел"}
+                                {goal ? goalTranslations[goal] : "Изберете цел"}
                             </StyledText>
                         </StyledTouchableOpacity>
 
@@ -463,14 +464,14 @@ const EditProfileScreen = () => {
                                                 <StyledText className="text-blue-500 font-semibold text-lg">Готово</StyledText>
                                             </TouchableOpacity>
                                         </View>
-                                        <View className="px-4">
+                                        <View className="px-4 bg-white">
                                             <Picker
                                                 selectedValue={goal}
                                                 onValueChange={(itemValue) => {
                                                     setGoal(itemValue);
                                                     setShowGoalPicker(false);
                                                 }}
-                                                style={{ height: 215 }}
+                                                style={{ height: 215, color: '#000000' }}
                                             >
                                                 {availableGoals.map((g) => (
                                                     <Picker.Item 
@@ -479,8 +480,9 @@ const EditProfileScreen = () => {
                                                         value={g}
                                                         style={{
                                                             fontSize: 18,
-                                                            color: '#1f2937'
+                                                            color: '#000000'
                                                         }}
+                                                        color="#000000"
                                                     />
                                                 ))}
                                             </Picker>
@@ -497,7 +499,10 @@ const EditProfileScreen = () => {
                         >
                             <Ionicons name="fitness-outline" size={20} color="#a0a0a0" />
                             <StyledText className="flex-1 ml-2 text-base text-gray-800 h-10">
-                                {activityLevel.toFixed(2)}
+                                {activityLevel ? 
+                                    availableActivityLevels.find(level => Math.abs(level.value - activityLevel) < 0.01)?.label || 'Изберете активност'
+                                    : 'Изберете активност'
+                                }
                             </StyledText>
                         </StyledTouchableOpacity>
 
@@ -523,24 +528,25 @@ const EditProfileScreen = () => {
                                                 <StyledText className="text-blue-500 font-semibold text-lg">Готово</StyledText>
                                             </TouchableOpacity>
                                         </View>
-                                        <View className="px-4">
+                                        <View className="px-4 bg-white">
                                             <Picker
                                                 selectedValue={activityLevel}
                                                 onValueChange={(itemValue) => {
                                                     setActivityLevel(itemValue);
                                                     setShowActivityPicker(false);
                                                 }}
-                                                style={{ height: 215 }}
+                                                style={{ height: 215, color: '#000000' }}
                                             >
                                                 {availableActivityLevels.map((level) => (
                                                     <Picker.Item 
-                                                        key={level.value} 
+                                                        key={level.value.toString()} 
                                                         label={level.label} 
                                                         value={level.value}
                                                         style={{
                                                             fontSize: 18,
-                                                            color: '#1f2937'
+                                                            color: '#000000'
                                                         }}
+                                                        color="#000000"
                                                     />
                                                 ))}
                                             </Picker>
