@@ -151,10 +151,12 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     paddingBottom: 40,
+    backgroundColor: '#000000',
   },
   container: {
     height: 400,
     justifyContent: 'center',
+    backgroundColor: '#000000',
   },
   listContainer: {
     paddingHorizontal: 20,
@@ -163,7 +165,7 @@ const styles = StyleSheet.create({
   carouselItem: {
     width: 280,
     height: 320,
-    backgroundColor: 'white',
+    backgroundColor: '#1A1A1A',
     borderRadius: 15,
     overflow: 'hidden',
     shadowColor: '#000',
@@ -190,7 +192,7 @@ const styles = StyleSheet.create({
   mealName: {
     fontSize: 16,
     fontWeight: 'bold',
-    color: '#2c3e50',
+    color: '#FFFFFF',
     marginBottom: 8,
   },
   nutritionRow: {
@@ -199,7 +201,7 @@ const styles = StyleSheet.create({
   },
   mealCalories: {
     fontSize: 15,
-    color: '#e74c3c',
+    color: '#4CAF50',
     fontWeight: '600',
   },
   macros: {
@@ -209,32 +211,34 @@ const styles = StyleSheet.create({
   },
   macroText: {
     fontSize: 13,
-    color: '#7f8c8d',
+    color: '#999999',
     fontWeight: '500',
   },
   manualButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#00aaff',
+    backgroundColor: '#1A1A1A',
     padding: 15,
     borderRadius: 10,
     margin: 20,
     justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: '#4CAF50',
   },
   manualButtonText: {
-    color: 'white',
+    color: '#FFFFFF',
     fontSize: 16,
     fontWeight: 'bold',
     marginLeft: 10,
   },
   modalContainer: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backgroundColor: 'rgba(0, 0, 0, 0.8)',
     justifyContent: 'center',
     alignItems: 'center',
   },
   modalContent: {
-    backgroundColor: 'white',
+    backgroundColor: '#1A1A1A',
     borderRadius: 10,
     padding: 20,
     width: '80%',
@@ -243,6 +247,7 @@ const styles = StyleSheet.create({
   modalTitle: {
     fontSize: 20,
     fontWeight: 'bold',
+    color: '#FFFFFF',
     marginBottom: 10,
   },
   nutritionInfo: {
@@ -257,10 +262,12 @@ const styles = StyleSheet.create({
   nutritionLabel: {
     fontSize: 16,
     fontWeight: '600',
+    color: '#999999',
   },
   nutritionValue: {
     fontSize: 16,
     fontWeight: '400',
+    color: '#FFFFFF',
   },
   modalButtons: {
     flexDirection: 'row',
@@ -274,14 +281,16 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   cancelButton: {
-    backgroundColor: '#e74c3c',
+    backgroundColor: '#333333',
     marginRight: 10,
+    borderWidth: 1,
+    borderColor: '#e74c3c',
   },
   confirmButton: {
-    backgroundColor: '#2ecc71',
+    backgroundColor: '#4CAF50',
   },
   buttonText: {
-    color: 'white',
+    color: '#FFFFFF',
     fontWeight: 'bold',
   },
 });

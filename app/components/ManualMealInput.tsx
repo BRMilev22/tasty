@@ -36,6 +36,7 @@ const ManualMealInput = ({ onSubmit, onCancel }: ManualMealInputProps) => {
         <TextInput
           style={styles.input}
           placeholder="Име на храната"
+          placeholderTextColor="#999999"
           value={mealName}
           onChangeText={setMealName}
         />
@@ -43,6 +44,7 @@ const ManualMealInput = ({ onSubmit, onCancel }: ManualMealInputProps) => {
         <TextInput
           style={styles.input}
           placeholder="Калории"
+          placeholderTextColor="#999999"
           value={calories}
           onChangeText={setCalories}
           keyboardType="numeric"
@@ -51,6 +53,7 @@ const ManualMealInput = ({ onSubmit, onCancel }: ManualMealInputProps) => {
         <TextInput
           style={styles.input}
           placeholder="Протеини (g)"
+          placeholderTextColor="#999999"
           value={protein}
           onChangeText={setProtein}
           keyboardType="numeric"
@@ -59,6 +62,7 @@ const ManualMealInput = ({ onSubmit, onCancel }: ManualMealInputProps) => {
         <TextInput
           style={styles.input}
           placeholder="Въглехидрати (g)"
+          placeholderTextColor="#999999"
           value={carbs}
           onChangeText={setCarbs}
           keyboardType="numeric"
@@ -67,6 +71,7 @@ const ManualMealInput = ({ onSubmit, onCancel }: ManualMealInputProps) => {
         <TextInput
           style={styles.input}
           placeholder="Мазнини (g)"
+          placeholderTextColor="#999999"
           value={fats}
           onChangeText={setFats}
           keyboardType="numeric"
@@ -89,7 +94,7 @@ const ManualMealInput = ({ onSubmit, onCancel }: ManualMealInputProps) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f4f7fa',
+    backgroundColor: '#000000',
   },
   content: {
     padding: 20,
@@ -97,19 +102,21 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 24,
-    fontWeight: 'bold',
-    color: '#2c3e50',
+    fontWeight: '300',
+    color: '#FFFFFF',
     marginBottom: 20,
     textAlign: 'center',
   },
   input: {
-    backgroundColor: 'white',
+    backgroundColor: '#1A1A1A',
     borderRadius: 10,
     padding: 15,
     marginBottom: 15,
     fontSize: 16,
     borderWidth: 1,
-    borderColor: '#ddd',
+    borderColor: '#333333',
+    color: '#FFFFFF',
+    placeholderTextColor: '#999999',
   },
   buttonContainer: {
     flexDirection: 'row',
@@ -123,13 +130,15 @@ const styles = StyleSheet.create({
     marginHorizontal: 5,
   },
   cancelButton: {
-    backgroundColor: '#95a5a6',
+    backgroundColor: '#333333',
+    borderWidth: 1,
+    borderColor: '#e74c3c',
   },
   submitButton: {
-    backgroundColor: '#00aaff',
+    backgroundColor: '#4CAF50',
   },
   buttonText: {
-    color: 'white',
+    color: '#FFFFFF',
     textAlign: 'center',
     fontSize: 16,
     fontWeight: 'bold',

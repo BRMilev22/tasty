@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, TextInput, Text, TouchableOpacity, Animated, ImageBackground, Image, KeyboardAvoidingView, Platform, Modal } from 'react-native';
+import { View, TextInput, Text, TouchableOpacity, Animated, ImageBackground, Image, KeyboardAvoidingView, Platform, Modal, ScrollView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { getAuth, updateEmail, updatePassword, updateProfile } from 'firebase/auth';
 import { getStorage } from 'firebase/storage';
@@ -280,292 +280,281 @@ const EditProfileScreen = () => {
 
     return (
         <KeyboardAvoidingView
-            style={{ flex: 1 }}
+            style={{ flex: 1, backgroundColor: '#000000' }}
             behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
             keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 100}
         >
             <StyledImageBackground
-                source={{ uri: 'https://static.vecteezy.com/system/resources/previews/020/580/331/non_2x/abstract-smooth-blur-blue-color-gradient-mesh-texture-lighting-effect-background-with-blank-space-for-website-banner-and-paper-card-decorative-modern-graphic-design-vector.jpg' }}
+                source={{ uri: 'https://i.imgur.com/8F9ZGpX.png' }}
                 className="flex-1 justify-center items-center"
-                blurRadius={20}
+                blurRadius={5}
+                style={{ backgroundColor: '#000000' }}
             >
-                <StyledAnimatedView className="flex-1 justify-center items-center">
-                    <StyledView className="w-[85%] p-4 rounded-2xl bg-white/30 border border-white/20 shadow-md shadow-black/20 items-center backdrop-blur-lg">
-                        <StyledText className="text-2xl font-bold text-gray-800 mb-4">Редактирайте профила</StyledText>
-                        {error ? <StyledText className="text-red-500 mb-2">{error}</StyledText> : null}
+                <StyledAnimatedView className="flex-1 w-full justify-center items-center bg-black">
+                    <ScrollView style={{ width: '100%', backgroundColor: '#000000' }}>
+                        <StyledView className="p-4 items-center bg-black top-10">
+                            {error ? <StyledText className="text-red-500 mb-2">{error}</StyledText> : null}
 
-                        <TouchableOpacity onPress={handlePickImage} style={{ marginBottom: 8 }}>
-                            {profileImage ? (
-                                <Image
-                                    source={{ uri: profileImage }}
-                                    style={{
-                                        width: 100,
-                                        height: 100,
-                                        borderRadius: 60,
-                                        borderWidth: 2,
-                                        borderColor: 'white',
-                                    }}
+                            <TouchableOpacity onPress={handlePickImage} style={{ marginBottom: 8 }}>
+                                {profileImage ? (
+                                    <Image
+                                        source={{ uri: profileImage }}
+                                        style={{
+                                            width: 100,
+                                            height: 100,
+                                            borderRadius: 60,
+                                            borderWidth: 2,
+                                            borderColor: '#4CAF50',
+                                        }}
+                                    />
+                                ) : (
+                                    <Ionicons name="person-circle-outline" size={80} color="#999999" />
+                                )}
+                            </TouchableOpacity>
+
+                            <StyledView className="flex-row items-center bg-[#1A1A1A] rounded-2xl p-2 mb-2 w-full border border-[#333333]">
+                                <Ionicons name="person-outline" size={20} color="#999999" />
+                                <StyledTextInput
+                                    className="flex-1 ml-2 text-base text-white h-10"
+                                    placeholder="Име"
+                                    value={firstName}
+                                    onChangeText={setFirstName}
+                                    placeholderTextColor="#999999"
+                                    style={{ height: 25 }}
                                 />
-                            ) : (
-                                <Ionicons name="person-circle-outline" size={80} color="#a0a0a0" />
-                            )}
-                        </TouchableOpacity>
+                            </StyledView>
 
-                        {/* First Name Input */}
-                        <StyledView className="flex-row items-center bg-white/50 rounded-2xl p-2 mb-2 w-full">
-                            <Ionicons name="person-outline" size={20} color="#a0a0a0" />
-                            <StyledTextInput
-                                className="flex-1 ml-2 text-base text-gray-800 h-10"
-                                placeholder="Име"
-                                value={firstName}
-                                onChangeText={setFirstName}
-                                placeholderTextColor="#a0a0a0"
-                                style={{ height: 25 }}
-                            />
-                        </StyledView>
+                            <StyledView className="flex-row items-center bg-[#1A1A1A] rounded-2xl p-2 mb-2 w-full border border-[#333333]">
+                                <Ionicons name="person-outline" size={20} color="#999999" />
+                                <StyledTextInput
+                                    className="flex-1 ml-2 text-base text-white h-10"
+                                    placeholder="Фамилия"
+                                    value={lastName}
+                                    onChangeText={setLastName}
+                                    placeholderTextColor="#999999"
+                                    style={{ height: 25 }}
+                                />
+                            </StyledView>
 
-                        {/* Last Name Input */}
-                        <StyledView className="flex-row items-center bg-white/50 rounded-2xl p-2 mb-2 w-full">
-                            <Ionicons name="person-outline" size={20} color="#a0a0a0" />
-                            <StyledTextInput
-                                className="flex-1 ml-2 text-base text-gray-800 h-10"
-                                placeholder="Фамилия"
-                                value={lastName}
-                                onChangeText={setLastName}
-                                placeholderTextColor="#a0a0a0"
-                                style={{ height: 25 }}
-                            />
-                        </StyledView>
+                            <StyledView className="flex-row items-center bg-[#1A1A1A] rounded-2xl p-2 mb-2 w-full border border-[#333333]">
+                                <Ionicons name="mail-outline" size={20} color="#999999" />
+                                <StyledTextInput
+                                    className="flex-1 ml-2 text-base text-white h-10"
+                                    placeholder="Имейл"
+                                    value={email}
+                                    onChangeText={setEmail}
+                                    placeholderTextColor="#999999"
+                                    keyboardType="email-address"
+                                    style={{ height: 25 }}
+                                    autoCapitalize='none'
+                                    autoCorrect={false}
+                                />
+                            </StyledView>
 
-                        {/* Email Input */}
-                        <StyledView className="flex-row items-center bg-white/50 rounded-2xl p-2 mb-2 w-full">
-                            <Ionicons name="mail-outline" size={20} color="#a0a0a0" />
-                            <StyledTextInput
-                                className="flex-1 ml-2 text-base text-gray-800 h-10"
-                                placeholder="Имейл"
-                                value={email}
-                                onChangeText={setEmail}
-                                placeholderTextColor="#a0a0a0"
-                                keyboardType="email-address"
-                                style={{ height: 25 }}
-                                autoCapitalize='none'
-                                autoCorrect={false}
-                            />
-                        </StyledView>
-
-                        {/* Password Input */}
-                        <StyledView className="flex-row items-center bg-white/50 rounded-2xl p-2 mb-2 w-full">
-                            <Ionicons name="lock-closed-outline" size={20} color="#a0a0a0" />
-                            <StyledTextInput
-                                className="flex-1 ml-2 text-base text-gray-800 h-10"
-                                placeholder="Нова парола"
-                                secureTextEntry={!showPassword}
-                                value={password}
-                                onChangeText={setPassword}
-                                placeholderTextColor="#a0a0a0"
-                                style={{ height: 25 }}
-                            />
-                            <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
+                            <StyledView className="flex-row items-center bg-[#1A1A1A] rounded-2xl p-2 mb-2 w-full border border-[#333333]">
+                                <Ionicons name="lock-closed-outline" size={20} color="#999999" />
+                                <StyledTextInput
+                                    className="flex-1 ml-2 text-base text-white h-10"
+                                    placeholder="Нова парола"
+                                    secureTextEntry={!showPassword}
+                                    value={password}
+                                    onChangeText={setPassword}
+                                    placeholderTextColor="#999999"
+                                    style={{ height: 25 }}
+                                />
+                                <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
                                     <Ionicons
                                         name={showPassword ? "eye-outline" : "eye-off-outline"}
                                         size={24}
-                                        color="#a0a0a0"
+                                        color="#999999"
                                     />
                                 </TouchableOpacity>
-                        </StyledView>
-                        
+                            </StyledView>
+                            
 
-                        {/* Confirm Password Input */}
-                        <StyledView className="flex-row items-center bg-white/50 rounded-2xl p-2 mb-2 w-full">
-                            <Ionicons name="lock-closed-outline" size={20} color="#a0a0a0" />
-                            <StyledTextInput
-                                className="flex-1 ml-2 text-base text-gray-800 h-10"
-                                placeholder="Потвърдете новата парола"
-                                secureTextEntry={!showPassword}
-                                value={confirmPassword}
-                                onChangeText={setConfirmPassword}
-                                placeholderTextColor="#a0a0a0"
-                                style={{ height: 25 }}
-                            />
-                        </StyledView>
+                            <StyledView className="flex-row items-center bg-[#1A1A1A] rounded-2xl p-2 mb-2 w-full border border-[#333333]">
+                                <Ionicons name="lock-closed-outline" size={20} color="#999999" />
+                                <StyledTextInput
+                                    className="flex-1 ml-2 text-base text-white h-10"
+                                    placeholder="Потвърдете новата парола"
+                                    secureTextEntry={!showPassword}
+                                    value={confirmPassword}
+                                    onChangeText={setConfirmPassword}
+                                    placeholderTextColor="#999999"
+                                    style={{ height: 25 }}
+                                />
+                            </StyledView>
 
-                        {/* Height Input */}
-                        <StyledView className="flex-row items-center bg-white/50 rounded-2xl p-2 mb-2 w-full">
-                            <Ionicons name="resize-outline" size={20} color="#a0a0a0" />
-                            <StyledTextInput
-                                className="flex-1 ml-2 text-base text-gray-800 h-10"
-                                placeholder="Височина (cm)"
-                                value={height}
-                                onChangeText={setHeight}
-                                placeholderTextColor="#a0a0a0"
-                                keyboardType="numeric"
-                                style={{ height: 25 }}
-                            />
-                        </StyledView>
+                            <StyledView className="flex-row items-center bg-[#1A1A1A] rounded-2xl p-2 mb-2 w-full border border-[#333333]">
+                                <Ionicons name="resize-outline" size={20} color="#999999" />
+                                <StyledTextInput
+                                    className="flex-1 ml-2 text-base text-white h-10"
+                                    placeholder="Височина (cm)"
+                                    value={height}
+                                    onChangeText={setHeight}
+                                    placeholderTextColor="#999999"
+                                    keyboardType="numeric"
+                                    style={{ height: 25 }}
+                                />
+                            </StyledView>
 
-                        {/* Weight Input */}
-                        <StyledView className="flex-row items-center bg-white/50 rounded-2xl p-2 mb-4 w-full">
-                            <Ionicons name="barbell-outline" size={20} color="#a0a0a0" />
-                            <StyledTextInput
-                                className="flex-1 ml-2 text-base text-gray-800 h-10"
-                                placeholder="Маса (kg)"
-                                value={weight}
-                                onChangeText={setWeight}
-                                placeholderTextColor="#a0a0a0"
-                                keyboardType="numeric"
-                                style={{ height: 25 }}
-                            />
-                        </StyledView>
-                        
-                        {/* Goal Weight Input */}
-                        <StyledView className="flex-row items-center bg-white/50 rounded-2xl p-2 mb-2 w-full">
-                            <Ionicons name="trending-up-outline" size={20} color="#a0a0a0" />
-                            <StyledTextInput
-                                className="flex-1 ml-2 text-base text-gray-800 h-10"
-                                placeholder="Целево тегло (kg)"
-                                value={goalWeight}
-                                onChangeText={setGoalWeight}
-                                placeholderTextColor="#a0a0a0"
-                                keyboardType="numeric"
-                                style={{ height: 25 }}
-                            />
-                        </StyledView>
+                            <StyledView className="flex-row items-center bg-[#1A1A1A] rounded-2xl p-2 mb-4 w-full border border-[#333333]">
+                                <Ionicons name="barbell-outline" size={20} color="#999999" />
+                                <StyledTextInput
+                                    className="flex-1 ml-2 text-base text-white h-10"
+                                    placeholder="Маса (kg)"
+                                    value={weight}
+                                    onChangeText={setWeight}
+                                    placeholderTextColor="#999999"
+                                    keyboardType="numeric"
+                                    style={{ height: 25 }}
+                                />
+                            </StyledView>
+                            
+                            <StyledView className="flex-row items-center bg-[#1A1A1A] rounded-2xl p-2 mb-2 w-full border border-[#333333]">
+                                <Ionicons name="trending-up-outline" size={20} color="#999999" />
+                                <StyledTextInput
+                                    className="flex-1 ml-2 text-base text-white h-10"
+                                    placeholder="Целево тегло (kg)"
+                                    value={goalWeight}
+                                    onChangeText={setGoalWeight}
+                                    placeholderTextColor="#999999"
+                                    keyboardType="numeric"
+                                    style={{ height: 25 }}
+                                />
+                            </StyledView>
 
-                        {/* Goal Selection */}
-                        <StyledTouchableOpacity 
-                            className="flex-row items-center bg-white/50 rounded-2xl p-2 mb-2 w-full"
-                            onPress={() => setShowGoalPicker(true)}
-                        >
-                            <Ionicons name="battery-half-outline" size={20} color="#a0a0a0" />
-                            <StyledText className="flex-1 ml-2 text-base text-gray-800 h-10">
-                                {goal ? goalTranslations[goal] : "Изберете цел"}
-                            </StyledText>
-                        </StyledTouchableOpacity>
-
-                        {/* Goal Picker Modal */}
-                        <Modal
-                            visible={showGoalPicker}
-                            transparent={true}
-                            animationType="slide"
-                        >
-                            <TouchableOpacity
-                                style={{ flex: 1 }}
-                                onPress={() => setShowGoalPicker(false)}
-                                activeOpacity={1}
+                            <StyledTouchableOpacity 
+                                className="flex-row items-center bg-[#1A1A1A] rounded-2xl p-2 mb-2 w-full border border-[#333333]"
+                                onPress={() => setShowGoalPicker(true)}
                             >
-                                <View className="flex-1 justify-end bg-black/50">
-                                    <View className="bg-white rounded-t-3xl">
-                                        <View className="flex-row justify-between items-center p-4 border-b border-gray-200">
-                                            <TouchableOpacity onPress={() => setShowGoalPicker(false)}>
-                                                <StyledText className="text-gray-500 font-semibold text-lg">Отказ</StyledText>
-                                            </TouchableOpacity>
-                                            <StyledText className="text-gray-800 font-bold text-lg">Изберете цел</StyledText>
-                                            <TouchableOpacity onPress={() => setShowGoalPicker(false)}>
-                                                <StyledText className="text-blue-500 font-semibold text-lg">Готово</StyledText>
-                                            </TouchableOpacity>
-                                        </View>
-                                        <View className="px-4 bg-white">
-                                            <Picker
-                                                selectedValue={goal}
-                                                onValueChange={(itemValue) => {
-                                                    setGoal(itemValue);
-                                                    setShowGoalPicker(false);
-                                                }}
-                                                style={{ height: 215, color: '#000000' }}
-                                            >
-                                                {availableGoals.map((g) => (
-                                                    <Picker.Item 
-                                                        key={g} 
-                                                        label={g} 
-                                                        value={g}
-                                                        style={{
-                                                            fontSize: 18,
-                                                            color: '#000000'
-                                                        }}
-                                                        color="#000000"
-                                                    />
-                                                ))}
-                                            </Picker>
+                                <Ionicons name="battery-half-outline" size={20} color="#999999" />
+                                <StyledText className="flex-1 ml-2 text-base text-white h-10">
+                                    {goal ? goalTranslations[goal] : "Изберете цел"}
+                                </StyledText>
+                            </StyledTouchableOpacity>
+
+                            <Modal
+                                visible={showGoalPicker}
+                                transparent={true}
+                                animationType="slide"
+                            >
+                                <TouchableOpacity
+                                    style={{ flex: 1 }}
+                                    onPress={() => setShowGoalPicker(false)}
+                                    activeOpacity={1}
+                                >
+                                    <View className="flex-1 justify-end bg-black/80">
+                                        <View className="bg-[#1A1A1A] rounded-t-3xl">
+                                            <View className="flex-row justify-between items-center p-4 border-b border-[#333333]">
+                                                <TouchableOpacity onPress={() => setShowGoalPicker(false)}>
+                                                    <StyledText className="text-[#999999] font-semibold text-lg">Отказ</StyledText>
+                                                </TouchableOpacity>
+                                                <StyledText className="text-white font-bold text-lg">Изберете цел</StyledText>
+                                                <TouchableOpacity onPress={() => setShowGoalPicker(false)}>
+                                                    <StyledText className="text-[#4CAF50] font-semibold text-lg">Готово</StyledText>
+                                                </TouchableOpacity>
+                                            </View>
+                                            <View className="px-4 bg-[#1A1A1A]">
+                                                <Picker
+                                                    selectedValue={goal}
+                                                    onValueChange={(itemValue) => {
+                                                        setGoal(itemValue);
+                                                        setShowGoalPicker(false);
+                                                    }}
+                                                    style={{ height: 215, color: '#FFFFFF' }}
+                                                >
+                                                    {availableGoals.map((g) => (
+                                                        <Picker.Item 
+                                                            key={g} 
+                                                            label={g} 
+                                                            value={g}
+                                                            style={{
+                                                                fontSize: 18,
+                                                                color: '#FFFFFF'
+                                                            }}
+                                                            color="#FFFFFF"
+                                                        />
+                                                    ))}
+                                                </Picker>
+                                            </View>
                                         </View>
                                     </View>
-                                </View>
-                            </TouchableOpacity>
-                        </Modal>
+                                </TouchableOpacity>
+                            </Modal>
 
-                        {/* Activity Level Selection */}
-                        <StyledTouchableOpacity 
-                            className="flex-row items-center bg-white/50 rounded-2xl p-2 mb-2 w-full"
-                            onPress={() => setShowActivityPicker(true)}
-                        >
-                            <Ionicons name="fitness-outline" size={20} color="#a0a0a0" />
-                            <StyledText className="flex-1 ml-2 text-base text-gray-800 h-10">
-                                {activityLevel ? 
-                                    availableActivityLevels.find(level => Math.abs(level.value - activityLevel) < 0.01)?.label || 'Изберете активност'
-                                    : 'Изберете активност'
-                                }
-                            </StyledText>
-                        </StyledTouchableOpacity>
-
-                        {/* Activity Level Picker Modal */}
-                        <Modal
-                            visible={showActivityPicker}
-                            transparent={true}
-                            animationType="slide"
-                        >
-                            <TouchableOpacity
-                                style={{ flex: 1 }}
-                                onPress={() => setShowActivityPicker(false)}
-                                activeOpacity={1}
+                            <StyledTouchableOpacity 
+                                className="flex-row items-center bg-[#1A1A1A] rounded-2xl p-2 mb-2 w-full border border-[#333333]"
+                                onPress={() => setShowActivityPicker(true)}
                             >
-                                <View className="flex-1 justify-end bg-black/50">
-                                    <View className="bg-white rounded-t-3xl">
-                                        <View className="flex-row justify-between items-center p-4 border-b border-gray-200">
-                                            <TouchableOpacity onPress={() => setShowActivityPicker(false)}>
-                                                <StyledText className="text-gray-500 font-semibold text-lg">Отказ</StyledText>
-                                            </TouchableOpacity>
-                                            <StyledText className="text-gray-800 font-bold text-lg">Изберете активност</StyledText>
-                                            <TouchableOpacity onPress={() => setShowActivityPicker(false)}>
-                                                <StyledText className="text-blue-500 font-semibold text-lg">Готово</StyledText>
-                                            </TouchableOpacity>
-                                        </View>
-                                        <View className="px-4 bg-white">
-                                            <Picker
-                                                selectedValue={activityLevel}
-                                                onValueChange={(itemValue) => {
-                                                    setActivityLevel(itemValue);
-                                                    setShowActivityPicker(false);
-                                                }}
-                                                style={{ height: 215, color: '#000000' }}
-                                            >
-                                                {availableActivityLevels.map((level) => (
-                                                    <Picker.Item 
-                                                        key={level.value.toString()} 
-                                                        label={level.label} 
-                                                        value={level.value}
-                                                        style={{
-                                                            fontSize: 18,
-                                                            color: '#000000'
-                                                        }}
-                                                        color="#000000"
-                                                    />
-                                                ))}
-                                            </Picker>
+                                <Ionicons name="fitness-outline" size={20} color="#999999" />
+                                <StyledText className="flex-1 ml-2 text-base text-white h-10">
+                                    {activityLevel ? 
+                                        availableActivityLevels.find(level => Math.abs(level.value - activityLevel) < 0.01)?.label || 'Изберете активност'
+                                        : 'Изберете активност'
+                                    }
+                                </StyledText>
+                            </StyledTouchableOpacity>
+
+                            <Modal
+                                visible={showActivityPicker}
+                                transparent={true}
+                                animationType="slide"
+                            >
+                                <TouchableOpacity
+                                    style={{ flex: 1 }}
+                                    onPress={() => setShowActivityPicker(false)}
+                                    activeOpacity={1}
+                                >
+                                    <View className="flex-1 justify-end bg-black/80">
+                                        <View className="bg-[#1A1A1A] rounded-t-3xl">
+                                            <View className="flex-row justify-between items-center p-4 border-b border-[#333333]">
+                                                <TouchableOpacity onPress={() => setShowActivityPicker(false)}>
+                                                    <StyledText className="text-[#999999] font-semibold text-lg">Отказ</StyledText>
+                                                </TouchableOpacity>
+                                                <StyledText className="text-white font-bold text-lg">Изберете активност</StyledText>
+                                                <TouchableOpacity onPress={() => setShowActivityPicker(false)}>
+                                                    <StyledText className="text-[#4CAF50] font-semibold text-lg">Готово</StyledText>
+                                                </TouchableOpacity>
+                                            </View>
+                                            <View className="px-4 bg-[#1A1A1A]">
+                                                <Picker
+                                                    selectedValue={activityLevel}
+                                                    onValueChange={(itemValue) => {
+                                                        setActivityLevel(itemValue);
+                                                        setShowActivityPicker(false);
+                                                    }}
+                                                    style={{ height: 215, color: '#FFFFFF' }}
+                                                >
+                                                    {availableActivityLevels.map((level) => (
+                                                        <Picker.Item 
+                                                            key={level.value.toString()} 
+                                                            label={level.label} 
+                                                            value={level.value}
+                                                            style={{
+                                                                fontSize: 18,
+                                                                color: '#FFFFFF'
+                                                            }}
+                                                            color="#FFFFFF"
+                                                        />
+                                                    ))}
+                                                </Picker>
+                                            </View>
                                         </View>
                                     </View>
-                                </View>
-                            </TouchableOpacity>
-                        </Modal>
+                                </TouchableOpacity>
+                            </Modal>
 
-                        <StyledTouchableOpacity
-                            className="bg-gradient-to-r from-[#ffffff] to-[#e0e0e0] rounded-2xl py-3 w-full mb-4 shadow-md shadow-gray-400"
-                            onPress={handleSaveChanges}
-                        >
-                            <StyledText className="text-gray-800 text-center text-lg font-semibold">Потвърдете промените</StyledText>
-                        </StyledTouchableOpacity>
-
+                            <StyledTouchableOpacity
+                                className="bg-[#4CAF50] rounded-2xl py-3 w-full mb-4 shadow-md shadow-black/20"
+                                onPress={handleSaveChanges}
+                            >
+                                <StyledText className="text-white text-center text-lg font-semibold">Потвърдете промените</StyledText>
+                            </StyledTouchableOpacity>
                         </StyledView>
-                    </StyledAnimatedView>
-                </StyledImageBackground>
+                    </ScrollView>
+                </StyledAnimatedView>
+            </StyledImageBackground>
             <FlashMessage position="top" />
         </KeyboardAvoidingView>
     );

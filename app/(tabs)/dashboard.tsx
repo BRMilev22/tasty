@@ -18,6 +18,9 @@ import AddMealScreen from '../(tabs)/addMeal';
 import ExpoCamera from '../(tabs)/scan'
 import { LineChart } from 'react-native-chart-kit';
 import { showMessage } from 'react-native-flash-message';
+import { NavigationProp } from '@react-navigation/native';
+import LinearGradient from 'react-native-linear-gradient';
+import { LinearGradient as ExpoLinearGradient } from 'expo-linear-gradient';
 
 const auth = getAuth();
 const db = getFirestore();
@@ -28,6 +31,46 @@ const StyledView = styled(View);
 const StyledText = styled(Text);
 const StyledTouchableOpacity = styled(TouchableOpacity);
 const StyledImageBackground = styled(ImageBackground);
+
+const translations = {
+  welcome: 'Добре дошли',
+  breakfast: 'Закуска',
+  lunch: 'Обяд', 
+  dinner: 'Вечеря',
+  snacks: 'Снаксове',
+  water: 'Вода',
+  recommended: 'Препоръчително',
+  deleteConfirmation: 'Сигурни ли сте, че искате да изтриете това ястие?',
+  cancel: 'Отказ',
+  deleteMeal: 'Изтрий ястие',
+  deleteSuccess: 'Ястието беше изтрито успешно',
+  deleteError: 'Грешка при изтриване на ястието',
+  waterAchievement: 'Хидратация',
+  waterAchievementDesc: 'Достигнахте дневната си цел за вода',
+  kcalLeft: 'KCAL LEFT',
+  eaten: 'EATEN',
+  burned: 'BURNED',
+  today: 'Днес',
+  yesterday: 'Вчера',
+  selectDate: 'Изберете дата',
+  todaysMeals: 'Днешни хранения',
+};
+
+const theme = {
+  colors: {
+    primary: '#4CAF50',
+    background: '#000000',
+    surface: '#1A1A1A',
+    text: '#FFFFFF',
+    textSecondary: '#999999',
+    accent: '#4CAF50',
+    gradient: {
+      start: '#4CAF50',
+      middle: '#FFD700',
+      end: '#4CAF50'
+    }
+  }
+};
 
 interface DashboardProps {
   onLogout: () => void;
@@ -52,12 +95,12 @@ interface NutritionStats {
 }
 
 interface UserData {
-  weight: string;
-  height: string;
-  gender: string;
-  dateOfBirth: any; // Firebase Timestamp
-  goal: string;
-  activityLevel: number;
+  weight?: string;
+  height?: string;
+  gender?: string;
+  dateOfBirth?: any; // Firebase Timestamp
+  goal?: string;
+  activityLevel?: number;
 }
 
 interface WeightRecord {
@@ -87,6 +130,60 @@ interface Achievement {
   permanent: boolean;
 }
 
+interface MealTimeButtonProps {
+  icon: string;
+  title: string;
+  subtitle?: string;
+  calories?: number;
+  recommended?: string;
+  onPress: () => void;
+  todaysMeals: MealData[];
+}
+
+interface MealData {
+  id: string;
+  name: string;
+  type: string;
+  mealType?: string;
+  calories: number;
+  protein: number;
+  carbs: number;
+  fats: number;
+  timestamp: Date;
+}
+
+interface MealRecommendations {
+  breakfast: { min: number; max: number };
+  lunch: { min: number; max: number };
+  dinner: { min: number; max: number };
+  snacks: { min: number; max: number };
+}
+
+interface WaterData {
+  amount: number;
+  timestamp: Date;
+}
+
+interface WaterTrackerProps {
+  currentAmount: number;
+  targetAmount: number;
+  onAddWater: (index: number) => void;
+}
+
+interface DateSelectorProps {
+  currentDate: Date;
+  onDateChange: (date: Date) => void;
+}
+
+type RootStackParamList = {
+  dashboard: undefined;
+  addMeal: { mealType?: string };
+  editProfile: undefined;
+  planMeal: { meal?: PlannedMeal };
+  trackWeight: undefined;
+  goalsSelect: undefined;
+};
+
 const calculateAge = (dateOfBirth: any): number => {
   const birthDate = dateOfBirth.toDate();
   const today = new Date();
@@ -101,11 +198,13 @@ const calculateAge = (dateOfBirth: any): number => {
 };
 
 const calculateNutritionTargets = (userData: UserData) => {
-  const weight = parseFloat(userData.weight);
-  const height = parseFloat(userData.height);
-  const age = calculateAge(userData.dateOfBirth);
-  const isMale = userData.gender.toLowerCase() === 'male';
-  const activityLevel = userData.activityLevel || 1.55; // Get activity level with fallback
+  // Add null checks and default values
+  const weight = parseFloat(userData?.weight || '0');
+  const height = parseFloat(userData?.height || '0');
+  const age = userData?.dateOfBirth ? calculateAge(userData.dateOfBirth) : 25;
+  const isMale = (userData?.gender || '').toLowerCase() === 'male';
+  const activityLevel = userData?.activityLevel || 1.55;
+  const goal = (userData?.goal || 'maintain weight').toLowerCase();
 
   // Calculate BMR using Harris-Benedict equation
   let bmr;
@@ -120,7 +219,7 @@ const calculateNutritionTargets = (userData: UserData) => {
 
   // Adjust calories based on goal
   let targetCalories;
-  switch (userData.goal.toLowerCase()) {
+  switch (goal) {
     case 'lose weight':
       targetCalories = maintenanceCalories - 500; // 500 calorie deficit
       break;
@@ -150,8 +249,29 @@ const calculateNutritionTargets = (userData: UserData) => {
   };
 };
 
+const calculateMealRecommendations = (totalCalories: number): MealRecommendations => {
+  return {
+    breakfast: {
+      min: Math.round(totalCalories * 0.25), // 25% of daily calories
+      max: Math.round(totalCalories * 0.35), // 35% of daily calories
+    },
+    lunch: {
+      min: Math.round(totalCalories * 0.30), // 30% of daily calories
+      max: Math.round(totalCalories * 0.40), // 40% of daily calories
+    },
+    dinner: {
+      min: Math.round(totalCalories * 0.30), // 30% of daily calories
+      max: Math.round(totalCalories * 0.40), // 40% of daily calories
+    },
+    snacks: {
+      min: Math.round(totalCalories * 0.05), // 5% of daily calories
+      max: Math.round(totalCalories * 0.10), // 10% of daily calories
+    },
+  };
+};
+
 const DashboardScreen: React.FC<DashboardProps> = ({ onLogout }) => {
-  const navigation = useNavigation();
+  const navigation = useNavigation<NavigationProp<RootStackParamList>>();
   const user = auth.currentUser;
   const [loading, setLoading] = useState(true);
   const [profileImage, setProfileImage] = useState<string | null>(null);
@@ -175,6 +295,13 @@ const DashboardScreen: React.FC<DashboardProps> = ({ onLogout }) => {
   const [plannedMeals, setPlannedMeals] = useState<PlannedMeal[]>([]);
   const [achievements, setAchievements] = useState<Achievement[]>([]);
   const [animatingMeals, setAnimatingMeals] = useState<string[]>([]);
+  const [mealRecommendations, setMealRecommendations] = useState<MealRecommendations>({
+    breakfast: { min: 0, max: 0 },
+    lunch: { min: 0, max: 0 },
+    dinner: { min: 0, max: 0 },
+    snacks: { min: 0, max: 0 },
+  });
+  const [waterIntake, setWaterIntake] = useState(0);
 
   useEffect(() => {
     const user = getAuth().currentUser;
@@ -183,11 +310,10 @@ const DashboardScreen: React.FC<DashboardProps> = ({ onLogout }) => {
       return;
     }
 
-    setLoading(true); // Set loading state at start
+    setLoading(true);
 
     const userDocRef = doc(db, 'users', user.uid);
     
-    // Create real-time listener for user data
     const unsubscribe = onSnapshot(userDocRef, (doc) => {
       try {
         if (doc.exists()) {
@@ -244,22 +370,21 @@ const DashboardScreen: React.FC<DashboardProps> = ({ onLogout }) => {
             targetCarbs: targets.targetCarbs,
             targetFats: targets.targetFats
           }));
+
+          // Calculate meal recommendations based on target calories
+          setMealRecommendations(calculateMealRecommendations(targets.targetCalories));
         } else {
           console.log('User document does not exist in the "users" collection.');
         }
       } catch (err) {
         console.error('Error processing user data:', err);
       } finally {
-        setLoading(false); // Set loading to false after processing
+        setLoading(false);
       }
-    }, (error) => {
-      console.error('Error listening to user data:', error);
-      setLoading(false); // Set loading to false on error
     });
 
-    // Cleanup subscription on unmount
     return () => unsubscribe();
-  }, [navigation]); // Only depend on navigation
+  }, [navigation]);
 
   useEffect(() => {
     setDashboardData([
@@ -406,6 +531,36 @@ const DashboardScreen: React.FC<DashboardProps> = ({ onLogout }) => {
     });
   }, [plannedMeals]);
 
+  useEffect(() => {
+    const user = auth.currentUser;
+    if (!user) return;
+
+    const today = new Date(currentDate);
+    today.setHours(0, 0, 0, 0);
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+
+    const waterRef = collection(db, 'users', user.uid, 'waterIntake');
+    const q = query(
+      waterRef,
+      where('timestamp', '>=', today),
+      where('timestamp', '<', tomorrow),
+      orderBy('timestamp', 'desc'),
+      limit(1)
+    );
+
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      if (!snapshot.empty) {
+        const waterData = snapshot.docs[0].data();
+        setWaterIntake(waterData.amount || 0);
+      } else {
+        setWaterIntake(0);
+      }
+    });
+
+    return () => unsubscribe();
+  }, [currentDate]);
+
   const handleLogout = async () => {
     try {
       await auth.signOut();
@@ -446,75 +601,122 @@ const DashboardScreen: React.FC<DashboardProps> = ({ onLogout }) => {
           icon: 'trophy',
           earned: false,
           permanent: true
+        },
+        {
+          id: 'daily_water',
+          title: 'Хидратация',
+          description: 'Достигнахте дневната си цел за вода',
+          icon: 'water',
+          earned: false,
+          permanent: true // Changed to true so it stays unlocked
         }
       ];
 
-      const updatedAchievements = await Promise.all(newAchievements.map(async (achievement) => {
-        const existingAchievement = existingAchievements.get(achievement.id);
+      // First, restore any previously earned permanent achievements
+      newAchievements.forEach(achievement => {
+        const existing = existingAchievements.get(achievement.id);
+        if (existing?.earned && achievement.permanent) {
+          achievement.earned = true;
+          achievement.earnedDate = existing.earnedDate;
+        }
+      });
+
+      // Check weight goal achievement
+      if (userData?.weight && userData?.goalWeight && userData?.goal) {
+        const currentWeight = parseFloat(userData.weight);
+        const targetWeight = parseFloat(userData.goalWeight);
         
-        if (existingAchievement?.earned && achievement.permanent) {
-          return {
-            ...achievement,
-            earned: true,
-            earnedDate: existingAchievement.earnedDate
-          };
-        }
-
-        let shouldBeEarned = false;
-        switch (achievement.id) {
-          case 'first_meal':
-            shouldBeEarned = meals.length > 0;
-            break;
-          case 'weight_goal':
-            if (userData?.weight && userData?.goalWeight && userData?.goal) {
-              const currentWeight = parseFloat(userData.weight);
-              const targetWeight = parseFloat(userData.goalWeight);
-              
-              if (!isNaN(currentWeight) && !isNaN(targetWeight)) {
-                switch (userData.goal) {
-                  case 'Lose Weight':
-                    shouldBeEarned = currentWeight <= targetWeight;
-                    break;
-                  case 'Gain Weight':
-                    shouldBeEarned = currentWeight >= targetWeight;
-                    break;
-                  case 'Maintain Weight':
-                    // For maintain weight, we'll say they achieved it if they're within 1kg of their target
-                    shouldBeEarned = Math.abs(currentWeight - targetWeight) <= 1;
-                    break;
-                }
-              }
-            }
-            break;
-        }
-
-        if (shouldBeEarned && !existingAchievement?.earned) {
-          const achievementData = {
-            ...achievement,
-            earned: true,
-            earnedDate: Timestamp.fromDate(new Date())
-          };
-
-          if (existingAchievement?.dbId) {
-            await updateDoc(doc(db, 'users', user.uid, 'achievements', existingAchievement.dbId), achievementData);
-          } else {
-            await addDoc(collection(db, 'users', user.uid, 'achievements'), achievementData);
-          }
-
-          showMessage({
-            message: 'Ново постижение!',
-            description: achievement.title,
-            type: 'success',
-            duration: 3000,
+        if (!isNaN(currentWeight) && !isNaN(targetWeight)) {
+          let goalAchieved = false;
+          
+          // Convert goal to lowercase and trim any whitespace
+          const userGoal = userData.goal.toLowerCase().trim();
+          
+          console.log('Weight Goal Check - Before:', {
+            currentWeight,
+            targetWeight,
+            userGoal
           });
 
-          return achievementData;
+          switch (userGoal) {
+            case 'lose weight':
+            case 'отслабване': // Bulgarian translation
+              goalAchieved = currentWeight >= targetWeight; // Changed from <= to >=
+              break;
+            case 'gain weight':
+            case 'качване на тегло': // Bulgarian translation
+              goalAchieved = currentWeight <= targetWeight; // Changed from >= to <=
+              break;
+            case 'maintain weight':
+            case 'поддържане на тегло': // Bulgarian translation
+              goalAchieved = Math.abs(currentWeight - targetWeight) <= 1;
+              break;
+          }
+
+          console.log('Weight Goal Check - After:', {
+            currentWeight,
+            targetWeight,
+            userGoal,
+            goalAchieved
+          });
+
+          if (goalAchieved) {
+            const weightAchievement = newAchievements.find(a => a.id === 'weight_goal');
+            if (weightAchievement && !weightAchievement.earned) {
+              weightAchievement.earned = true;
+              weightAchievement.earnedDate = Timestamp.fromDate(new Date());
+              
+              // Save the achievement
+              await addDoc(achievementsRef, {
+                ...weightAchievement,
+                earnedDate: weightAchievement.earnedDate
+              });
+
+              showMessage({
+                message: 'Ново постижение!',
+                description: 'Достигнахте целевото си тегло! 🎉',
+                type: 'success',
+                duration: 3000,
+              });
+            }
+          }
         }
+      }
 
-        return existingAchievement || achievement;
-      }));
+      // Check water achievement
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const tomorrow = new Date(today);
+      tomorrow.setDate(tomorrow.getDate() + 1);
 
-      return updatedAchievements;
+      const waterRef = collection(db, 'users', user.uid, 'waterIntake');
+      const waterQuery = query(
+        waterRef,
+        where('timestamp', '>=', today),
+        where('timestamp', '<', tomorrow),
+        orderBy('timestamp', 'desc'),
+        limit(1)
+      );
+
+      const waterSnapshot = await getDocs(waterQuery);
+      if (!waterSnapshot.empty) {
+        const waterData = waterSnapshot.docs[0].data();
+        if (waterData.amount >= (water || 2.5)) {
+          const waterAchievement = newAchievements.find(a => a.id === 'daily_water');
+          if (waterAchievement && !waterAchievement.earned) {
+            waterAchievement.earned = true;
+            waterAchievement.earnedDate = new Date();
+            
+            // Save the achievement
+            await addDoc(achievementsRef, {
+              ...waterAchievement,
+              earnedDate: Timestamp.fromDate(waterAchievement.earnedDate)
+            });
+          }
+        }
+      }
+
+      return newAchievements;
     } catch (error) {
       console.error('Error checking achievements:', error);
       return [];
@@ -606,11 +808,15 @@ const DashboardScreen: React.FC<DashboardProps> = ({ onLogout }) => {
             width={300}
             height={200}
             chartConfig={{
-              backgroundColor: '#e3f2fd',
-              backgroundGradientFrom: '#e3f2fd',
-              backgroundGradientTo: '#e3f2fd',
+              backgroundColor: '#000000',
+              backgroundGradientFrom: '#000000',
+              backgroundGradientTo: '#000000',
               decimalPlaces: 1,
-              color: (opacity = 1) => `rgba(30, 136, 229, ${opacity})`,
+              color: (opacity = 1) => `rgba(76, 175, 80, ${opacity})`, // Green color
+              labelColor: (opacity = 1) => `rgba(255, 255, 255, ${opacity})`,
+              style: {
+                borderRadius: 16
+              },
             }}
             bezier
             style={{
@@ -619,7 +825,7 @@ const DashboardScreen: React.FC<DashboardProps> = ({ onLogout }) => {
             }}
           />
         ) : (
-          <Text style={styles.weightValue}>Няма налични данни</Text>
+          <Text style={styles.noDataText}>Няма налични данни</Text>
         )}
       </View>
     );
@@ -809,6 +1015,437 @@ const DashboardScreen: React.FC<DashboardProps> = ({ onLogout }) => {
     );
   };
 
+  const MealTimeButton = ({ 
+    icon, 
+    title, 
+    subtitle, 
+    calories, 
+    recommended, 
+    onPress,
+    todaysMeals
+  }: MealTimeButtonProps) => {
+    const [showOptions, setShowOptions] = useState(false);
+    const user = auth.currentUser;
+    const meal = todaysMeals.find(m => 
+      m.type?.toLowerCase() === title.toLowerCase() ||
+      m.mealType?.toLowerCase() === title.toLowerCase()
+    );
+
+    const handleDeleteMeal = async () => {
+      if (!user || !meal) return;
+
+      Alert.alert(
+        translations.deleteConfirmation,
+        translations.deleteConfirmation,
+        [
+          {
+            text: translations.cancel,
+            style: "cancel"
+          },
+          {
+            text: translations.deleteMeal,
+            style: "destructive",
+            onPress: async () => {
+              try {
+                await deleteDoc(doc(db, 'users', user.uid, 'meals', meal.id));
+                setShowOptions(false);
+                showMessage({
+                  message: translations.deleteSuccess,
+                  type: 'success',
+                });
+              } catch (error) {
+                console.error('Error deleting meal:', error);
+                showMessage({
+                  message: translations.deleteError,
+                  type: 'danger',
+                });
+              }
+            }
+          }
+        ]
+      );
+    };
+
+    return (
+      <TouchableOpacity 
+        style={styles.mealTimeButton}
+        onPress={meal ? () => setShowOptions(true) : onPress}
+      >
+        <View style={styles.mealTimeContent}>
+          <View style={styles.mealTimeLeft}>
+            <Text style={styles.mealIcon}>{icon}</Text>
+            <View style={styles.mealTimeTexts}>
+              <Text style={styles.mealTimeTitle}>{title}</Text>
+              {subtitle ? (
+                <Text style={styles.mealTimeSubtitle}>{subtitle}</Text>
+              ) : (
+                <Text style={styles.mealTimeRecommended}>
+                  {translations.recommended}: {recommended}
+                </Text>
+              )}
+            </View>
+          </View>
+          <View style={styles.mealTimeRight}>
+            {calories && <Text style={styles.mealTimeCalories}>{calories} kcal</Text>}
+            {meal ? (
+              <TouchableOpacity 
+                style={styles.moreButton}
+                onPress={() => setShowOptions(true)}
+              >
+                <Ionicons name="ellipsis-horizontal" size={24} color="#666" />
+              </TouchableOpacity>
+            ) : (
+              <TouchableOpacity 
+                style={styles.addButton}
+                onPress={onPress}
+              >
+                <Ionicons name="add" size={24} color="#333" />
+              </TouchableOpacity>
+            )}
+          </View>
+        </View>
+        {showOptions && (
+          <View style={styles.mealOptions}>
+            <TouchableOpacity 
+              style={styles.mealOptionButton}
+              onPress={handleDeleteMeal}
+            >
+              <Ionicons name="trash-outline" size={20} color="#e74c3c" />
+              <Text style={styles.mealOptionText}>{translations.deleteMeal}</Text>
+            </TouchableOpacity>
+            <TouchableOpacity 
+              style={styles.mealOptionButton}
+              onPress={() => setShowOptions(false)}
+            >
+              <Ionicons name="close-outline" size={20} color="#666" />
+              <Text style={styles.mealOptionText}>{translations.cancel}</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+      </TouchableOpacity>
+    );
+  };
+
+  const WaterTracker = ({ currentAmount, targetAmount, onAddWater }: WaterTrackerProps) => {
+    const glassSize = targetAmount / 8;
+    const filledGlasses = Math.floor(currentAmount / glassSize);
+    const glasses = Array(8).fill(null);
+
+    return (
+      <View style={styles.waterTrackerContainer}>
+        <View style={styles.waterHeader}>
+          <View style={styles.waterTitleRow}>
+            <Text style={styles.waterAmount}>{currentAmount.toFixed(2)}L</Text>
+            <Text style={styles.waterTitle}>{translations.water}</Text>
+          </View>
+          <Text style={styles.waterTarget}>
+            Цел: {targetAmount}L
+          </Text>
+        </View>
+        <View style={styles.waterGlassesRow}>
+          {glasses.map((_, index) => (
+            <TouchableOpacity 
+              key={index}
+              style={styles.waterGlass}
+              onPress={() => onAddWater(index)}
+            >
+              <Text style={styles.glassEmoji}>
+                {index < filledGlasses ? '🥤' : '🥛'}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+        {currentAmount >= targetAmount && (
+          <Text style={styles.waterGoalReached}>
+            Достигнахте дневната си цел! 🎉
+          </Text>
+        )}
+      </View>
+    );
+  };
+
+  const handleAddWater = async (glassIndex: number) => {
+    if (!user) return;
+
+    const glassSize = (water || 2.5) / 8;
+    const newAmount = (glassIndex + 1) * glassSize;
+
+    try {
+      const waterRef = collection(db, 'users', user.uid, 'waterIntake');
+      const today = new Date(currentDate);
+      today.setHours(0, 0, 0, 0);
+      const tomorrow = new Date(today);
+      tomorrow.setDate(tomorrow.getDate() + 1);
+
+      const q = query(
+        waterRef,
+        where('timestamp', '>=', today),
+        where('timestamp', '<', tomorrow)
+      );
+
+      const snapshot = await getDocs(q);
+      
+      if (!snapshot.empty) {
+        const docId = snapshot.docs[0].id;
+        await updateDoc(doc(db, 'users', user.uid, 'waterIntake', docId), {
+          amount: newAmount,
+          timestamp: new Date()
+        });
+      } else {
+        await addDoc(waterRef, {
+          amount: newAmount,
+          timestamp: new Date()
+        });
+      }
+
+      // Check if water goal is achieved
+      if (newAmount >= (water || 2.5)) {
+        // Get today's achievements
+        const achievementsRef = collection(db, 'users', user.uid, 'achievements');
+        const achievementsQuery = query(
+          achievementsRef,
+          where('earnedDate', '>=', today),
+          where('earnedDate', '<', tomorrow)
+        );
+        
+        const achievementSnapshot = await getDocs(achievementsQuery);
+        
+        // Check if we already have a water achievement for today
+        const hasWaterAchievement = achievementSnapshot.docs.some(
+          doc => doc.data().id === 'daily_water'
+        );
+        
+        if (!hasWaterAchievement) {
+          // Add new achievement
+          await addDoc(achievementsRef, {
+            id: 'daily_water',
+            title: 'Хидратация',
+            description: 'Достигнахте дневната си цел за вода',
+            icon: 'water',
+            earned: true,
+            earnedDate: new Date(),
+            permanent: false
+          });
+
+          showMessage({
+            message: 'Ново постижение!',
+            description: 'Достигнахте дневната си цел за вода! 🎉',
+            type: 'success',
+            duration: 3000,
+          });
+        }
+      }
+
+      showMessage({
+        message: 'Приемът на вода е актуализиран',
+        type: 'success',
+      });
+    } catch (error) {
+      console.error('Error updating water intake:', error);
+      showMessage({
+        message: 'Грешка при актуализиране на приема на вода',
+        type: 'danger',
+      });
+    }
+  };
+
+  const CalorieCircle = ({ calories, totalCalories }: { calories: number; totalCalories: number }) => {
+    const remaining = totalCalories - calories;
+    
+    // Calculate macro percentages
+    const carbsProgress = Math.min((nutritionStats.carbs / nutritionStats.targetCarbs) * 100, 100);
+    const proteinProgress = Math.min((nutritionStats.protein / nutritionStats.targetProtein) * 100, 100);
+    const fatsProgress = Math.min((nutritionStats.fats / nutritionStats.targetFats) * 100, 100);
+    
+    return (
+      <View style={styles.calorieCircleContainer}>
+        <View style={styles.mainStats}>
+          <View style={styles.statColumn}>
+            <Text style={styles.statValue}>{calories}</Text>
+            <Text style={styles.statLabel}>EATEN</Text>
+          </View>
+          
+          <View style={styles.centerCircle}>
+            <Text style={styles.remainingCalories}>{remaining}</Text>
+            <Text style={styles.remainingLabel}>KCAL LEFT</Text>
+          </View>
+          
+          <View style={styles.statColumn}>
+            <Text style={styles.statValue}>0</Text>
+            <Text style={styles.statLabel}>BURNED</Text>
+          </View>
+        </View>
+        
+        <View style={styles.macroStats}>
+          <View style={styles.macroItem}>
+            <Text style={styles.macroLabel}>Carbs</Text>
+            <Text style={styles.macroValue}>{nutritionStats.carbs} / {nutritionStats.targetCarbs}g</Text>
+            <View style={styles.progressBar}>
+              <View style={[styles.progressFill, { width: `${carbsProgress}%` }]} />
+            </View>
+          </View>
+          
+          <View style={styles.macroItem}>
+            <Text style={styles.macroLabel}>Protein</Text>
+            <Text style={styles.macroValue}>{nutritionStats.protein} / {nutritionStats.targetProtein}g</Text>
+            <View style={styles.progressBar}>
+              <View style={[styles.progressFill, { width: `${proteinProgress}%` }]} />
+            </View>
+          </View>
+          
+          <View style={styles.macroItem}>
+            <Text style={styles.macroLabel}>Fat</Text>
+            <Text style={styles.macroValue}>{nutritionStats.fats} / {nutritionStats.targetFats}g</Text>
+            <View style={styles.progressBar}>
+              <View style={[styles.progressFill, { width: `${fatsProgress}%` }]} />
+            </View>
+          </View>
+        </View>
+      </View>
+    );
+  };
+
+  const DateSelector: React.FC<DateSelectorProps> = ({ currentDate, onDateChange }) => {
+    const [showDatePicker, setShowDatePicker] = useState(false);
+
+    const formatDate = (date: Date) => {
+      return date.toLocaleDateString('bg-BG', {
+        weekday: 'long',
+        day: 'numeric',
+        month: 'long'
+      });
+    };
+
+    const goToDate = (days: number) => {
+      const newDate = new Date();
+      newDate.setDate(newDate.getDate() + days);
+      onDateChange(newDate);
+    };
+
+    return (
+      <View style={styles.dateContainer}>
+        <TouchableOpacity 
+          style={styles.dateSelectorButton}
+          onPress={() => setShowDatePicker(true)}
+        >
+          <Ionicons name="calendar-outline" size={24} color="#FFFFFF" />
+          <Text style={styles.dateText}>
+            {currentDate.toDateString() === new Date().toDateString() 
+              ? translations.today 
+              : currentDate.toDateString() === new Date(Date.now() - 86400000).toDateString()
+              ? translations.yesterday
+              : formatDate(currentDate)
+            }
+          </Text>
+          <Ionicons name="chevron-down-outline" size={24} color="#FFFFFF" />
+        </TouchableOpacity>
+
+        {showDatePicker && (
+          <View style={styles.datePickerContainer}>
+            <TouchableOpacity 
+              style={styles.dateOption}
+              onPress={() => {
+                goToDate(0);
+                setShowDatePicker(false);
+              }}
+            >
+              <Text style={styles.dateOptionText}>{translations.today}</Text>
+            </TouchableOpacity>
+            <TouchableOpacity 
+              style={styles.dateOption}
+              onPress={() => {
+                goToDate(-1);
+                setShowDatePicker(false);
+              }}
+            >
+              <Text style={styles.dateOptionText}>{translations.yesterday}</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+      </View>
+    );
+  };
+
+  const TodaysMealsList = ({ meals, onDeleteMeal }: { 
+    meals: MealData[]; 
+    onDeleteMeal: (mealId: string) => void;
+  }) => {
+    const formatTime = (timestamp: any) => {
+      if (!timestamp) return '';
+      
+      // Convert Firestore Timestamp to Date if needed
+      const date = timestamp instanceof Date ? timestamp : timestamp.toDate();
+      
+      return date.toLocaleTimeString('bg-BG', { 
+        hour: '2-digit', 
+        minute: '2-digit' 
+      });
+    };
+
+    return (
+      <View style={styles.todaysMealsContainer}>
+        <Text style={styles.todaysMealsTitle}>{translations.todaysMeals}</Text>
+        {meals.length > 0 ? (
+          meals.map((meal) => (
+            <View key={meal.id} style={styles.mealListItem}>
+              <View style={styles.mealListItemLeft}>
+                <Text style={styles.mealListItemName}>{meal.name}</Text>
+                <Text style={styles.mealListItemMacros}>
+                  {meal.calories} kcal • P: {meal.protein}g • C: {meal.carbs}g • F: {meal.fats}g
+                </Text>
+                <Text style={styles.mealListItemTime}>
+                  {formatTime(meal.timestamp)}
+                </Text>
+              </View>
+              <TouchableOpacity 
+                style={styles.mealListItemDelete}
+                onPress={() => onDeleteMeal(meal.id)}
+              >
+                <Ionicons name="trash-outline" size={20} color="#e74c3c" />
+              </TouchableOpacity>
+            </View>
+          ))
+        ) : (
+          <Text style={styles.noMealsText}>No meals logged today</Text>
+        )}
+      </View>
+    );
+  };
+
+  const handleDeleteMeal = async (mealId: string) => {
+    if (!user) return;
+
+    Alert.alert(
+      "Delete Meal",
+      "Are you sure you want to delete this meal?",
+      [
+        {
+          text: "Cancel",
+          style: "cancel"
+        },
+        {
+          text: "Delete",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              await deleteDoc(doc(db, 'users', user.uid, 'meals', mealId));
+              showMessage({
+                message: 'Meal deleted successfully',
+                type: 'success',
+              });
+            } catch (error) {
+              console.error('Error deleting meal:', error);
+              showMessage({
+                message: 'Error deleting meal',
+                type: 'danger',
+              });
+            }
+          }
+        }
+      ]
+    );
+  };
+
   if (loading) {
     return (
       <StyledView className="flex-1 justify-center items-center bg-[#f4f7fa]">
@@ -822,32 +1459,31 @@ const DashboardScreen: React.FC<DashboardProps> = ({ onLogout }) => {
       screenOptions={({ route }) => ({
         tabBarIcon: ({ focused, color, size }) => {
           let iconName;
-          size = focused ? 36 : 24;
           if (route.name === 'Dashboard') {
-            iconName = 'home';
+            iconName = 'home-outline';
           } else if (route.name === 'Goals') {
-            iconName = 'flag';
+            iconName = 'flag-outline';
           } else if (route.name === 'Inventory') {
-            iconName = 'cart';
+            iconName = 'cart-outline';
           } else if (route.name === 'Recipes') {
-            iconName = 'restaurant';
+            iconName = 'restaurant-outline';
           } else if (route.name === 'scan') {
-            iconName = 'scan';
+            iconName = 'scan-outline';
           }
 
-          return <Ionicons name={iconName || 'home'} size={size} color={color} />;
+          return <Ionicons name={iconName || 'home-outline'} size={24} color={color} />;
         },
-        tabBarActiveTintColor: '#00aaff',
-        tabBarInactiveTintColor: '#b0bec5',
+        tabBarActiveTintColor: theme.colors.primary,
+        tabBarInactiveTintColor: theme.colors.textSecondary,
         tabBarStyle: {
-          backgroundColor: '#ffffff',
-          height: 65,
-          paddingBottom: 14,
-          paddingTop: 6,
+          backgroundColor: theme.colors.surface,
+          height: 60,
+          paddingBottom: 10,
+          paddingTop: 10,
           borderTopWidth: 0,
           shadowColor: '#000',
           shadowOffset: { width: 0, height: 2 },
-          shadowOpacity: 0.2,
+          shadowOpacity: 0.25,
           shadowRadius: 4,
           elevation: 5,
         },
@@ -859,68 +1495,139 @@ const DashboardScreen: React.FC<DashboardProps> = ({ onLogout }) => {
           <StyledView style={styles.container}>
             <StyledImageBackground
               source={{
-                uri: 'https://static.vecteezy.com/system/resources/previews/020/580/331/non_2x/abstract-smooth-blur-blue-color-gradient-mesh-texture-lighting-effect-background-with-blank-space-for-website-banner-and-paper-card-decorative-modern-graphic-design-vector.jpg',
+                uri: 'https://i.imgur.com/8F9ZGpX.png',
               }}
               style={styles.imageBackground}
-              blurRadius={20}
+              blurRadius={5}
             >
-              <StyledView style={styles.headerContainer}>
-                <StyledText style={styles.welcomeText}>
-                  Добре дошли, {user?.email || 'User'}!
-                </StyledText>
-                <TouchableOpacity onPress={() => navigation.navigate('editProfile')}>
-                  <Image
-                    source={{
-                      uri:
-                        profileImage ||
-                        'https://static.vecteezy.com/system/resources/thumbnails/009/292/244/small/default-avatar-icon-of-social-media-user-vector.jpg',
-                    }}
-                    style={styles.profileImage}
-                  />
-                </TouchableOpacity>
-              </StyledView>
-              <AddMealButton onPress={handleAddMeal} />
-              <View style={styles.actionButtons}>
-                <TouchableOpacity
-                  style={styles.actionButton}
-                  onPress={() => navigation.navigate('planMeal')}
-                >
-                  <Ionicons name="calendar-outline" size={24} color="#ffffff" />
-                  <Text style={styles.actionButtonText}>Планирайте ястие</Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  style={styles.actionButton}
-                  onPress={() => navigation.navigate('trackWeight')}
-                >
-                  <Ionicons name="scale-outline" size={24} color="#ffffff" />
-                  <Text style={styles.actionButtonText}>Запишете тегло</Text>
-                </TouchableOpacity>
-              </View>
-              <FlatList
-                data={dashboardData}
-                renderItem={renderCard}
-                keyExtractor={(item) => item.id}
-                style={styles.cardList}
-                ListHeaderComponent={
-                  <>
-                    <NutritionCard 
-                      stats={nutritionStats}
-                      meals={todaysMeals}
+              <View style={styles.headerBackground}>
+                <View style={styles.headerContainer}>
+                  <StyledText style={styles.welcomeText}>
+                    Добре дошли, {user?.email || 'User'}!
+                  </StyledText>
+                  <TouchableOpacity onPress={() => navigation.navigate('editProfile')}>
+                    <Image
+                      source={{
+                        uri: profileImage ||
+                          'https://static.vecteezy.com/system/resources/thumbnails/009/292/244/small/default-avatar-icon-of-social-media-user-vector.jpg',
+                      }}
+                      style={styles.profileImage}
                     />
-                    <WeightProgressCard weightHistory={weightHistory} />
-                    <PlannedMealsCard meals={plannedMeals} />
-                    <AchievementsCard achievements={achievements} />
-                  </>
-                }
-              />
-              <View style={styles.logoutContainer}>
-                <TouchableOpacity
-                  onPress={handleLogout}
-                  style={styles.logoutButton}
-                >
-                <Text style={styles.logoutText}>Отпишете се</Text>
-                </TouchableOpacity>
+                  </TouchableOpacity>
+                </View>
+                <DateSelector currentDate={currentDate} onDateChange={setCurrentDate} />
+              </View>
+              <View style={styles.mainContainer}>
+                <FlatList
+                  data={[{ key: 'content' }]}
+                  renderItem={() => (
+                    <>
+                      <CalorieCircle 
+                        calories={nutritionStats.calories} 
+                        totalCalories={nutritionStats.targetCalories} 
+                      />
+                      <WaterTracker 
+                        currentAmount={waterIntake} 
+                        targetAmount={water || 2.5} 
+                        onAddWater={handleAddWater}
+                      />
+                      <MealTimeButton
+                        icon="🥐"
+                        title={translations.breakfast}
+                        subtitle={todaysMeals.find(m => 
+                          m.type?.toLowerCase() === 'breakfast' || 
+                          m.mealType?.toLowerCase() === 'breakfast'
+                        )?.name}
+                        calories={todaysMeals.find(m => 
+                          m.type?.toLowerCase() === 'breakfast' || 
+                          m.mealType?.toLowerCase() === 'breakfast'
+                        )?.calories}
+                        recommended={`${mealRecommendations.breakfast.min} - ${mealRecommendations.breakfast.max} kcal`}
+                        onPress={() => navigation.navigate('addMeal', { mealType: 'breakfast' })}
+                        todaysMeals={todaysMeals}
+                      />
+                      <MealTimeButton
+                        icon="🍴"
+                        title={translations.lunch}
+                        subtitle={todaysMeals.find(m => 
+                          m.type?.toLowerCase() === 'lunch' || 
+                          m.mealType?.toLowerCase() === 'lunch'
+                        )?.name}
+                        calories={todaysMeals.find(m => 
+                          m.type?.toLowerCase() === 'lunch' || 
+                          m.mealType?.toLowerCase() === 'lunch'
+                        )?.calories}
+                        recommended={`${mealRecommendations.lunch.min} - ${mealRecommendations.lunch.max} kcal`}
+                        onPress={() => navigation.navigate('addMeal', { mealType: 'lunch' })}
+                        todaysMeals={todaysMeals}
+                      />
+                      <MealTimeButton
+                        icon="🍽️"
+                        title={translations.dinner}
+                        subtitle={todaysMeals.find(m => 
+                          m.type?.toLowerCase() === 'dinner' || 
+                          m.mealType?.toLowerCase() === 'dinner'
+                        )?.name}
+                        calories={todaysMeals.find(m => 
+                          m.type?.toLowerCase() === 'dinner' || 
+                          m.mealType?.toLowerCase() === 'dinner'
+                        )?.calories}
+                        recommended={`${mealRecommendations.dinner.min} - ${mealRecommendations.dinner.max} kcal`}
+                        onPress={() => navigation.navigate('addMeal', { mealType: 'dinner' })}
+                        todaysMeals={todaysMeals}
+                      />
+                      <MealTimeButton
+                        icon="🍪"
+                        title={translations.snacks}
+                        subtitle={todaysMeals.find(m => 
+                          m.type?.toLowerCase() === 'snacks' || 
+                          m.mealType?.toLowerCase() === 'snacks'
+                        )?.name}
+                        calories={todaysMeals.find(m => 
+                          m.type?.toLowerCase() === 'snacks' || 
+                          m.mealType?.toLowerCase() === 'snacks'
+                        )?.calories}
+                        recommended={`${mealRecommendations.snacks.min} - ${mealRecommendations.snacks.max} kcal`}
+                        onPress={() => navigation.navigate('addMeal', { mealType: 'snacks' })}
+                        todaysMeals={todaysMeals}
+                      />
+                      <View style={styles.actionButtons}>
+                        <TouchableOpacity
+                          style={styles.actionButton}
+                          onPress={() => navigation.navigate('planMeal')}
+                        >
+                          <Ionicons name="calendar-outline" size={24} color="#ffffff" />
+                          <Text style={styles.actionButtonText}>Планирайте ястие</Text>
+                        </TouchableOpacity>
+
+                        <TouchableOpacity
+                          style={styles.actionButton}
+                          onPress={() => navigation.navigate('trackWeight')}
+                        >
+                          <Ionicons name="scale-outline" size={24} color="#ffffff" />
+                          <Text style={styles.actionButtonText}>Запишете тегло</Text>
+                        </TouchableOpacity>
+                      </View>
+                      <TodaysMealsList 
+                        meals={todaysMeals} 
+                        onDeleteMeal={handleDeleteMeal}
+                      />
+                      <WeightProgressCard weightHistory={weightHistory} />
+                      <PlannedMealsCard meals={plannedMeals} />
+                      <AchievementsCard achievements={achievements} />
+                      <View style={styles.logoutContainer}>
+                        <TouchableOpacity
+                          onPress={handleLogout}
+                          style={styles.logoutButton}
+                        >
+                          <Text style={styles.logoutText}>Отпишете се</Text>
+                        </TouchableOpacity>
+                      </View>
+                    </>
+                  )}
+                  keyExtractor={() => 'content'}
+                  showsVerticalScrollIndicator={false}
+                />
               </View>
             </StyledImageBackground>
           </StyledView>
@@ -942,17 +1649,23 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'flex-start',
   },
+  headerBackground: {
+    backgroundColor: '#000000',
+    paddingBottom: 15,
+  },
   headerContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingTop: 80,
     paddingHorizontal: 15,
+    backgroundColor: '#000000',
   },
   welcomeText: {
     fontSize: 24,
-    fontWeight: 'bold',
-    color: '#2c3e50',
+    fontWeight: '300',
+    color: '#ffffff',
+    opacity: 0.9,
   },
   profileImage: {
     width: 60,
@@ -963,16 +1676,11 @@ const styles = StyleSheet.create({
     marginTop: 20,
   },
   cardContainer: {
-    backgroundColor: '#ffffff',
+    backgroundColor: '#000000',
     borderRadius: 10,
     padding: 15,
     marginHorizontal: 20,
-    marginBottom: 10,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    marginVertical: 10,
   },
   bmiCard: {
     backgroundColor: '#e3f2fd',
@@ -983,7 +1691,8 @@ const styles = StyleSheet.create({
   cardTitle: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#2c3e50',
+    color: '#FFFFFF',
+    marginBottom: 15,
   },
   cardDescription: {
     fontSize: 14,
@@ -1045,7 +1754,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   weightCard: {
-    backgroundColor: '#e3f2fd',
+    backgroundColor: '#000000',
   },
   weightValue: {
     fontSize: 14,
@@ -1053,12 +1762,12 @@ const styles = StyleSheet.create({
     marginTop: 5,
   },
   mealsCard: {
-    backgroundColor: '#e3f2fd',
+    backgroundColor: '#000000',
   },
   mealItem: {
     padding: 10,
     borderBottomWidth: 1,
-    borderBottomColor: '#b0bec5',
+    borderBottomColor: '#333333',
   },
   mealHeader: {
     flexDirection: 'row',
@@ -1070,46 +1779,52 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   actionIcon: {
-    padding: 5,
-    marginLeft: 10,
+    padding: 8,
+    marginLeft: 8,
   },
   mealName: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#2c3e50',
+    color: '#FFFFFF',
   },
   mealTime: {
     fontSize: 14,
-    color: '#7f8c8d',
+    color: '#999999',
   },
   mealMacros: {
     fontSize: 14,
-    color: '#7f8c8d',
+    color: '#999999',
   },
   noMealsText: {
-    fontSize: 14,
-    color: '#7f8c8d',
+    color: '#999999',
     textAlign: 'center',
+    fontStyle: 'italic',
   },
   achievementsCard: {
-    backgroundColor: '#e3f2fd',
+    backgroundColor: '#000000',
   },
   achievementItem: {
-    padding: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: '#b0bec5',
+    backgroundColor: '#1A1A1A',
+    padding: 15,
+    borderRadius: 10,
+    marginRight: 10,
+    marginVertical: 5,
+    minWidth: 200,
   },
   achievementLocked: {
     opacity: 0.5,
+    backgroundColor: '#333333',
   },
   achievementTitle: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: 'bold',
-    color: '#2c3e50',
+    color: '#FFFFFF',
+    marginTop: 8,
   },
   achievementDesc: {
     fontSize: 14,
-    color: '#7f8c8d',
+    color: '#999999',
+    marginTop: 4,
   },
   actionButtons: {
     flexDirection: 'row',
@@ -1117,21 +1832,23 @@ const styles = StyleSheet.create({
     padding: 10,
   },
   actionButton: {
-    backgroundColor: '#1e88e5',
+    backgroundColor: theme.colors.surface,
     padding: 15,
-    borderRadius: 8,
+    borderRadius: 12,
     flexDirection: 'row',
     alignItems: 'center',
+    width: '45%',
+    justifyContent: 'center',
   },
   actionButtonText: {
-    color: '#ffffff',
+    color: theme.colors.text,
     marginLeft: 8,
-    fontWeight: 'bold',
+    fontSize: 16,
+    fontWeight: '600',
   },
   mealTitleRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    flex: 1,
   },
   checkIcon: {
     marginRight: 8,
@@ -1144,6 +1861,297 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#4CAF50',
     marginTop: 4,
+  },
+  mealTimeButton: {
+    backgroundColor: theme.colors.surface,
+    marginHorizontal: 15,
+    marginVertical: 5,
+    borderRadius: 15,
+    padding: 20,
+  },
+  mealTimeContent: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  mealTimeLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  mealIcon: {
+    fontSize: 24,
+    marginRight: 10,
+  },
+  mealTimeTexts: {
+    flex: 1,
+  },
+  mealTimeTitle: {
+    color: theme.colors.text,
+    fontSize: 18,
+    fontWeight: '600',
+  },
+  mealTimeSubtitle: {
+    color: theme.colors.textSecondary,
+    fontSize: 14,
+  },
+  mealTimeRecommended: {
+    color: theme.colors.textSecondary,
+    fontSize: 14,
+  },
+  mealTimeRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  mealTimeCalories: {
+    fontSize: 14,
+    color: '#7f8c8d',
+  },
+  moreButton: {
+    padding: 5,
+  },
+  addButton: {
+    padding: 10,
+  },
+  mealOptions: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  mealOptionButton: {
+    padding: 10,
+    borderWidth: 1,
+    borderColor: '#b0bec5',
+    borderRadius: 8,
+    marginBottom: 10,
+  },
+  mealOptionText: {
+    fontSize: 14,
+    color: '#2c3e50',
+    fontWeight: 'bold',
+  },
+  waterTrackerContainer: {
+    padding: 10,
+  },
+  waterHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  waterTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  waterAmount: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#1e88e5',
+  },
+  waterTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#2c3e50',
+    marginLeft: 10,
+  },
+  waterTarget: {
+    fontSize: 14,
+    color: '#7f8c8d',
+  },
+  waterGlassesRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 10,
+  },
+  waterGlass: {
+    width: 40,
+    height: 40,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  glassEmoji: {
+    fontSize: 24,
+  },
+  waterGoalReached: {
+    color: theme.colors.primary,
+    fontSize: 14,
+    fontWeight: 'bold',
+    textAlign: 'center',
+    marginTop: 10,
+  },
+  mainContainer: {
+    flex: 1,
+    backgroundColor: theme.colors.background,
+  },
+  gradientBackground: {
+    flex: 1,
+    padding: 20,
+  },
+  calorieCircleContainer: {
+    backgroundColor: '#000000',
+    padding: 20,
+    marginTop: 20,
+  },
+  mainStats: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 30,
+  },
+  statColumn: {
+    alignItems: 'center',
+  },
+  statValue: {
+    fontSize: 24,
+    color: '#FFFFFF',
+    fontWeight: 'bold',
+  },
+  statLabel: {
+    fontSize: 12,
+    color: '#999999',
+    marginTop: 4,
+  },
+  centerCircle: {
+    width: 150,
+    height: 150,
+    borderRadius: 75,
+    borderWidth: 2,
+    borderColor: '#4CAF50',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  remainingCalories: {
+    fontSize: 36,
+    color: '#FFFFFF',
+    fontWeight: 'bold',
+  },
+  remainingLabel: {
+    fontSize: 14,
+    color: '#999999',
+    marginTop: 4,
+  },
+  macroStats: {
+    marginTop: 20,
+  },
+  macroItem: {
+    marginBottom: 15,
+  },
+  macroLabel: {
+    fontSize: 16,
+    color: '#FFFFFF',
+    marginBottom: 4,
+  },
+  macroValue: {
+    fontSize: 14,
+    color: '#999999',
+    marginBottom: 8,
+  },
+  progressBar: {
+    height: 4,
+    backgroundColor: '#333333',
+    borderRadius: 2,
+  },
+  progressFill: {
+    height: '100%',
+    backgroundColor: '#4CAF50',
+    borderRadius: 2,
+  },
+  dateContainer: {
+    marginTop: 15,
+    paddingHorizontal: 15,
+  },
+  dateSelectorButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#1A1A1A',
+    padding: 12,
+    borderRadius: 10,
+    justifyContent: 'space-between',
+  },
+  dateText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '500',
+    marginHorizontal: 10,
+    textTransform: 'capitalize',
+  },
+  datePickerContainer: {
+    position: 'absolute',
+    top: '100%',
+    left: 15,
+    right: 15,
+    backgroundColor: '#1A1A1A',
+    borderRadius: 10,
+    padding: 10,
+    zIndex: 1000,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
+  },
+  dateOption: {
+    padding: 15,
+    borderBottomWidth: 1,
+    borderBottomColor: '#333333',
+  },
+  dateOptionText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+  },
+  todaysMealsContainer: {
+    backgroundColor: '#000000',
+    padding: 20,
+    marginTop: 10,
+    borderRadius: 10,
+  },
+  todaysMealsTitle: {
+    fontSize: 18,
+    color: '#FFFFFF',
+    fontWeight: 'bold',
+    marginBottom: 15,
+  },
+  mealListItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#333333',
+  },
+  mealListItemLeft: {
+    flex: 1,
+  },
+  mealListItemName: {
+    fontSize: 16,
+    color: '#FFFFFF',
+    fontWeight: '500',
+  },
+  mealListItemMacros: {
+    fontSize: 14,
+    color: '#999999',
+    marginTop: 4,
+  },
+  mealListItemTime: {
+    fontSize: 12,
+    color: '#666666',
+    marginTop: 2,
+  },
+  mealListItemDelete: {
+    padding: 8,
+  },
+  noDataText: {
+    color: '#999999',
+    textAlign: 'center',
+    fontStyle: 'italic',
   },
 });
 
