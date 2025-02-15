@@ -1004,7 +1004,13 @@ const DashboardScreen: React.FC<DashboardProps> = ({ onLogout }) => {
               <Text style={styles.achievementDesc}>{item.description}</Text>
               {item.earned && item.earnedDate && (
                 <Text style={styles.achievementDate}>
-                  Постигнато на: {item.earnedDate.toDate().toLocaleDateString('bg-BG')}
+                  Постигнато на: {
+                    typeof item.earnedDate.toDate === 'function' 
+                      ? item.earnedDate.toDate().toLocaleDateString('bg-BG')
+                      : item.earnedDate instanceof Date 
+                        ? item.earnedDate.toLocaleDateString('bg-BG')
+                        : 'Неизвестна дата'
+                  }
                 </Text>
               )}
             </View>
