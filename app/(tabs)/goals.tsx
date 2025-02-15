@@ -8,9 +8,10 @@ import {
   Alert,
   Modal,
   Pressable,
-  ImageBackground,
+  Animated,
 } from 'react-native';
 import { styled } from 'nativewind';
+import Ionicons from 'react-native-vector-icons/Ionicons';
 
 const StyledView = styled(View);
 const StyledText = styled(Text);
@@ -19,10 +20,9 @@ const StyledTouchableOpacity = styled(TouchableOpacity);
 const StyledModal = styled(Modal);
 const StyledTextInput = styled(TextInput);
 const StyledPressable = styled(Pressable);
-const StyledImageBackground = styled(ImageBackground);
 
 const GoalsScreen = () => {
-  const [goals, setGoals] = useState<string[]>([]);
+  const [goals, setGoals] = useState<{ text: string; fadeAnim: Animated.Value }[]>([]);
   const [newGoal, setNewGoal] = useState('');
   const [isModalVisible, setModalVisible] = useState(false);
   const [selectedGoalIndex, setSelectedGoalIndex] = useState<number | null>(null);
@@ -30,22 +30,23 @@ const GoalsScreen = () => {
   // Function to add a new goal
   const addGoal = () => {
     if (newGoal.trim()) {
-      setGoals((prevGoals) => [...prevGoals, newGoal]);
-      setNewGoal(''); // Clear input after adding
+      const newGoalItem = { text: newGoal, fadeAnim: new Animated.Value(0) };
+      setGoals((prevGoals) => [...prevGoals, newGoalItem]);
+      Animated.timing(newGoalItem.fadeAnim, { toValue: 1, duration: 300, useNativeDriver: true }).start();
+      setNewGoal('');
     }
   };
 
   // Function to delete a goal
   const deleteGoal = (index: number) => {
-    Alert.alert('Изтрийте целта', 'Сигурни ли сте, че искате да изтриете тази цел?', [
-      {
-        text: 'Откажете',
-        style: 'cancel',
-      },
+    Alert.alert('Изтриване', 'Сигурни ли сте, че искате да изтриете тази цел?', [
+      { text: 'Откажете', style: 'cancel' },
       {
         text: 'Изтрийте',
         onPress: () => {
-          setGoals((prevGoals) => prevGoals.filter((_, i) => i !== index));
+          Animated.timing(goals[index].fadeAnim, { toValue: 0, duration: 300, useNativeDriver: true }).start(() => {
+            setGoals((prevGoals) => prevGoals.filter((_, i) => i !== index));
+          });
         },
       },
     ]);
@@ -55,119 +56,86 @@ const GoalsScreen = () => {
   const editGoal = () => {
     if (selectedGoalIndex !== null && newGoal.trim()) {
       const updatedGoals = [...goals];
-      updatedGoals[selectedGoalIndex] = newGoal;
+      updatedGoals[selectedGoalIndex].text = newGoal;
       setGoals(updatedGoals);
       setModalVisible(false);
-      setNewGoal(''); // Clear input after editing
+      setNewGoal('');
       setSelectedGoalIndex(null);
     }
   };
 
-  // Render each goal
-  const renderGoal = ({ item, index }: { item: string; index: number }) => (
-    <StyledView className="bg-white p-5 rounded-lg mb-4 shadow-lg">
-      <StyledText className="text-lg font-bold">{item}</StyledText>
-      <StyledView className="flex-row justify-between mt-3">
-        <StyledTouchableOpacity
-          className="bg-blue-500 p-2 rounded-lg mr-2" // Added margin to the right
-          onPress={() => {
-            setNewGoal(item);
-            setSelectedGoalIndex(index);
-            setModalVisible(true);
-          }}
-        >
-          <StyledText className="text-white">Редактирайте</StyledText>
+  const renderGoal = ({ item, index }: { item: { text: string; fadeAnim: Animated.Value }; index: number }) => (
+    <Animated.View style={{ opacity: item.fadeAnim }}>
+      <StyledView className="bg-black p-4 rounded-lg mb-3 border border-green-500 flex-row items-center">
+        <Text className="text-lg">🎯</Text>
+        <StyledText className="text-lg font-bold text-white flex-1 ml-3">{item.text}</StyledText>
+        <StyledTouchableOpacity className="bg-white p-2 rounded-lg border border-green-500 mr-2" onPress={() => {
+          setNewGoal(item.text);
+          setSelectedGoalIndex(index);
+          setModalVisible(true);
+        }}>
+          <Ionicons name="pencil-outline" size={20} color="black" />
         </StyledTouchableOpacity>
-        <StyledTouchableOpacity
-          className="bg-red-500 p-2 rounded-lg"
-          onPress={() => deleteGoal(index)}
-        >
-          <StyledText className="text-white">Изтрийте</StyledText>
+        <StyledTouchableOpacity className="bg-white p-2 rounded-lg border border-green-500" onPress={() => deleteGoal(index)}>
+          <Ionicons name="trash-outline" size={20} color="black" />
         </StyledTouchableOpacity>
       </StyledView>
-    </StyledView>
+    </Animated.View>
   );
 
   return (
-    <StyledImageBackground
-      source={{
-        uri: 'https://static.vecteezy.com/system/resources/previews/020/580/331/non_2x/abstract-smooth-blur-blue-color-gradient-mesh-texture-lighting-effect-background-with-blank-space-for-website-banner-and-paper-card-decorative-modern-graphic-design-vector.jpg',
-      }}
-      className="flex-1 justify-center items-center bg-[#141e30]"
-      blurRadius={20}
-    >
-      {/* Main content container */}
-      <StyledView className="flex-1 justify-center items-center p-5">
-        {/* Title and input section, vertically centered */}
-        <StyledView className="flex justify-center items-center mb-5 mt-10">
-          <StyledText className="text-2xl font-bold text-center text-blue-500 mb-5">
-            Вашите цели
-          </StyledText>
+    <StyledView className="flex-1 bg-black p-5">
+      <StyledText className="text-2xl font-bold text-white text-center mt-10 mb-5">Вашите цели</StyledText>
 
-          <StyledView className="flex-row items-center bg-white/50 rounded-2xl p-4 mb-4 w-full">
-            <StyledTextInput
-              className="flex-1 ml-3 text-base text-gray-800" // Changed background color and text color
-              placeholder="Добавете нова цел"
-              placeholderTextColor="#a0a0a0" // Change placeholder text color to black
-              value={newGoal}
-              onChangeText={setNewGoal}
-            />
-            <StyledTouchableOpacity
-              className="bg-blue-500 p-3 rounded-lg items-center"
-              onPress={addGoal}
-            >
-              <StyledText className="text-white font-bold">Добавете</StyledText>
-            </StyledTouchableOpacity>
-          </StyledView>
-        </StyledView>
-
-        {/* List of goals */}
-        <FlatList
-          data={goals}
-          renderItem={renderGoal}
-          keyExtractor={(item, index) => index.toString()}
-          contentContainerStyle={{
-            flexGrow: 1,
-            paddingHorizontal: 16,
-            justifyContent: 'flex-start', // Align the list to start below the input fields
-          }}
+      {/* Goal Input Field with Icon */}
+      <StyledView className="flex-row items-center border border-green-500 px-3 py-3 rounded-lg mb-4">
+        <Ionicons name="flag-outline" size={24} color="white" />
+        <StyledTextInput
+          className="flex-1 text-white ml-3 text-lg py-5"
+          placeholder="Добавете нова цел"
+          placeholderTextColor="#a0a0a0"
+          value={newGoal}
+          onChangeText={setNewGoal}
         />
+        <StyledTouchableOpacity className="bg-white p-3 rounded-lg border border-green-500" onPress={addGoal}>
+          <Ionicons name="add" size={24} color="black" />
+        </StyledTouchableOpacity>
+      </StyledView>
 
-        {/* Modal for editing goals */}
-        <StyledModal
-          animationType="slide"
-          transparent={true}
-          visible={isModalVisible}
-          onRequestClose={() => setModalVisible(false)}
-        >
-          <StyledView className="flex-1 justify-center items-center bg-black/50">
-            <StyledView className="bg-white p-6 rounded-lg w-4/5">
-              <StyledText className="text-2xl font-bold mb-4">Редактирайте цел</StyledText>
+      {goals.length === 0 ? (
+        <StyledText className="text-white text-center text-lg">🤔 Няма добавени цели...</StyledText>
+      ) : (
+        <StyledFlatList data={goals} renderItem={renderGoal} keyExtractor={(item, index) => index.toString()} />
+      )}
+
+      {/* Edit Goal Modal */}
+      <StyledModal animationType="slide" transparent={true} visible={isModalVisible}>
+        <StyledView className="flex-1 justify-center items-center bg-black/80">
+          <StyledView className="bg-black p-6 rounded-lg w-4/5 border border-green-500">
+            <StyledText className="text-2xl font-bold text-white mb-4">📝 Редактирайте цел</StyledText>
+            
+            {/* Input field inside modal */}
+            <StyledView className="flex-row items-center border border-green-500 px-3 py-2 rounded-lg mb-4">
+              <Ionicons name="flag-outline" size={24} color="white" />
               <StyledTextInput
-                className="border border-gray-300 p-3 rounded-lg mb-4"
-                placeholder="Update your goal"
+                className="flex-1 text-white ml-3 text-lg py-2"
                 value={newGoal}
                 onChangeText={setNewGoal}
               />
-              <StyledView className="flex-row justify-between">
-                <StyledPressable
-                  className="bg-blue-500 p-3 rounded-lg flex-1 mr-2 items-center"
-                  onPress={editGoal}
-                >
-                  <StyledText className="text-white font-bold">Запазете</StyledText>
-                </StyledPressable>
-                <StyledPressable
-                  className="bg-red-500 p-3 rounded-lg flex-1 ml-2 items-center"
-                  onPress={() => setModalVisible(false)}
-                >
-                  <StyledText className="text-white font-bold">Откажете</StyledText>
-                </StyledPressable>
-              </StyledView>
+            </StyledView>
+
+            <StyledView className="flex-row justify-between">
+              <StyledPressable className="bg-white p-3 rounded-lg flex-1 mr-2 border border-green-500" onPress={editGoal}>
+                <StyledText className="text-black font-bold">✅ Запазете</StyledText>
+              </StyledPressable>
+              <StyledPressable className="bg-white p-3 rounded-lg flex-1 ml-2 border border-green-500" onPress={() => setModalVisible(false)}>
+                <StyledText className="text-black font-bold">❌ Откажете</StyledText>
+              </StyledPressable>
             </StyledView>
           </StyledView>
-        </StyledModal>
-      </StyledView>
-    </StyledImageBackground>
+        </StyledView>
+      </StyledModal>
+    </StyledView>
   );
 };
 

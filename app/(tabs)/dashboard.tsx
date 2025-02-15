@@ -47,9 +47,9 @@ const translations = {
   deleteError: 'Грешка при изтриване на ястието',
   waterAchievement: 'Хидратация',
   waterAchievementDesc: 'Достигнахте дневната си цел за вода',
-  kcalLeft: 'KCAL LEFT',
-  eaten: 'EATEN',
-  burned: 'BURNED',
+  kcalLeft: 'калории остават',
+  eaten: 'приети',
+  burned: 'изгорени',
   today: 'Днес',
   yesterday: 'Вчера',
   selectDate: 'Изберете дата',
@@ -1141,11 +1141,11 @@ const DashboardScreen: React.FC<DashboardProps> = ({ onLogout }) => {
       <View style={styles.waterTrackerContainer}>
         <View style={styles.waterHeader}>
           <View style={styles.waterTitleRow}>
-            <Text style={styles.waterAmount}>{currentAmount.toFixed(2)}L</Text>
+            <Text style={styles.waterAmount}>{currentAmount.toFixed(2)} L</Text>
             <Text style={styles.waterTitle}>{translations.water}</Text>
           </View>
           <Text style={styles.waterTarget}>
-            Цел: {targetAmount}L
+            Цел: {targetAmount.toFixed(2)} L
           </Text>
         </View>
         <View style={styles.waterGlassesRow}>
@@ -1256,7 +1256,10 @@ const DashboardScreen: React.FC<DashboardProps> = ({ onLogout }) => {
   };
 
   const CalorieCircle = ({ calories, totalCalories }: { calories: number; totalCalories: number }) => {
-    const remaining = totalCalories - calories;
+    let remaining: number = totalCalories - calories;
+    if (remaining <= 0) {
+      remaining = 0;
+    }
     
     // Calculate macro percentages
     const carbsProgress = Math.min((nutritionStats.carbs / nutritionStats.targetCarbs) * 100, 100);
@@ -1268,23 +1271,23 @@ const DashboardScreen: React.FC<DashboardProps> = ({ onLogout }) => {
         <View style={styles.mainStats}>
           <View style={styles.statColumn}>
             <Text style={styles.statValue}>{calories}</Text>
-            <Text style={styles.statLabel}>EATEN</Text>
+            <Text style={styles.statLabel}>приети</Text>
           </View>
           
           <View style={styles.centerCircle}>
             <Text style={styles.remainingCalories}>{remaining}</Text>
-            <Text style={styles.remainingLabel}>KCAL LEFT</Text>
+            <Text style={styles.remainingLabel}>калории остават</Text>
           </View>
           
           <View style={styles.statColumn}>
             <Text style={styles.statValue}>0</Text>
-            <Text style={styles.statLabel}>BURNED</Text>
+            <Text style={styles.statLabel}>изгорени</Text>
           </View>
         </View>
         
         <View style={styles.macroStats}>
           <View style={styles.macroItem}>
-            <Text style={styles.macroLabel}>Carbs</Text>
+            <Text style={styles.macroLabel}>Въглехидрати</Text>
             <Text style={styles.macroValue}>{nutritionStats.carbs} / {nutritionStats.targetCarbs}g</Text>
             <View style={styles.progressBar}>
               <View style={[styles.progressFill, { width: `${carbsProgress}%` }]} />
@@ -1292,7 +1295,7 @@ const DashboardScreen: React.FC<DashboardProps> = ({ onLogout }) => {
           </View>
           
           <View style={styles.macroItem}>
-            <Text style={styles.macroLabel}>Protein</Text>
+            <Text style={styles.macroLabel}>Протеини (белтъци)</Text>
             <Text style={styles.macroValue}>{nutritionStats.protein} / {nutritionStats.targetProtein}g</Text>
             <View style={styles.progressBar}>
               <View style={[styles.progressFill, { width: `${proteinProgress}%` }]} />
@@ -1300,7 +1303,7 @@ const DashboardScreen: React.FC<DashboardProps> = ({ onLogout }) => {
           </View>
           
           <View style={styles.macroItem}>
-            <Text style={styles.macroLabel}>Fat</Text>
+            <Text style={styles.macroLabel}>Мазнини</Text>
             <Text style={styles.macroValue}>{nutritionStats.fats} / {nutritionStats.targetFats}g</Text>
             <View style={styles.progressBar}>
               <View style={[styles.progressFill, { width: `${fatsProgress}%` }]} />

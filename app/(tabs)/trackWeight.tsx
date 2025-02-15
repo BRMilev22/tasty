@@ -3,7 +3,6 @@ import { View, TextInput, TouchableOpacity, ImageBackground, StyleSheet } from '
 import { Text } from 'react-native';
 import { getAuth } from 'firebase/auth';
 import { getFirestore, addDoc, collection, updateDoc, doc } from 'firebase/firestore';
-import { showMessage } from 'react-native-flash-message';
 import { styled } from 'nativewind';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -16,48 +15,40 @@ const StyledImageBackground = styled(ImageBackground);
 const db = getFirestore();
 const auth = getAuth();
 
-const theme = {
-    colors: {
-        primary: '#4CAF50',
-        background: '#000000',
-        surface: '#1A1A1A',
-        text: '#FFFFFF',
-        textSecondary: '#999999',
-        accent: '#4CAF50',
-    }
-};
-
 const TrackWeightScreen = ({ navigation }) => {
     const [weight, setWeight] = useState('');
+    const [errorMessage, setErrorMessage] = useState(''); // State for displaying errors
 
     const handleSaveWeight = async () => {
         try {
             const user = auth.currentUser;
             if (!user) return;
 
-            // Update current weight in user profile
+            const numericWeight = Number(weight);
+
+            // Check if weight is valid (between 30 and 500 kg)
+            if (isNaN(numericWeight) || numericWeight < 30 || numericWeight > 500) {
+                setErrorMessage('Моля, въведете тегло между 30 и 500 kg!'); // Show error message on screen
+                return;
+            }
+
+            // Clear error if input is valid
+            setErrorMessage('');
+
+            // Save weight if it's valid
             await updateDoc(doc(db, 'users', user.uid), {
-                weight: weight
+                weight: numericWeight
             });
 
-            // Add to weight history
             await addDoc(collection(db, 'users', user.uid, 'weightHistory'), {
-                weight: Number(weight),
+                weight: numericWeight,
                 date: new Date()
-            });
-
-            showMessage({
-                message: 'Теглото е записано успешно!',
-                type: 'success',
             });
 
             navigation.goBack();
         } catch (error) {
             console.error('Error saving weight:', error);
-            showMessage({
-                message: 'Грешка при записване на теглото',
-                type: 'danger',
-            });
+            setErrorMessage('Грешка при записване на теглото. Опитайте отново.');
         }
     };
 
@@ -98,6 +89,11 @@ const TrackWeightScreen = ({ navigation }) => {
                                 selectionColor="#4CAF50"
                             />
                         </View>
+
+                        {/* Show error message if validation fails */}
+                        {errorMessage !== '' && (
+                            <Text style={styles.errorText}>{errorMessage}</Text>
+                        )}
 
                         <TouchableOpacity
                             style={styles.saveButton}
@@ -170,6 +166,12 @@ const styles = StyleSheet.create({
         fontSize: 18,
         fontWeight: 'bold',
     },
+    errorText: {
+        color: '#FF3B30',
+        fontSize: 14,
+        textAlign: 'center',
+        marginBottom: 10,
+    },
 });
 
-export default TrackWeightScreen; 
+export default TrackWeightScreen;

@@ -12,10 +12,30 @@ const ManualMealInput = ({ onSubmit, onCancel }: ManualMealInputProps) => {
   const [protein, setProtein] = useState('');
   const [carbs, setCarbs] = useState('');
   const [fats, setFats] = useState('');
+  const [error, setError] = useState('');
+
+  const validateInputs = () => {
+    const numericCalories = Number(calories);
+    const numericProtein = Number(protein);
+    const numericCarbs = Number(carbs);
+    const numericFats = Number(fats);
+
+    if (!mealName.trim()) return 'Моля, въведете име на храната!';
+    if (isNaN(numericCalories) || numericCalories < 100 || numericCalories > 5000)
+      return 'Калориите трябва да бъдат между 100 и 5000!';
+    if (isNaN(numericProtein) || numericProtein < 5 || numericProtein > 500)
+      return 'Протеинът трябва да бъде между 5 и 500 g!';
+    if (isNaN(numericCarbs) || numericCarbs < 10 || numericCarbs > 1000)
+      return 'Въглехидратите трябва да бъдат между 10 и 1000 g!';
+    if (isNaN(numericFats) || numericFats < 5 || numericFats > 300)
+      return 'Мазнините трябва да бъдат между 5 и 300 g!';
+    return '';
+  };
 
   const handleSubmit = () => {
-    if (!mealName || !calories) {
-      alert('Моля, въведете име и калории');
+    const validationError = validateInputs();
+    if (validationError) {
+      setError(validationError);
       return;
     }
 
@@ -26,12 +46,21 @@ const ManualMealInput = ({ onSubmit, onCancel }: ManualMealInputProps) => {
       carbs: carbs ? parseInt(carbs) : 0,
       fats: fats ? parseInt(fats) : 0,
     });
+
+    setMealName('');
+    setCalories('');
+    setProtein('');
+    setCarbs('');
+    setFats('');
+    setError('');
   };
 
   return (
     <ScrollView style={styles.container}>
       <View style={styles.content}>
         <Text style={styles.title}>Ръчно въвеждане</Text>
+
+        {error ? <Text style={styles.errorText}>{error}</Text> : null}
 
         <TextInput
           style={styles.input}
@@ -118,6 +147,12 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     placeholderTextColor: '#999999',
   },
+  errorText: {
+    color: 'red',
+    fontSize: 16,
+    marginBottom: 10,
+    textAlign: 'center',
+  },
   buttonContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -145,4 +180,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default ManualMealInput; 
+export default ManualMealInput;

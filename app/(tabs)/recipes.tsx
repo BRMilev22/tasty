@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, FlatList, TouchableOpacity, Alert, ImageBackground, Modal, Pressable } from 'react-native';
+import { View, Text, FlatList, TouchableOpacity, Alert, Modal, Pressable, ScrollView } from 'react-native';
 import { collection, onSnapshot, addDoc, getDocs, doc, deleteDoc } from 'firebase/firestore';
 import { db } from '../../firebaseConfig';
 import { getAuth } from 'firebase/auth';
 import { fetchRecipesFromCohere } from '../../services/recipeService';
 import { styled } from 'nativewind';
+import Ionicons from 'react-native-vector-icons/Ionicons';
 
 const auth = getAuth();
 
@@ -12,53 +13,44 @@ const StyledView = styled(View);
 const StyledText = styled(Text);
 const StyledFlatList = styled(FlatList);
 const StyledTouchableOpacity = styled(TouchableOpacity);
-const StyledImageBackground = styled(ImageBackground);
 const StyledModal = styled(Modal);
 const StyledPressable = styled(Pressable);
+const StyledScrollView = styled(ScrollView);
 
 interface Recipe {
   id: string;
   title: string;
   description: string;
-  fullRecipe: string; // Full recipe content
+  fullRecipe: string[]; // Ensure it's an array for correct formatting
   rating: number;
 }
 
 const RecipesScreen = () => {
   const [recipes, setRecipes] = useState<Recipe[]>([]);
   const [loading, setLoading] = useState(false);
-  const [selectedRecipe, setSelectedRecipe] = useState<Recipe | null>(null); // Selected recipe for modal
+  const [selectedRecipe, setSelectedRecipe] = useState<Recipe | null>(null);
 
-  // Load existing recipes from Firestore on component mount
   useEffect(() => {
     const userId = auth.currentUser?.uid;
     if (userId) {
-      const unsubscribe = onSnapshot(
-        collection(db, `users/${userId}/recipes`),
-        (snapshot) => {
-          const recipesData: Recipe[] = [];
-          snapshot.forEach((doc) => {
-            const recipeData = doc.data();
-            // Ensure fullRecipe is available
-            const recipe = { id: doc.id, ...recipeData } as Recipe;
-            recipesData.push(recipe);
-          });
-          setRecipes(recipesData);
-        }
-      );
+      const unsubscribe = onSnapshot(collection(db, `users/${userId}/recipes`), (snapshot) => {
+        const recipesData: Recipe[] = snapshot.docs.map((doc) => ({
+          id: doc.id,
+          ...doc.data(),
+        })) as Recipe[];
+        setRecipes(recipesData);
+      });
 
       return () => unsubscribe();
     }
   }, [auth.currentUser]);
 
-  // Fetch inventory, send to AI, and save generated recipes
   const generateRecipesFromInventory = async () => {
     setLoading(true);
     try {
       const userId = auth.currentUser?.uid;
       if (!userId) return;
 
-      // Fetch user inventory
       const inventorySnapshot = await getDocs(collection(db, `users/${userId}/inventory`));
       const inventory = inventorySnapshot.docs.map((doc) => doc.data().name);
 
@@ -67,38 +59,35 @@ const RecipesScreen = () => {
         return;
       }
 
-      // Generate recipes from AI (using Cohere API)
       const generatedRecipes = await fetchRecipesFromCohere(inventory);
 
-      // Save each recipe to Firestore
       for (const recipe of generatedRecipes) {
         await addDoc(collection(db, `users/${userId}/recipes`), recipe);
       }
 
-      Alert.alert('Рецептите са генерирани', 'Рецептите, генерирани с изкуствен интелект, са добавени!');
+      Alert.alert('Рецептите са генерирани!', 'Добавени са нови рецепти на база на Вашия инвентар.');
     } catch (error) {
       console.error('Error generating recipes:', error);
-      Alert.alert('Грешка', 'Рецептите не са създадени.');
+      Alert.alert('Грешка', 'Рецептите не бяха създадени.');
     } finally {
       setLoading(false);
     }
   };
 
   const handleRecipeClick = (recipe: Recipe) => {
-    setSelectedRecipe(recipe); // Set the selected recipe to show in modal
+    setSelectedRecipe(recipe);
   };
 
   const closeModal = () => {
-    setSelectedRecipe(null); // Close modal by setting null
+    setSelectedRecipe(null);
   };
 
-  // Function to delete a recipe from Firestore
   const deleteRecipe = async (id: string) => {
     const userId = auth.currentUser?.uid;
     if (!userId) return;
 
     try {
-      await deleteDoc(doc(db, `users/${userId}/recipes`, id)); // Delete recipe from Firestore
+      await deleteDoc(doc(db, `users/${userId}/recipes`, id));
       Alert.alert('Рецептата е изтрита', 'Рецептата бе изтрита успешно.');
     } catch (error) {
       console.error('Error deleting recipe:', error);
@@ -107,87 +96,83 @@ const RecipesScreen = () => {
   };
 
   return (
-    <StyledImageBackground
-      source={{
-        uri: 'https://static.vecteezy.com/system/resources/previews/020/580/331/non_2x/abstract-smooth-blur-blue-color-gradient-mesh-texture-lighting-effect-background-with-blank-space-for-website-banner-and-paper-card-decorative-modern-graphic-design-vector.jpg',
-      }}
-      className="flex-1 bg-[#141e30]"
-      blurRadius={20}
-    >
-      <StyledView className="flex-1 top-10 p-5">
-        <StyledText className="text-2xl font-bold text-center text-blue-500 mb-5">
-          Вашите рецепти
+    <StyledView className="flex-1 bg-black p-5">
+      <StyledText className="text-2xl font-bold text-white text-center mt-10 mb-5">Вашите рецепти</StyledText>
+
+      {/* Generate Recipes Button */}
+      <StyledTouchableOpacity className="bg-white p-4 rounded-lg mb-5 border border-green-500 flex-row items-center justify-center" onPress={generateRecipesFromInventory}>
+        <Ionicons name="flask-outline" size={24} color="black" />
+        <StyledText className="text-black text-center text-lg ml-2">
+          {loading ? 'Генериране...' : 'Генерирайте рецепти'}
         </StyledText>
+      </StyledTouchableOpacity>
 
-        <StyledTouchableOpacity
-          className="bg-blue-500 p-4 rounded-lg bottom-5 mt-5"
-          onPress={generateRecipesFromInventory}
-        >
-          <StyledText className="text-white text-center">
-            {loading ? 'Рецептите се генерират...' : 'Генерирайте рецепти със съставките от инвентара'}
-          </StyledText>
-        </StyledTouchableOpacity>
-
-        {/* List of recipes */}
+      {/* Recipe List */}
+      {recipes.length === 0 ? (
+        <StyledText className="text-white text-center text-lg">Няма налични рецепти.</StyledText>
+      ) : (
         <StyledFlatList
           data={recipes}
           renderItem={({ item }) => (
-            <StyledView className="bg-white p-5 rounded-lg mb-4 shadow-lg">
-              <StyledText className="text-lg font-bold">{item.title}</StyledText>
-              <StyledText className="text-gray-400">{item.description}</StyledText>
-              <StyledText className="text-gray-600">Оценка: {'⭐'.repeat(item.rating)}</StyledText>
+            <StyledView className="bg-black p-5 rounded-lg mb-4 border border-green-500">
+              <View className="flex-row items-center">
+                <Ionicons name="restaurant-outline" size={24} color="white" />
+                <StyledText className="text-lg font-bold text-white flex-1 ml-3">{item.title}</StyledText>
+              </View>
+              <StyledText className="text-gray-400 mt-1 italic">{item.description}</StyledText>
+              <StyledText className="text-yellow-400 mt-1">Оценка: {'⭐'.repeat(item.rating)}</StyledText>
 
-              {/* Show full recipe when clicked */}
-              <StyledTouchableOpacity
-                className="mt-3 p-2 bg-blue-500 rounded"
-                onPress={() => {
-                    const fullRecipeText = item.fullRecipe.join('\n\n');
-                    Alert.alert(item.title, fullRecipeText, [{ text: 'Затворете' }], { cancelable: true });
-                }}
-              >
-                <StyledText className="text-white text-center">Вижте цялата рецепта</StyledText>
+              {/* Show Full Recipe Button */}
+              <StyledTouchableOpacity className="mt-3 p-2 bg-white rounded-lg border border-green-500 flex-row items-center justify-center" onPress={() => handleRecipeClick(item)}>
+                <Ionicons name="book-outline" size={20} color="black" />
+                <StyledText className="text-black ml-2">Вижте рецептата</StyledText>
               </StyledTouchableOpacity>
 
-              {/* Delete Button */}
-              <StyledTouchableOpacity
-                className="mt-3 p-2 bg-red-500 rounded"
-                onPress={() => {
-                  // Ask for confirmation before deleting
-                  Alert.alert(
-                    'Потвърдете изтриването',
-                    'Сигурни ли сте, че искате да изтриете рецептата?',
-                    [
-                      { text: 'Откажете' },
-                      { text: 'Изтрийте', onPress: () => deleteRecipe(item.id) },
-                    ],
-                    { cancelable: true }
-                  );
-                }}
-              >
-                <StyledText className="text-white text-center">Изтрийте рецептата</StyledText>
+              {/* Delete Recipe Button */}
+              <StyledTouchableOpacity className="mt-3 p-2 bg-white rounded-lg border border-red-500 flex-row items-center justify-center" onPress={() => deleteRecipe(item.id)}>
+                <Ionicons name="trash-outline" size={20} color="red" />
+                <StyledText className="text-red-500 ml-2">Изтрийте рецептата</StyledText>
               </StyledTouchableOpacity>
             </StyledView>
           )}
           keyExtractor={(item) => item.id}
         />
-      </StyledView>
+      )}
 
-      {/* Modal for full recipe */}
+      {/* Full Recipe Modal */}
       {selectedRecipe && (
         <StyledModal visible={true} animationType="slide" transparent={true}>
-          <StyledView className="flex-1 justify-center items-center bg-black bg-opacity-50">
-            <StyledView className="bg-white p-5 rounded-lg w-4/5">
-              <StyledText className="text-xl font-bold mb-4">{selectedRecipe.title}</StyledText>
-              {/* Ensure fullRecipe is displayed */}
-              <StyledText className="text-lg mb-4">{selectedRecipe.fullRecipe || "No full recipe available."}</StyledText>
-              <StyledPressable onPress={closeModal} className="bg-red-500 p-2 rounded-md">
-                <StyledText className="text-white text-center">Затворете</StyledText>
+          <StyledView className="flex-1 justify-center items-center bg-black/80">
+            <StyledView className="bg-black p-6 rounded-lg w-4/5 border border-green-500 max-h-[80%]">
+              <StyledScrollView className="max-h-[70%]">
+                <StyledText className="text-xl font-bold text-white mb-2">{selectedRecipe.title}</StyledText>
+                <StyledText className="text-gray-400 italic mb-2">{selectedRecipe.description}</StyledText>
+                <StyledText className="text-yellow-400 mb-4">Оценка: {'⭐'.repeat(selectedRecipe.rating)}</StyledText>
+
+                {/* Formatted Recipe Steps */}
+                <StyledText className="text-lg font-bold text-white mb-2">Инструкции:</StyledText>
+                {Array.isArray(selectedRecipe.fullRecipe) ? (
+                  selectedRecipe.fullRecipe.map((step, index) => (
+                    <StyledText key={index} className="text-gray-300 leading-6 mb-2">
+                      {index + 1}. {step.trim()}
+                    </StyledText>
+                  ))
+                ) : (
+                  <StyledText className="text-gray-300 leading-6">
+                    {selectedRecipe.fullRecipe?.trim() || 'Няма налична рецепта.'}
+                  </StyledText>
+                )}
+              </StyledScrollView>
+
+              <StyledPressable className="bg-white p-3 rounded-lg border border-red-500 flex-row items-center justify-center mt-5" onPress={closeModal}>
+                <Ionicons name="close-circle-outline" size={20} color="red" />
+                <StyledText className="text-red-500 ml-2">Затворете</StyledText>
               </StyledPressable>
             </StyledView>
           </StyledView>
         </StyledModal>
       )}
-    </StyledImageBackground>
+    </StyledView>
   );
 };
 
