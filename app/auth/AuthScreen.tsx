@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, TextInput, Text, TouchableOpacity, Animated, ImageBackground } from 'react-native';
+import { View, TextInput, Text, TouchableOpacity, Animated, ImageBackground, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword } from 'firebase/auth';
 import { styled } from 'nativewind';
@@ -23,6 +23,17 @@ const auth = getAuth();
 interface AuthScreenProps {
     onLogin: () => void;
 }
+
+const theme = {
+    colors: {
+        primary: '#4CAF50',
+        background: '#000000',
+        surface: '#1A1A1A',
+        text: '#FFFFFF',
+        textSecondary: '#999999',
+        accent: '#4CAF50',
+    }
+};
 
 const AuthScreen: React.FC<AuthScreenProps> = ({ onLogin }) => {
     const [step, setStep] = useState(1);
@@ -244,160 +255,271 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ onLogin }) => {
 
     return (
         <StyledImageBackground
-            source={{ uri: 'https://static.vecteezy.com/system/resources/previews/020/580/331/non_2x/abstract-smooth-blur-blue-color-gradient-mesh-texture-lighting-effect-background-with-blank-space-for-website-banner-and-paper-card-decorative-modern-graphic-design-vector.jpg' }}
-            className="flex-1 justify-center items-center"
-            blurRadius={20}
+            source={{ uri: 'https://i.imgur.com/8F9ZGpX.png' }}
+            style={styles.backgroundImage}
+            blurRadius={5}
         >
+            <View style={styles.container}>
+                <Logo/>
 
-            <Logo/>
+                <Animated.View style={[styles.formContainer, { opacity }]}>
+                    <View style={styles.formBox}>
+                        <Text style={styles.title}>
+                            {isLoginMode ? 'Впишете се' : step === 1 ? 'Създайте профил' : 'Информация за профила'}
+                        </Text>
+                        
+                        {error ? <Text style={styles.errorText}>{error}</Text> : null}
 
-            <StyledAnimatedView style={{ opacity }} className="flex-1 bottom-28">
-                <StyledView className="w-[90%] p-6 rounded-3xl bg-white/30 border border-white/20 shadow-md shadow-black/20 backdrop-blur-lg">
-                    <StyledText className="text-3xl font-bold text-gray-800 mb-6 text-center">
-                        {isLoginMode ? 'Впишете се' : step === 1 ? 'Създайте профил' : 'Информация за профила'}
-                    </StyledText>
-                    {error ? <StyledText className="text-red-500 mb-3">{error}</StyledText> : null}
-
-                    {isLoginMode ? (
-                        <>
-                            <StyledTextInput
-                                className="bg-white/50 rounded-2xl p-4 mb-4 text-gray-800"
-                                placeholder="Имейл"
-                                value={email}
-                                onChangeText={setEmail}
-                                autoCapitalize="none"
-                                placeholderTextColor="#a0a0a0"
-                            />
-                            <StyledView className="flex-row items-center bg-white/50 rounded-2xl p-4 mb-4 w-full">
-                                <Ionicons name="lock-closed-outline" size={24} color="#a0a0a0" />
-                                <StyledTextInput
-                                    className="flex-1 ml-3 text-base text-gray-800"
-                                    placeholder="Парола"
-                                    secureTextEntry={!showPassword}
-                                    value={password}
-                                    onChangeText={setPassword}
-                                    placeholderTextColor="#a0a0a0"
-                                />
-                                <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
-                                    <Ionicons
-                                        name={showPassword ? "eye-outline" : "eye-off-outline"}
-                                        size={24}
-                                        color="#a0a0a0"
+                        {isLoginMode ? (
+                            <>
+                                <View style={styles.inputWrapper}>
+                                    <Ionicons name="mail-outline" size={24} color="#999999" />
+                                    <TextInput
+                                        style={styles.input}
+                                        placeholder="Имейл"
+                                        value={email}
+                                        onChangeText={setEmail}
+                                        autoCapitalize="none"
+                                        placeholderTextColor="#999999"
+                                        selectionColor="#4CAF50"
                                     />
-                                </TouchableOpacity>
-                            </StyledView>
-                            <StyledTouchableOpacity
-                                className="rounded-full w-12 h-12 mb-4 shadow-md shadow-gray-400 bg-blue-500 justify-center items-center self-end"
-                                onPress={handleLogin}
-                            >
-                                <Ionicons name="arrow-forward-outline" size={24} color="#ffffff" />
-                            </StyledTouchableOpacity>
-                        </>
-                    ) : step === 1 ? (
-                        <>
-                            <StyledTextInput
-                                className="bg-white/50 rounded-2xl p-4 mb-4 text-gray-800"
-                                placeholder="Име"
-                                value={firstName}
-                                onChangeText={setFirstName}
-                                placeholderTextColor="#a0a0a0"
-                            />
-                            <StyledTextInput
-                                className="bg-white/50 rounded-2xl p-4 mb-4 text-gray-800"
-                                placeholder="Фамилия"
-                                value={lastName}
-                                onChangeText={setLastName}
-                                placeholderTextColor="#a0a0a0"
-                            />
-                            <StyledTouchableOpacity
-                                className="bg-white/50 rounded-2xl p-4 mb-4 w-full flex-row justify-between items-center"
-                                onPress={() => setDateOfBirth(new Date())}
-                            >
-                                <StyledText className="text-gray-800">
-                                    {dateOfBirth ? dateOfBirth.toDateString() : 'Дата на раждане'}
-                                </StyledText>
-                                <Ionicons name="calendar-outline" size={24} color="#a0a0a0" />
-                            </StyledTouchableOpacity>
-                            {dateOfBirth && (
-                                <DateTimePicker
-                                    value={dateOfBirth}
-                                    mode="date"
-                                    display="default"
-                                    onChange={(event, selectedDate) => setDateOfBirth(selectedDate || dateOfBirth)}
-                                />
-                            )}
-                            <StyledTouchableOpacity
-                                className="rounded-full w-12 h-12 mb-4 shadow-md shadow-gray-400 bg-blue-500 justify-center items-center self-end"
-                                onPress={goToNextStep}
-                            >
-                                <Ionicons name="arrow-forward-outline" size={24} color="#ffffff" />
-                            </StyledTouchableOpacity>
-                        </>
-                    ) : (
-                        <>
-                            <StyledTextInput
-                                className="bg-white/50 rounded-2xl p-4 mb-4 text-gray-800"
-                                placeholder="Имейл"
-                                value={email}
-                                onChangeText={setEmail}
-                                autoCapitalize="none"
-                                placeholderTextColor="#a0a0a0"
-                            />
-                            <StyledView className="flex-row items-center bg-white/50 rounded-2xl p-4 mb-4 w-full">
-                                <Ionicons name="lock-closed-outline" size={24} color="#a0a0a0" />
-                                <StyledTextInput
-                                    className="flex-1 ml-3 text-base text-gray-800"
-                                    placeholder="Парола"
-                                    secureTextEntry={!showPassword}
-                                    value={password}
-                                    onChangeText={setPassword}
-                                    placeholderTextColor="#a0a0a0"
-                                />
-                                <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
-                                    <Ionicons
-                                        name={showPassword ? "eye-outline" : "eye-off-outline"}
-                                        size={24}
-                                        color="#a0a0a0"
+                                </View>
+                                <View style={styles.inputWrapper}>
+                                    <Ionicons name="lock-closed-outline" size={24} color="#999999" />
+                                    <TextInput
+                                        style={styles.input}
+                                        placeholder="Парола"
+                                        secureTextEntry={!showPassword}
+                                        value={password}
+                                        onChangeText={setPassword}
+                                        placeholderTextColor="#999999"
+                                        selectionColor="#4CAF50"
                                     />
+                                    <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
+                                        <Ionicons
+                                            name={showPassword ? "eye-outline" : "eye-off-outline"}
+                                            size={24}
+                                            color="#999999"
+                                        />
+                                    </TouchableOpacity>
+                                </View>
+                                <TouchableOpacity
+                                    style={styles.actionButton}
+                                    onPress={handleLogin}
+                                >
+                                    <Text style={styles.actionButtonText}>Впишете се</Text>
                                 </TouchableOpacity>
-                            </StyledView>
-                            <StyledTextInput
-                                className="bg-white/50 rounded-2xl p-4 mb-4 text-gray-800"
-                                placeholder="Потвърдете паролата"
-                                secureTextEntry={!showPassword}
-                                value={confirmPassword}
-                                onChangeText={setConfirmPassword}
-                                placeholderTextColor="#a0a0a0"
-                            />
-                            <StyledTouchableOpacity
-                                className="rounded-full w-12 h-12 mb-4 shadow-md shadow-gray-400 bg-blue-500 justify-center items-center self-end"
-                                onPress={handleRegister}
+                            </>
+                        ) : step === 1 ? (
+                            <>
+                                <View style={styles.inputWrapper}>
+                                    <Ionicons name="person-outline" size={24} color="#999999" />
+                                    <TextInput
+                                        style={styles.input}
+                                        placeholder="Име"
+                                        value={firstName}
+                                        onChangeText={setFirstName}
+                                        placeholderTextColor="#999999"
+                                        selectionColor="#4CAF50"
+                                    />
+                                </View>
+                                <View style={styles.inputWrapper}>
+                                    <Ionicons name="person-outline" size={24} color="#999999" />
+                                    <TextInput
+                                        style={styles.input}
+                                        placeholder="Фамилия"
+                                        value={lastName}
+                                        onChangeText={setLastName}
+                                        placeholderTextColor="#999999"
+                                        selectionColor="#4CAF50"
+                                    />
+                                </View>
+                                <TouchableOpacity
+                                    style={styles.inputWrapper}
+                                    onPress={() => setDateOfBirth(new Date())}
+                                >
+                                    <Ionicons name="calendar-outline" size={24} color="#999999" />
+                                    <Text style={styles.dateText}>
+                                        {dateOfBirth ? dateOfBirth.toDateString() : 'Дата на раждане'}
+                                    </Text>
+                                </TouchableOpacity>
+                                {dateOfBirth && (
+                                    <DateTimePicker
+                                        value={dateOfBirth}
+                                        mode="date"
+                                        display="default"
+                                        onChange={(event, selectedDate) => setDateOfBirth(selectedDate || dateOfBirth)}
+                                    />
+                                )}
+                                <TouchableOpacity
+                                    style={styles.actionButton}
+                                    onPress={goToNextStep}
+                                >
+                                    <Text style={styles.actionButtonText}>Напред</Text>
+                                </TouchableOpacity>
+                            </>
+                        ) : (
+                            <>
+                                <View style={styles.inputWrapper}>
+                                    <Ionicons name="mail-outline" size={24} color="#999999" />
+                                    <TextInput
+                                        style={styles.input}
+                                        placeholder="Имейл"
+                                        value={email}
+                                        onChangeText={setEmail}
+                                        autoCapitalize="none"
+                                        placeholderTextColor="#999999"
+                                        selectionColor="#4CAF50"
+                                    />
+                                </View>
+                                <View style={styles.inputWrapper}>
+                                    <Ionicons name="lock-closed-outline" size={24} color="#999999" />
+                                    <TextInput
+                                        style={styles.input}
+                                        placeholder="Парола"
+                                        secureTextEntry={!showPassword}
+                                        value={password}
+                                        onChangeText={setPassword}
+                                        placeholderTextColor="#999999"
+                                        selectionColor="#4CAF50"
+                                    />
+                                    <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
+                                        <Ionicons
+                                            name={showPassword ? "eye-outline" : "eye-off-outline"}
+                                            size={24}
+                                            color="#999999"
+                                        />
+                                    </TouchableOpacity>
+                                </View>
+                                <View style={styles.inputWrapper}>
+                                    <Ionicons name="lock-closed-outline" size={24} color="#999999" />
+                                    <TextInput
+                                        style={styles.input}
+                                        placeholder="Потвърдете паролата"
+                                        secureTextEntry={!showPassword}
+                                        value={confirmPassword}
+                                        onChangeText={setConfirmPassword}
+                                        placeholderTextColor="#999999"
+                                        selectionColor="#4CAF50"
+                                    />
+                                </View>
+                                <TouchableOpacity
+                                    style={styles.actionButton}
+                                    onPress={handleRegister}
+                                >
+                                    <Text style={styles.actionButtonText}>Регистрирайте се</Text>
+                                </TouchableOpacity>
+                            </>
+                        )}
+                        {!isLoginMode && step > 1 && (
+                            <TouchableOpacity
+                                style={styles.backButton}
+                                onPress={goToPreviousStep}
                             >
-                                <Ionicons name="arrow-forward-outline" size={24} color="#ffffff" />
-                            </StyledTouchableOpacity>
-                        </>
-                    )}
-                    {!isLoginMode && step > 1 && (
-                        <StyledTouchableOpacity
-                            className="absolute top-6 right-6"
-                            onPress={goToPreviousStep}
+                                <Ionicons name="arrow-back-outline" size={24} color="#FFFFFF" />
+                            </TouchableOpacity>
+                        )}
+                        <TouchableOpacity
+                            onPress={() => setIsLoginMode(!isLoginMode)}
+                            style={styles.switchModeButton}
                         >
-                            <Ionicons name="arrow-back-outline" size={30} color="#a0a0a0" />
-                        </StyledTouchableOpacity>
-                    )}
-                    <StyledTouchableOpacity
-                        onPress={() => setIsLoginMode(!isLoginMode)}
-                        className="mt-4"
-                    >
-                        <StyledText className="text-gray-800">
-                            {isLoginMode ? 'Създайте профил' : 'Вече имате профил? Впишете се!'}
-                        </StyledText>
-                    </StyledTouchableOpacity>
-                </StyledView>
-            </StyledAnimatedView>
-            <FlashMessage position="top" />
+                            <Text style={styles.switchModeText}>
+                                {isLoginMode ? 'Създайте профил' : 'Вече имате профил? Впишете се!'}
+                            </Text>
+                        </TouchableOpacity>
+                    </View>
+                </Animated.View>
+                <FlashMessage position="top" />
+            </View>
         </StyledImageBackground>
     );
 };
+
+const styles = StyleSheet.create({
+    backgroundImage: {
+        flex: 1,
+    },
+    container: {
+        flex: 1,
+        backgroundColor: 'rgba(0,0,0,0.5)',
+    },
+    formContainer: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+        paddingHorizontal: 20,
+    },
+    formBox: {
+        width: '100%',
+        backgroundColor: theme.colors.surface,
+        borderRadius: 15,
+        padding: 20,
+        shadowColor: '#000',
+        shadowOffset: {
+            width: 0,
+            height: 2,
+        },
+        shadowOpacity: 0.25,
+        shadowRadius: 3.84,
+        elevation: 5,
+    },
+    title: {
+        fontSize: 24,
+        fontWeight: 'bold',
+        color: theme.colors.text,
+        marginBottom: 20,
+        textAlign: 'center',
+    },
+    errorText: {
+        color: '#e74c3c',
+        marginBottom: 10,
+        textAlign: 'center',
+    },
+    inputWrapper: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: theme.colors.background,
+        borderRadius: 10,
+        padding: 15,
+        marginBottom: 15,
+    },
+    input: {
+        flex: 1,
+        color: theme.colors.text,
+        fontSize: 16,
+        marginLeft: 15,
+    },
+    dateText: {
+        color: theme.colors.text,
+        fontSize: 16,
+        marginLeft: 15,
+    },
+    actionButton: {
+        backgroundColor: theme.colors.primary,
+        borderRadius: 10,
+        padding: 15,
+        alignItems: 'center',
+        marginTop: 10,
+    },
+    actionButtonText: {
+        color: theme.colors.text,
+        fontSize: 18,
+        fontWeight: 'bold',
+    },
+    backButton: {
+        position: 'absolute',
+        top: 20,
+        left: 20,
+        padding: 10,
+    },
+    switchModeButton: {
+        marginTop: 20,
+        alignItems: 'center',
+    },
+    switchModeText: {
+        color: theme.colors.textSecondary,
+        fontSize: 16,
+    },
+});
 
 export default AuthScreen;

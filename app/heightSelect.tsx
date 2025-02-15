@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, ImageBackground } from 'react-native';
+import { View, Text, TouchableOpacity, ImageBackground, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
 import { doc, setDoc } from 'firebase/firestore'; // Firebase Firestore import
 import { db } from '../firebaseConfig'; // Your Firebase configuration
@@ -13,6 +13,17 @@ const StyledView = styled(View);
 const StyledText = styled(Text);
 const StyledTouchableOpacity = styled(TouchableOpacity);
 const StyledPickerContainer = styled(View);
+
+const theme = {
+    colors: {
+        primary: '#4CAF50',
+        background: '#000000',
+        surface: '#1A1A1A',
+        text: '#FFFFFF',
+        textSecondary: '#999999',
+        accent: '#4CAF50',
+    }
+};
 
 const HeightSelectionScreen = () => {
   const [selectedHeight, setSelectedHeight] = useState<string>('170'); // Default height 170cm
@@ -48,43 +59,92 @@ const HeightSelectionScreen = () => {
 
   return (
     <StyledImageBackground
-      source={{
-        uri: 'https://static.vecteezy.com/system/resources/previews/020/580/331/non_2x/abstract-smooth-blur-blue-color-gradient-mesh-texture-lighting-effect-background-with-blank-space-for-website-banner-and-paper-card-decorative-modern-graphic-design-vector.jpg',
-      }}
-      className="flex-1 justify-center items-center"
-      blurRadius={20}
+      source={{ uri: 'https://i.imgur.com/8F9ZGpX.png' }}
+      style={styles.backgroundImage}
+      blurRadius={5}
     >
+      <View style={styles.container}>
+        <Logo/>
 
-      <Logo/>
+        <View style={styles.content}>
+          <Text style={styles.title}>Изберете височина (cm)</Text>
 
-      <StyledView className="flex-1 justify-center items-center p-6 w-full bottom-44">
-        <StyledText className="text-black text-3xl font-bold mb-6 text-center">Изберете височина (cm)</StyledText>
+          <View style={styles.pickerContainer}>
+            <Picker
+              selectedValue={selectedHeight}
+              onValueChange={(itemValue) => setSelectedHeight(itemValue as string)}
+              style={styles.picker}
+            >
+              {Array.from({ length: 91 }, (_, i) => 130 + i).map((height) => (
+                <Picker.Item 
+                  key={height} 
+                  label={`${height} cm`} 
+                  value={height.toString()}
+                  color={theme.colors.text}
+                />
+              ))}
+            </Picker>
+          </View>
 
-        {/* Height Picker */}
-        <StyledPickerContainer className="bg-transparent mb-6 w-full">
-          <Picker
-            selectedValue={selectedHeight}
-            onValueChange={(itemValue) => setSelectedHeight(itemValue as string)}
-            style={{ height: 150, width: '100%', color: '#000' }} // Keep the picker transparent
+          <TouchableOpacity
+            style={styles.confirmButton}
+            onPress={handleHeightSelection}
+            disabled={loading}
           >
-            {/* Generate height values from 130cm to 220cm */}
-            {Array.from({ length: 91 }, (_, i) => 130 + i).map((height) => (
-              <Picker.Item key={height} label={`${height} cm`} value={height.toString()} />
-            ))}
-          </Picker>
-        </StyledPickerContainer>
-
-        {/* Confirm Button */}
-        <StyledTouchableOpacity
-          className="bg-blue-600 p-4 rounded-lg w-full"
-          onPress={handleHeightSelection}
-          disabled={loading}
-        >
-          <StyledText className="text-white text-lg font-medium text-center">Потвърдете височината</StyledText>
-        </StyledTouchableOpacity>
-      </StyledView>
+            <Text style={styles.buttonText}>Потвърдете височината</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
     </StyledImageBackground>
   );
 };
+
+const styles = StyleSheet.create({
+    backgroundImage: {
+        flex: 1,
+    },
+    container: {
+        flex: 1,
+        backgroundColor: 'rgba(0,0,0,0.5)',
+    },
+    content: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+        paddingHorizontal: 20,
+        marginTop: -100,
+    },
+    title: {
+        fontSize: 28,
+        fontWeight: 'bold',
+        color: theme.colors.text,
+        marginBottom: 30,
+        textAlign: 'center',
+    },
+    pickerContainer: {
+        backgroundColor: theme.colors.surface,
+        borderRadius: 15,
+        width: '100%',
+        marginBottom: 20,
+        overflow: 'hidden',
+    },
+    picker: {
+        width: '100%',
+        backgroundColor: 'transparent',
+        color: theme.colors.text,
+    },
+    confirmButton: {
+        backgroundColor: theme.colors.primary,
+        width: '100%',
+        padding: 20,
+        borderRadius: 15,
+        alignItems: 'center',
+    },
+    buttonText: {
+        color: theme.colors.text,
+        fontSize: 18,
+        fontWeight: '500',
+    },
+});
 
 export default HeightSelectionScreen;

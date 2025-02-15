@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, ImageBackground } from 'react-native';
+import { View, Text, TouchableOpacity, ImageBackground, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
 import { doc, setDoc } from 'firebase/firestore'; // Firebase Firestore import
 import { db } from '../firebaseConfig'; // Your Firebase configuration
@@ -11,6 +11,17 @@ const StyledImageBackground = styled(ImageBackground);
 const StyledView = styled(View);
 const StyledText = styled(Text);
 const StyledTouchableOpacity = styled(TouchableOpacity);
+
+const theme = {
+    colors: {
+        primary: '#4CAF50',
+        background: '#000000',
+        surface: '#1A1A1A',
+        text: '#FFFFFF',
+        textSecondary: '#999999',
+        accent: '#4CAF50',
+    }
+};
 
 const GoalSelectionScreen = () => {
   const [selectedGoal, setSelectedGoal] = useState<string | null>(null);
@@ -47,48 +58,83 @@ const GoalSelectionScreen = () => {
 
   return (
     <StyledImageBackground
-      source={{
-        uri: 'https://static.vecteezy.com/system/resources/previews/020/580/331/non_2x/abstract-smooth-blur-blue-color-gradient-mesh-texture-lighting-effect-background-with-blank-space-for-website-banner-and-paper-card-decorative-modern-graphic-design-vector.jpg',
-      }}
-      className="flex-1"
-      blurRadius={20}
+      source={{ uri: 'https://i.imgur.com/8F9ZGpX.png' }}
+      style={styles.backgroundImage}
+      blurRadius={5}
     >
+      <View style={styles.container}>
+        <Logo/>
 
-      <Logo/>
+        <View style={styles.content}>
+          <Text style={styles.title}>Изберете цел</Text>
 
-      <StyledView className="flex-1 justify-center items-center px-4 bottom-44">
+          <TouchableOpacity
+            style={[styles.goalButton, selectedGoal === 'Gain Weight' && styles.selectedButton]}
+            onPress={() => handleGoalSelection('Gain Weight')}
+            disabled={loading}
+          >
+            <Text style={styles.buttonText}>Повишаване на теглото</Text>
+          </TouchableOpacity>
 
-        <StyledText className="text-black text-3xl font-bold mb-6">Изберете цел</StyledText>
+          <TouchableOpacity
+            style={[styles.goalButton, selectedGoal === 'Maintain Weight' && styles.selectedButton]}
+            onPress={() => handleGoalSelection('Maintain Weight')}
+            disabled={loading}
+          >
+            <Text style={styles.buttonText}>Поддържане на теглото</Text>
+          </TouchableOpacity>
 
-        {/* Gain Weight Button */}
-        <StyledTouchableOpacity
-          className={`bg-blue-600 p-4 rounded-lg mb-4 w-full ${selectedGoal === 'Gain Weight' ? 'bg-blue-800' : ''}`}
-          onPress={() => handleGoalSelection('Gain Weight')}
-          disabled={loading} // Disable button while loading
-        >
-          <StyledText className="text-white text-lg font-medium">Повишаване на теглото</StyledText>
-        </StyledTouchableOpacity>
-
-        {/* Maintain Weight Button */}
-        <StyledTouchableOpacity
-          className={`bg-blue-600 p-4 rounded-lg mb-4 w-full ${selectedGoal === 'Maintain Weight' ? 'bg-blue-800' : ''}`}
-          onPress={() => handleGoalSelection('Maintain Weight')}
-          disabled={loading}
-        >
-          <StyledText className="text-white text-lg font-medium">Поддържане на теглото</StyledText>
-        </StyledTouchableOpacity>
-
-        {/* Lose Weight Button */}
-        <StyledTouchableOpacity
-          className={`bg-blue-600 p-4 rounded-lg mb-4 w-full ${selectedGoal === 'Lose Weight' ? 'bg-blue-800' : ''}`}
-          onPress={() => handleGoalSelection('Lose Weight')}
-          disabled={loading}
-        >
-          <StyledText className="text-white text-lg font-medium">Отслабване</StyledText>
-        </StyledTouchableOpacity>
-      </StyledView>
+          <TouchableOpacity
+            style={[styles.goalButton, selectedGoal === 'Lose Weight' && styles.selectedButton]}
+            onPress={() => handleGoalSelection('Lose Weight')}
+            disabled={loading}
+          >
+            <Text style={styles.buttonText}>Отслабване</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
     </StyledImageBackground>
   );
 };
+
+const styles = StyleSheet.create({
+    backgroundImage: {
+        flex: 1,
+    },
+    container: {
+        flex: 1,
+        backgroundColor: 'rgba(0,0,0,0.5)',
+    },
+    content: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+        paddingHorizontal: 20,
+        marginTop: -100,
+    },
+    title: {
+        fontSize: 28,
+        fontWeight: 'bold',
+        color: theme.colors.text,
+        marginBottom: 30,
+        textAlign: 'center',
+    },
+    goalButton: {
+        backgroundColor: theme.colors.surface,
+        width: '100%',
+        padding: 20,
+        borderRadius: 15,
+        marginBottom: 15,
+        alignItems: 'center',
+    },
+    selectedButton: {
+        backgroundColor: theme.colors.primary,
+    },
+    buttonText: {
+        color: theme.colors.text,
+        fontSize: 18,
+        fontWeight: '500',
+    },
+});
 
 export default GoalSelectionScreen;

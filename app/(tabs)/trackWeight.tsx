@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, TextInput, TouchableOpacity, ImageBackground } from 'react-native';
+import { View, TextInput, TouchableOpacity, ImageBackground, StyleSheet } from 'react-native';
 import { Text } from 'react-native';
 import { getAuth } from 'firebase/auth';
 import { getFirestore, addDoc, collection, updateDoc, doc } from 'firebase/firestore';
@@ -15,6 +15,17 @@ const StyledImageBackground = styled(ImageBackground);
 
 const db = getFirestore();
 const auth = getAuth();
+
+const theme = {
+    colors: {
+        primary: '#4CAF50',
+        background: '#000000',
+        surface: '#1A1A1A',
+        text: '#FFFFFF',
+        textSecondary: '#999999',
+        accent: '#4CAF50',
+    }
+};
 
 const TrackWeightScreen = ({ navigation }) => {
     const [weight, setWeight] = useState('');
@@ -52,49 +63,113 @@ const TrackWeightScreen = ({ navigation }) => {
 
     return (
         <StyledImageBackground
-        source={{
-            uri: 'https://static.vecteezy.com/system/resources/previews/020/580/331/non_2x/abstract-smooth-blur-blue-color-gradient-mesh-texture-lighting-effect-background-with-blank-space-for-website-banner-and-paper-card-decorative-modern-graphic-design-vector.jpg',
-          }}
-            className="flex-1"
+            source={{
+                uri: 'https://i.imgur.com/8F9ZGpX.png',
+            }}
+            style={{ flex: 1 }}
+            blurRadius={5}
         >
-            <StyledView className="flex-1 px-6 pt-12">
-                <StyledView className="flex-row items-center mb-8">
-                    <StyledTouchableOpacity
-                        onPress={() => navigation.goBack()}
-                        className="mr-4"
-                    >
-                        <Ionicons name="arrow-back" size={24} color="#2c3e50" />
-                    </StyledTouchableOpacity>
-                    <StyledText className="text-2xl font-bold text-gray-800">
-                        Запишете текущото си тегло
-                    </StyledText>
-                </StyledView>
+            <View style={{ backgroundColor: '#000000', flex: 1 }}>
+                <View style={styles.headerBackground}>
+                    <View style={styles.headerContainer}>
+                        <TouchableOpacity
+                            onPress={() => navigation.goBack()}
+                            style={styles.backButton}
+                        >
+                            <Ionicons name="arrow-back" size={24} color="#FFFFFF" />
+                        </TouchableOpacity>
+                        <Text style={styles.headerTitle}>
+                            Запишете текущото си тегло
+                        </Text>
+                    </View>
+                </View>
 
-                <StyledView className="bg-white/50 rounded-3xl p-6 shadow-md">
-                    <StyledView className="flex-row items-center bg-white/70 rounded-2xl p-4 mb-6">
-                        <Ionicons name="barbell-outline" size={24} color="#a0a0a0" />
-                        <StyledTextInput
-                            className="flex-1 ml-3 text-lg text-gray-800"
-                            placeholder="Тегло (kg)"
-                            value={weight}
-                            onChangeText={setWeight}
-                            keyboardType="numeric"
-                            placeholderTextColor="#a0a0a0"
-                        />
-                    </StyledView>
+                <View style={styles.container}>
+                    <View style={styles.inputContainer}>
+                        <View style={styles.inputWrapper}>
+                            <Ionicons name="barbell-outline" size={24} color="#999999" />
+                            <TextInput
+                                style={styles.input}
+                                placeholder="Тегло (kg)"
+                                value={weight}
+                                onChangeText={setWeight}
+                                keyboardType="numeric"
+                                placeholderTextColor="#999999"
+                                selectionColor="#4CAF50"
+                            />
+                        </View>
 
-                    <StyledTouchableOpacity
-                        className="bg-blue-500 rounded-2xl py-4 px-6"
-                        onPress={handleSaveWeight}
-                    >
-                        <StyledText className="text-white text-center text-lg font-semibold">
-                            Запазете
-                        </StyledText>
-                    </StyledTouchableOpacity>
-                </StyledView>
-            </StyledView>
+                        <TouchableOpacity
+                            style={styles.saveButton}
+                            onPress={handleSaveWeight}
+                        >
+                            <Text style={styles.saveButtonText}>
+                                Запазете
+                            </Text>
+                        </TouchableOpacity>
+                    </View>
+                </View>
+            </View>
         </StyledImageBackground>
     );
 };
+
+const styles = StyleSheet.create({
+    headerBackground: {
+        backgroundColor: '#000000',
+        paddingBottom: 15,
+    },
+    headerContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingTop: 60,
+        paddingHorizontal: 15,
+        backgroundColor: '#000000',
+    },
+    backButton: {
+        padding: 10,
+    },
+    headerTitle: {
+        fontSize: 24,
+        fontWeight: '300',
+        color: '#FFFFFF',
+        marginLeft: 15,
+    },
+    container: {
+        flex: 1,
+        padding: 20,
+    },
+    inputContainer: {
+        backgroundColor: '#1A1A1A',
+        borderRadius: 15,
+        padding: 20,
+        marginBottom: 20,
+    },
+    inputWrapper: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: '#000000',
+        borderRadius: 10,
+        padding: 15,
+        marginBottom: 15,
+    },
+    input: {
+        flex: 1,
+        color: '#FFFFFF',
+        fontSize: 16,
+        marginLeft: 15,
+    },
+    saveButton: {
+        backgroundColor: '#4CAF50',
+        borderRadius: 10,
+        padding: 15,
+        alignItems: 'center',
+    },
+    saveButtonText: {
+        color: '#FFFFFF',
+        fontSize: 18,
+        fontWeight: 'bold',
+    },
+});
 
 export default TrackWeightScreen; 
