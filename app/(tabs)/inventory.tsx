@@ -95,8 +95,11 @@ const InventoryScreen = () => {
       <Text className="text-lg">📦</Text>
       <StyledText className="text-lg font-bold text-white flex-1 ml-3">{item.name}</StyledText>
       <StyledText className="text-gray-400">{item.quantity} {item.unit}</StyledText>
-      <StyledTouchableOpacity className="bg-white p-2 rounded-lg border border-green-500 ml-2" onPress={() => deleteItem(item.id)}>
-        <Ionicons name="trash-outline" size={20} color="black" />
+      <StyledTouchableOpacity 
+        className="bg-transparent p-2 rounded-lg border border-red-500 ml-2" 
+        onPress={() => deleteItem(item.id)}
+      >
+        <Ionicons name="trash-outline" size={20} color="#e74c3c" />
       </StyledTouchableOpacity>
     </StyledView>
   );
@@ -106,8 +109,11 @@ const InventoryScreen = () => {
       <StyledText className="text-2xl font-bold text-white text-center mt-10 mb-5">Вашият инвентар</StyledText>
 
       {/* Add Item Button */}
-      <StyledTouchableOpacity className="bg-white p-3 rounded-lg mb-5 border border-green-500" onPress={() => setIsModalVisible(true)}>
-        <StyledText className="text-black text-center text-lg">➕ Добавете нов артикул</StyledText>
+      <StyledTouchableOpacity 
+        className="bg-[#1A1A1A] p-3 rounded-lg mb-5 border border-green-500" 
+        onPress={() => setIsModalVisible(true)}
+      >
+        <StyledText className="text-white text-center text-lg">➕ Добавете нов артикул</StyledText>
       </StyledTouchableOpacity>
 
       {/* Inventory List */}

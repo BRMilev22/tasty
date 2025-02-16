@@ -1,27 +1,18 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, FlatList, TouchableOpacity, Alert, Modal, Pressable, ScrollView } from 'react-native';
+import { View, Text, FlatList, TouchableOpacity, Alert, Modal, Pressable, ScrollView, StyleSheet } from 'react-native';
 import { collection, onSnapshot, addDoc, getDocs, doc, deleteDoc } from 'firebase/firestore';
 import { db } from '../../firebaseConfig';
 import { getAuth } from 'firebase/auth';
 import { fetchRecipesFromCohere } from '../../services/recipeService';
-import { styled } from 'nativewind';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 
 const auth = getAuth();
-
-const StyledView = styled(View);
-const StyledText = styled(Text);
-const StyledFlatList = styled(FlatList);
-const StyledTouchableOpacity = styled(TouchableOpacity);
-const StyledModal = styled(Modal);
-const StyledPressable = styled(Pressable);
-const StyledScrollView = styled(ScrollView);
 
 interface Recipe {
   id: string;
   title: string;
   description: string;
-  fullRecipe: string[]; // Ensure it's an array for correct formatting
+  fullRecipe: string[];
   rating: number;
 }
 
@@ -34,10 +25,14 @@ const RecipesScreen = () => {
     const userId = auth.currentUser?.uid;
     if (userId) {
       const unsubscribe = onSnapshot(collection(db, `users/${userId}/recipes`), (snapshot) => {
-        const recipesData: Recipe[] = snapshot.docs.map((doc) => ({
-          id: doc.id,
-          ...doc.data(),
-        })) as Recipe[];
+        const recipesData: Recipe[] = snapshot.docs.map((doc) => {
+          const data = doc.data();
+          console.log('Recipe data from Firestore:', data);
+          return {
+            id: doc.id,
+            ...data,
+          } as Recipe;
+        });
         setRecipes(recipesData);
       });
 
@@ -95,85 +90,267 @@ const RecipesScreen = () => {
     }
   };
 
+  const renderRecipeItem = ({ item }: { item: Recipe }) => (
+    <View style={styles.recipeCard}>
+      <View style={styles.recipeHeader}>
+        <Ionicons name="restaurant-outline" size={24} color="white" />
+        <Text style={styles.recipeTitle}>{item.title}</Text>
+      </View>
+      <Text style={styles.recipeDescription}>{item.description}</Text>
+      <Text style={styles.recipeRating}>Оценка: {'⭐'.repeat(item.rating)}</Text>
+
+      <TouchableOpacity 
+        style={styles.viewButton} 
+        onPress={() => handleRecipeClick(item)}
+      >
+        <Ionicons name="book-outline" size={20} color="white" />
+        <Text style={styles.buttonText}>Вижте рецептата</Text>
+      </TouchableOpacity>
+
+      <TouchableOpacity 
+        style={styles.deleteButton} 
+        onPress={() => deleteRecipe(item.id)}
+      >
+        <Ionicons name="trash-outline" size={20} color="#e74c3c" />
+        <Text style={styles.deleteButtonText}>Изтрийте рецептата</Text>
+      </TouchableOpacity>
+    </View>
+  );
+
   return (
-    <StyledView className="flex-1 bg-black p-5">
-      <StyledText className="text-2xl font-bold text-white text-center mt-10 mb-5">Вашите рецепти</StyledText>
+    <View style={styles.container}>
+      <Text style={styles.title}>Вашите рецепти</Text>
 
-      {/* Generate Recipes Button */}
-      <StyledTouchableOpacity className="bg-white p-4 rounded-lg mb-5 border border-green-500 flex-row items-center justify-center" onPress={generateRecipesFromInventory}>
-        <Ionicons name="flask-outline" size={24} color="black" />
-        <StyledText className="text-black text-center text-lg ml-2">
+      <TouchableOpacity 
+        style={styles.generateButton} 
+        onPress={generateRecipesFromInventory}
+      >
+        <Ionicons name="flask-outline" size={24} color="white" />
+        <Text style={styles.buttonText}>
           {loading ? 'Генериране...' : 'Генерирайте рецепти'}
-        </StyledText>
-      </StyledTouchableOpacity>
+        </Text>
+      </TouchableOpacity>
 
-      {/* Recipe List */}
       {recipes.length === 0 ? (
-        <StyledText className="text-white text-center text-lg">Няма налични рецепти.</StyledText>
+        <Text style={styles.emptyText}>Няма налични рецепти.</Text>
       ) : (
-        <StyledFlatList
+        <FlatList
           data={recipes}
-          renderItem={({ item }) => (
-            <StyledView className="bg-black p-5 rounded-lg mb-4 border border-green-500">
-              <View className="flex-row items-center">
-                <Ionicons name="restaurant-outline" size={24} color="white" />
-                <StyledText className="text-lg font-bold text-white flex-1 ml-3">{item.title}</StyledText>
-              </View>
-              <StyledText className="text-gray-400 mt-1 italic">{item.description}</StyledText>
-              <StyledText className="text-yellow-400 mt-1">Оценка: {'⭐'.repeat(item.rating)}</StyledText>
-
-              {/* Show Full Recipe Button */}
-              <StyledTouchableOpacity className="mt-3 p-2 bg-white rounded-lg border border-green-500 flex-row items-center justify-center" onPress={() => handleRecipeClick(item)}>
-                <Ionicons name="book-outline" size={20} color="black" />
-                <StyledText className="text-black ml-2">Вижте рецептата</StyledText>
-              </StyledTouchableOpacity>
-
-              {/* Delete Recipe Button */}
-              <StyledTouchableOpacity className="mt-3 p-2 bg-white rounded-lg border border-red-500 flex-row items-center justify-center" onPress={() => deleteRecipe(item.id)}>
-                <Ionicons name="trash-outline" size={20} color="red" />
-                <StyledText className="text-red-500 ml-2">Изтрийте рецептата</StyledText>
-              </StyledTouchableOpacity>
-            </StyledView>
-          )}
+          renderItem={renderRecipeItem}
           keyExtractor={(item) => item.id}
+          style={styles.list}
         />
       )}
 
-      {/* Full Recipe Modal */}
-      {selectedRecipe && (
-        <StyledModal visible={true} animationType="slide" transparent={true}>
-          <StyledView className="flex-1 justify-center items-center bg-black/80">
-            <StyledView className="bg-black p-6 rounded-lg w-4/5 border border-green-500 max-h-[80%]">
-              <StyledScrollView className="max-h-[70%]">
-                <StyledText className="text-xl font-bold text-white mb-2">{selectedRecipe.title}</StyledText>
-                <StyledText className="text-gray-400 italic mb-2">{selectedRecipe.description}</StyledText>
-                <StyledText className="text-yellow-400 mb-4">Оценка: {'⭐'.repeat(selectedRecipe.rating)}</StyledText>
+      <Modal visible={!!selectedRecipe} animationType="slide" transparent>
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <ScrollView style={styles.modalScroll}>
+              {selectedRecipe && (
+                <>
+                  <Text style={styles.modalTitle}>{selectedRecipe.title}</Text>
+                  <Text style={styles.modalDescription}>{selectedRecipe.description}</Text>
+                  <Text style={styles.recipeRating}>Оценка: {'⭐'.repeat(selectedRecipe.rating)}</Text>
+                  
+                  <Text style={styles.instructions}>
+                    {(() => {
+                      try {
+                        const recipeText = selectedRecipe?.fullRecipe;
+                        
+                        if (!recipeText) {
+                          return 'Няма налична рецепта.';
+                        }
 
-                {/* Formatted Recipe Steps */}
-                <StyledText className="text-lg font-bold text-white mb-2">Инструкции:</StyledText>
-                {Array.isArray(selectedRecipe.fullRecipe) ? (
-                  selectedRecipe.fullRecipe.map((step, index) => (
-                    <StyledText key={index} className="text-gray-300 leading-6 mb-2">
-                      {index + 1}. {step.trim()}
-                    </StyledText>
-                  ))
-                ) : (
-                  <StyledText className="text-gray-300 leading-6">
-                    {selectedRecipe.fullRecipe?.trim() || 'Няма налична рецепта.'}
-                  </StyledText>
-                )}
-              </StyledScrollView>
+                        if (Array.isArray(recipeText)) {
+                          return recipeText
+                            .map(step => step
+                              .replace(/^"/, '')
+                              .replace(/"$/, '')
+                              .replace(/^Стъпка \d+: /, '')
+                              .replace(/^description": "/, '')
+                              .replace(/^fullRecipe": \[/, '')
+                              .replace(/^],$/, '')
+                              .replace(/,$/, '')
+                              .trim()
+                            )
+                            .filter(step => 
+                              step.length > 0 && 
+                              step !== '[' && 
+                              step !== ']' && 
+                              !step.match(/^",$/) && 
+                              !step.match(/^description":/) && 
+                              !step.match(/^fullRecipe":/)
+                            )
+                            .join('\n\n');
+                        }
+                        
+                        return 'Неподдържан формат на рецептата.';
+                      } catch (error) {
+                        console.error('Error formatting recipe:', error);
+                        return 'Грешка при форматирането на рецептата.';
+                      }
+                    })()}
+                  </Text>
+                </>
+              )}
+            </ScrollView>
 
-              <StyledPressable className="bg-white p-3 rounded-lg border border-red-500 flex-row items-center justify-center mt-5" onPress={closeModal}>
-                <Ionicons name="close-circle-outline" size={20} color="red" />
-                <StyledText className="text-red-500 ml-2">Затворете</StyledText>
-              </StyledPressable>
-            </StyledView>
-          </StyledView>
-        </StyledModal>
-      )}
-    </StyledView>
+            <TouchableOpacity 
+              style={styles.closeButton} 
+              onPress={closeModal}
+            >
+              <Ionicons name="close-circle-outline" size={20} color="#e74c3c" />
+              <Text style={styles.closeButtonText}>Затворете</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+    </View>
   );
 };
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#000000',
+    padding: 20,
+  },
+  title: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: 'white',
+    textAlign: 'center',
+    marginTop: 40,
+    marginBottom: 20,
+  },
+  generateButton: {
+    backgroundColor: '#1A1A1A',
+    padding: 16,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#22C55E',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 20,
+  },
+  buttonText: {
+    color: 'white',
+    fontSize: 18,
+    marginLeft: 8,
+  },
+  list: {
+    flex: 1,
+  },
+  recipeCard: {
+    backgroundColor: '#1A1A1A',
+    padding: 20,
+    borderRadius: 8,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: '#22C55E',
+  },
+  recipeHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  recipeTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: 'white',
+    flex: 1,
+    marginLeft: 12,
+  },
+  recipeDescription: {
+    color: '#A0A0A0',
+    marginTop: 4,
+    fontStyle: 'italic',
+  },
+  recipeRating: {
+    color: '#FFB800',
+    marginTop: 4,
+  },
+  viewButton: {
+    marginTop: 12,
+    padding: 8,
+    backgroundColor: '#1A1A1A',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#22C55E',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  deleteButton: {
+    marginTop: 12,
+    padding: 8,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#e74c3c',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  deleteButtonText: {
+    color: '#e74c3c',
+    marginLeft: 8,
+  },
+  emptyText: {
+    color: 'white',
+    fontSize: 18,
+    textAlign: 'center',
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalContent: {
+    backgroundColor: '#1A1A1A',
+    padding: 24,
+    borderRadius: 8,
+    width: '90%',
+    maxHeight: '80%',
+    borderWidth: 1,
+    borderColor: '#22C55E',
+  },
+  modalScroll: {
+    maxHeight: '90%',
+  },
+  modalTitle: {
+    fontSize: 22,
+    fontWeight: 'bold',
+    color: 'white',
+    marginBottom: 8,
+  },
+  modalDescription: {
+    color: '#A0A0A0',
+    fontStyle: 'italic',
+    marginBottom: 8,
+  },
+  instructions: {
+    color: '#E5E5E5',
+    lineHeight: 24,
+    fontSize: 16,
+    marginTop: 16,
+    textAlign: 'left',
+    paddingHorizontal: 4,
+  },
+  closeButton: {
+    marginTop: 20,
+    padding: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#e74c3c',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  closeButtonText: {
+    color: '#e74c3c',
+    marginLeft: 8,
+  },
+});
 
 export default RecipesScreen;
