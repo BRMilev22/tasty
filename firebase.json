@@ -1,10 +1,12 @@
 {
   "hosting": {
-    "public": "public",
-    "ignore": [
-      "firebase.json",
-      "**/.*",
-      "**/node_modules/**"
+    "public": "dist",
+    "redirects": [
+      {
+        "source": "/",
+        "destination": "./auth/AuthScreen.html",
+        "type": 301
+      }
     ]
   }
 }
