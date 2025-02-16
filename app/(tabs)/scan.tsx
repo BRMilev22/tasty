@@ -164,10 +164,25 @@ const ExpoCamera = () => {
 
       {/* "Scan Again" Button - Centered & Always Visible */}
       <StyledView className="absolute bottom-12 items-center">
-      <StyledText className="text-white text-center text-lg mb-3">📸 Насочете камерата към баркода</StyledText>
-        <StyledTouchableOpacity onPress={handleScanAgain} className="bg-white p-3 rounded-lg border border-green-500 flex-row items-center">
-          <Ionicons name="camera-outline" size={24} color="black" />
-          <StyledText className="text-black ml-2">Сканирай отново</StyledText>
+        <StyledText className="text-white text-center text-lg mb-3">📸 Насочете камерата към баркода</StyledText>
+        <StyledTouchableOpacity 
+          onPress={handleScanAgain} 
+          className="bg-black p-3 rounded-lg border border-green-500 flex-row items-center justify-center"
+          style={{
+            backgroundColor: '#1A1A1A',
+            padding: 16,
+            borderRadius: 8,
+            borderWidth: 1,
+            borderColor: '#22C55E',
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+        >
+          <Ionicons name="camera-outline" size={24} color="white" />
+          <StyledText className="text-white ml-2" style={{ color: 'white', fontSize: 18, marginLeft: 8 }}>
+            Сканирай отново
+          </StyledText>
         </StyledTouchableOpacity>
       </StyledView>
     </StyledView>

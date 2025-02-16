@@ -1415,7 +1415,7 @@ const DashboardScreen: React.FC<DashboardProps> = ({ onLogout }) => {
             </View>
           ))
         ) : (
-          <Text style={styles.noMealsText}>No meals logged today</Text>
+          <Text style={styles.noMealsText}>Никакви хранения не са добавени днес.</Text>
         )}
       </View>
     );

@@ -69,15 +69,21 @@ const GoalsScreen = () => {
       <StyledView className="bg-black p-4 rounded-lg mb-3 border border-green-500 flex-row items-center">
         <Text className="text-lg">🎯</Text>
         <StyledText className="text-lg font-bold text-white flex-1 ml-3">{item.text}</StyledText>
-        <StyledTouchableOpacity className="bg-white p-2 rounded-lg border border-green-500 mr-2" onPress={() => {
-          setNewGoal(item.text);
-          setSelectedGoalIndex(index);
-          setModalVisible(true);
-        }}>
-          <Ionicons name="pencil-outline" size={20} color="black" />
+        <StyledTouchableOpacity 
+          className="bg-transparent p-2 rounded-lg border border-green-500 mr-2" 
+          onPress={() => {
+            setNewGoal(item.text);
+            setSelectedGoalIndex(index);
+            setModalVisible(true);
+          }}
+        >
+          <Ionicons name="pencil-outline" size={20} color="white" />
         </StyledTouchableOpacity>
-        <StyledTouchableOpacity className="bg-white p-2 rounded-lg border border-green-500" onPress={() => deleteGoal(index)}>
-          <Ionicons name="trash-outline" size={20} color="black" />
+        <StyledTouchableOpacity 
+          className="bg-transparent p-2 rounded-lg border border-red-500" 
+          onPress={() => deleteGoal(index)}
+        >
+          <Ionicons name="trash-outline" size={20} color="#e74c3c" />
         </StyledTouchableOpacity>
       </StyledView>
     </Animated.View>
@@ -97,8 +103,11 @@ const GoalsScreen = () => {
           value={newGoal}
           onChangeText={setNewGoal}
         />
-        <StyledTouchableOpacity className="bg-white p-3 rounded-lg border border-green-500" onPress={addGoal}>
-          <Ionicons name="add" size={24} color="black" />
+        <StyledTouchableOpacity 
+          className="bg-[#1A1A1A] p-3 rounded-lg border border-green-500" 
+          onPress={addGoal}
+        >
+          <Ionicons name="add" size={24} color="white" />
         </StyledTouchableOpacity>
       </StyledView>
 

@@ -3,7 +3,7 @@ import { View, Text, FlatList, TouchableOpacity, Alert, Modal, Pressable, Scroll
 import { collection, onSnapshot, addDoc, getDocs, doc, deleteDoc } from 'firebase/firestore';
 import { db } from '../../firebaseConfig';
 import { getAuth } from 'firebase/auth';
-import { fetchRecipesFromCohere } from '../../services/recipeService';
+import { fetchRecipesFromBgGPT } from '../../services/recipeService';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 
 const auth = getAuth();
@@ -54,7 +54,7 @@ const RecipesScreen = () => {
         return;
       }
 
-      const generatedRecipes = await fetchRecipesFromCohere(inventory);
+      const generatedRecipes = await fetchRecipesFromBgGPT(inventory);
 
       for (const recipe of generatedRecipes) {
         await addDoc(collection(db, `users/${userId}/recipes`), recipe);
@@ -94,9 +94,13 @@ const RecipesScreen = () => {
     <View style={styles.recipeCard}>
       <View style={styles.recipeHeader}>
         <Ionicons name="restaurant-outline" size={24} color="white" />
-        <Text style={styles.recipeTitle}>{item.title}</Text>
+        <Text style={styles.recipeTitle}>
+          {item.title.replace(/"/g, '').replace(/,$/, '').trim()}
+        </Text>
       </View>
-      <Text style={styles.recipeDescription}>{item.description}</Text>
+      <Text style={styles.recipeDescription}>
+        {item.description.replace(/"/g, '').replace(/,$/, '').trim()}
+      </Text>
       <Text style={styles.recipeRating}>Оценка: {'⭐'.repeat(item.rating)}</Text>
 
       <TouchableOpacity 
@@ -148,8 +152,12 @@ const RecipesScreen = () => {
             <ScrollView style={styles.modalScroll}>
               {selectedRecipe && (
                 <>
-                  <Text style={styles.modalTitle}>{selectedRecipe.title}</Text>
-                  <Text style={styles.modalDescription}>{selectedRecipe.description}</Text>
+                  <Text style={styles.modalTitle}>
+                    {selectedRecipe.title.replace(/"/g, '').replace(/,$/, '').trim()}
+                  </Text>
+                  <Text style={styles.modalDescription}>
+                    {selectedRecipe.description.replace(/"/g, '').replace(/,$/, '').trim()}
+                  </Text>
                   <Text style={styles.recipeRating}>Оценка: {'⭐'.repeat(selectedRecipe.rating)}</Text>
                   
                   <Text style={styles.instructions}>
@@ -171,6 +179,11 @@ const RecipesScreen = () => {
                               .replace(/^fullRecipe": \[/, '')
                               .replace(/^],$/, '')
                               .replace(/,$/, '')
+                              .replace(/rating":\d+/, '')
+                              .replace(/rating":/, '')
+                              .replace(/},?$/, '')
+                              .replace(/"/g, '')
+                              .replace(/\d+$/, '')
                               .trim()
                             )
                             .filter(step => 
@@ -179,7 +192,8 @@ const RecipesScreen = () => {
                               step !== ']' && 
                               !step.match(/^",$/) && 
                               !step.match(/^description":/) && 
-                              !step.match(/^fullRecipe":/)
+                              !step.match(/^fullRecipe":/) &&
+                              !step.match(/^rating":/)
                             )
                             .join('\n\n');
                         }
