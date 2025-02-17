@@ -1,49 +1,117 @@
-import React from 'react';
-import { View, Text, Image, TouchableOpacity, StyleSheet, Dimensions, Modal, FlatList } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, Image, TouchableOpacity, StyleSheet, Dimensions, Modal, FlatList, TextInput, ActivityIndicator, Alert } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
-
-interface Meal {
-  id: string;
-  name: string;
-  calories: number;
-  protein: number;
-  carbs: number;
-  fats: number;
-  image?: string;
-}
+import { fetchRandomMeals, getFavoriteMeals, toggleFavorite } from '../services/mealService';
+import { Meal } from '../data/predefinedMeals';
+import { auth } from '../../firebaseConfig';
 
 interface MealSelectorProps {
   onSelect: (meal: Meal) => void;
   onManualAdd: () => void;
 }
 
-const predefinedMeals: Meal[] = [
-  {
-    id: '1',
-    name: 'Овесена каша',
-    calories: 307,
-    protein: 13,
-    carbs: 55,
-    fats: 5,
-    image: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRsoi_fZKXZ4mTHNc99gpyFQyh9beF3AFzRYg&s',
-  },
-  {
-    id: '2',
-    name: 'Пилешки гърди',
-    calories: 165,
-    protein: 31,
-    carbs: 0,
-    fats: 3.6,
-    image: 'https://www.lunchbox.eu/wp-content/uploads/2020/08/flavouredsome-chiken-brest.jpg',
-  },
+const categories = [
+  'всички',
+  'закуска',
+  'основно',
+  'салата',
+  'десерт',
+  'снакс',
 ];
 
 const { width: screenWidth } = Dimensions.get('window');
 
 const MealSelector = ({ onSelect, onManualAdd }: MealSelectorProps) => {
-  const [selectedMeal, setSelectedMeal] = React.useState<Meal | null>(null);
+  const [meals, setMeals] = useState<Meal[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [favorites, setFavorites] = useState<string[]>([]);
+  const [selectedMeal, setSelectedMeal] = useState<Meal | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState('всички');
+  const [refreshing, setRefreshing] = useState(false);
+  const [showOnlyFavorites, setShowOnlyFavorites] = useState(false);
+
+  useEffect(() => {
+    loadMeals();
+    loadFavorites();
+  }, []);
+
+  const loadMeals = async () => {
+    try {
+      setLoading(true);
+      const newMeals = await fetchRandomMeals(200);
+      console.log(`Loaded ${newMeals.length} meals`); // Debug log
+      if (newMeals.length === 0) {
+        // Show error message to user
+        Alert.alert(
+          'Error',
+          'Could not load meals. Please try again later.',
+          [{ text: 'OK' }]
+        );
+      }
+      setMeals(newMeals);
+    } catch (error) {
+      console.error('Error in loadMeals:', error);
+      Alert.alert(
+        'Error',
+        'Failed to load meals. Please check your internet connection and try again.',
+        [{ text: 'OK' }]
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const loadFavorites = async () => {
+    try {
+      const storedFavorites = await getFavoriteMeals();
+      setFavorites(storedFavorites);
+    } catch (error) {
+      console.error('Error loading favorites:', error);
+    }
+  };
+
+  const handleToggleFavorite = async (mealId: string) => {
+    try {
+      if (!auth.currentUser) {
+        Alert.alert('Error', 'Please log in to save favorites');
+        return;
+      }
+      const newFavorites = await toggleFavorite(mealId);
+      setFavorites(newFavorites);
+    } catch (error) {
+      console.error('Error saving favorite:', error);
+      Alert.alert('Error', 'Failed to save favorite');
+    }
+  };
+
+  const filteredMeals = meals.filter(meal => {
+    const matchesCategory = selectedCategory === 'всички' || meal.category === selectedCategory;
+    const matchesSearch = meal.name.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesFavorites = showOnlyFavorites ? favorites.includes(meal.id) : true;
+    return matchesCategory && matchesSearch && matchesFavorites;
+  });
+
+  const renderCategoryPill = ({ item }: { item: string }) => (
+    <TouchableOpacity
+      style={[
+        styles.categoryPill,
+        selectedCategory === item && styles.categoryPillSelected
+      ]}
+      onPress={() => setSelectedCategory(item)}
+    >
+      <Text style={[
+        styles.categoryPillText,
+        selectedCategory === item && styles.categoryPillTextSelected
+      ]}>
+        {item}
+      </Text>
+    </TouchableOpacity>
+  );
 
   const renderMealCard = ({ item }: { item: Meal }) => {
+    const isFavorite = favorites.includes(item.id);
+    
     return (
       <TouchableOpacity
         style={styles.carouselItem}
@@ -54,27 +122,76 @@ const MealSelector = ({ onSelect, onManualAdd }: MealSelectorProps) => {
             source={{ uri: item.image }}
             style={styles.mealImage}
           />
+          <TouchableOpacity
+            style={styles.favoriteButton}
+            onPress={() => handleToggleFavorite(item.id)}
+          >
+            <Ionicons
+              name={isFavorite ? 'heart' : 'heart-outline'}
+              size={20}
+              color={isFavorite ? '#e74c3c' : '#fff'}
+            />
+          </TouchableOpacity>
         </View>
         <View style={styles.mealInfo}>
           <Text style={styles.mealName}>{item.name}</Text>
-          <View style={styles.nutritionRow}>
-            <Text style={styles.mealCalories}>{item.calories} kcal</Text>
-            <View style={styles.macros}>
-              <Text style={styles.macroText}>🥩 {item.protein}g</Text>
-              <Text style={styles.macroText}>🍚 {item.carbs}g</Text>
-              <Text style={styles.macroText}>🥑 {item.fats}g</Text>
-            </View>
+          <Text style={styles.mealCalories}>{item.calories} kcal</Text>
+          <View style={styles.macrosContainer}>
+            <Text style={styles.macroText}>🥩 {item.protein}g</Text>
+            <Text style={styles.macroText}>🍚 {item.carbs}g</Text>
+            <Text style={styles.macroText}>🥑 {item.fats}g</Text>
           </View>
         </View>
       </TouchableOpacity>
     );
   };
 
+  if (loading) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color="#4CAF50" />
+      </View>
+    );
+  }
+
   return (
     <View style={styles.mainContainer}>
+      <View style={styles.searchContainer}>
+        <Ionicons name="search" size={20} color="#999999" style={styles.searchIcon} />
+        <TextInput
+          style={styles.searchInput}
+          placeholder="Търсене на ястие..."
+          placeholderTextColor="#999999"
+          value={searchQuery}
+          onChangeText={setSearchQuery}
+        />
+        <TouchableOpacity 
+          onPress={() => setShowOnlyFavorites(!showOnlyFavorites)} 
+          style={styles.favoriteFilterButton}
+        >
+          <Ionicons 
+            name={showOnlyFavorites ? "heart" : "heart-outline"} 
+            size={24} 
+            color={showOnlyFavorites ? "#e74c3c" : "#4CAF50"} 
+          />
+        </TouchableOpacity>
+        <TouchableOpacity onPress={loadMeals} style={styles.refreshButton}>
+          <Ionicons name="refresh" size={24} color="#4CAF50" />
+        </TouchableOpacity>
+      </View>
+
+      <FlatList
+        horizontal
+        data={categories}
+        renderItem={renderCategoryPill}
+        keyExtractor={(item) => item}
+        style={styles.categoryList}
+        showsHorizontalScrollIndicator={false}
+      />
+
       <View style={styles.container}>
         <FlatList
-          data={predefinedMeals}
+          data={filteredMeals}
           renderItem={renderMealCard}
           keyExtractor={(item) => item.id}
           horizontal
@@ -154,7 +271,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#000000',
   },
   container: {
-    height: 400,
+    height: 380,
     justifyContent: 'center',
     backgroundColor: '#000000',
   },
@@ -185,24 +302,32 @@ const styles = StyleSheet.create({
     resizeMode: 'cover',
   },
   mealInfo: {
-    padding: 15,
-    flex: 1,
-    justifyContent: 'space-between',
+    padding: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   mealName: {
     fontSize: 16,
     fontWeight: 'bold',
     color: '#FFFFFF',
-    marginBottom: 8,
+    textAlign: 'center',
+    marginBottom: 5,
   },
   nutritionRow: {
     flexDirection: 'column',
     gap: 4,
   },
   mealCalories: {
-    fontSize: 15,
+    fontSize: 14,
     color: '#4CAF50',
     fontWeight: '600',
+    textAlign: 'center',
+  },
+  macrosContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    width: '100%',
+    marginTop: 6,
   },
   macros: {
     flexDirection: 'row',
@@ -210,8 +335,8 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   macroText: {
-    fontSize: 13,
-    color: '#999999',
+    fontSize: 14,
+    color: '#FFFFFF',
     fontWeight: '500',
   },
   manualButton: {
@@ -292,6 +417,72 @@ const styles = StyleSheet.create({
   buttonText: {
     color: '#FFFFFF',
     fontWeight: 'bold',
+  },
+  searchContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#1A1A1A',
+    margin: 20,
+    marginTop: 80,
+    marginBottom: 10,
+    borderRadius: 10,
+    paddingHorizontal: 15,
+  },
+  searchIcon: {
+    marginRight: 10,
+  },
+  searchInput: {
+    flex: 1,
+    height: 40,
+    color: '#FFFFFF',
+    fontSize: 16,
+  },
+  categoryList: {
+    marginHorizontal: 20,
+    marginBottom: 8,
+    height: 26,
+  },
+  categoryPill: {
+    paddingHorizontal: 8,
+    paddingVertical: 10,
+    borderRadius: 10,
+    backgroundColor: '#1A1A1A',
+    marginHorizontal: 2,
+    borderWidth: 1,
+    borderColor: '#333333',
+  },
+  categoryPillSelected: {
+    backgroundColor: '#4CAF50',
+    borderColor: '#4CAF50',
+  },
+  categoryPillText: {
+    color: '#FFFFFF',
+    fontSize: 10,
+    fontWeight: '500',
+  },
+  categoryPillTextSelected: {
+    fontWeight: 'bold',
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#000000',
+  },
+  favoriteButton: {
+    position: 'absolute',
+    top: 10,
+    right: 10,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    borderRadius: 20,
+    padding: 8,
+  },
+  refreshButton: {
+    padding: 8,
+  },
+  favoriteFilterButton: {
+    padding: 8,
+    marginRight: 8,
   },
 });
 
