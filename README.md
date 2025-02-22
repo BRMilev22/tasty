@@ -96,16 +96,32 @@
 TASTY/
 ├── .expo/
 ├── .firebase/
+├── android/
 ├── app/                         # All screen components organized by feature
 │   ├── (tabs)/
+│   │   ├── addMeal.tsx
 │   │   ├── dashboard.tsx
 │   │   ├── goals.tsx
 │   │   ├── inventory.tsx
+│   │   ├── planMeal.tsx
 │   │   ├── recipes.tsx
-│   │   └── scan.tsx
+│   │   ├── scan.tsx
+│   │   └── trackWeight.tsx 
 │   ├── auth/                    # Authentication-related screens
 │   │   ├── AuthScreen.tsx
 │   │   └── RegisterScreen.tsx   # Onboarding & Setup screens
+│   ├── components/
+│   │   ├── AddMealButton.tsx
+│   │   ├── LogMealModal.tsx
+│   │   ├── ManualMenuInput.tsx
+│   │   ├── MealSelector.tsx
+│   │   └── NutritionCard.tsx
+│   ├── data/
+│   │   └── predefinedMeals.ts
+│   ├── services/
+│   │   └── mealService.ts
+│   ├── types/
+│   │   └── navigation.ts
 │   ├── _layout_.tsx
 │   ├── editProfile.tsx
 │   ├── genderSelect.tsx
@@ -116,7 +132,6 @@ TASTY/
 ├── components/                  # Reusable components
 │   ├── __tests__/
 │   ├── EditScreenInfo.tsx
-│   ├── ExpoCamera.tsx
 │   ├── ExternalLink.tsx
 │   ├── Logo.tsx
 │   ├── StyledText.tsx
@@ -137,13 +152,17 @@ TASTY/
 │   └── logo.svg
 ├── services/
 │   └── recipeService.ts
+├── types/
+│   └── env.d.ts
 ├── .firebaserc
 ├── .gitignore
 ├── app.json
+├── App.tsx
 ├── babel.config.js
 ├── expo-env.d.ts                # Expo environment type definitions
 ├── firebase.json                # Firebase configuration file
 ├── firebaseConfig.ts            # Firebase SDK initialization and config
+├── firestore.rules
 ├── package-lock.json
 ├── package.json
 ├── README.md
