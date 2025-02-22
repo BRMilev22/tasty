@@ -124,6 +124,7 @@ const RecipesScreen = () => {
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Вашите рецепти</Text>
+      <Text style={styles.subtitle}>Изкуственият интелект не е безгрешен – той е тук, за да Ви вдъхновява, но Вие сте майсторът в кухнята!</Text>
 
       <TouchableOpacity 
         style={styles.generateButton} 
@@ -236,6 +237,15 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginTop: 40,
     marginBottom: 20,
+  },
+  subtitle: {
+    color: 'pink',
+    textAlign: 'center',
+    marginBottom: 20,
+    fontSize: 16,
+    fontWeight: 'bold',
+    marginTop: 0,
+    marginHorizontal: 20,
   },
   generateButton: {
     backgroundColor: '#1A1A1A',
