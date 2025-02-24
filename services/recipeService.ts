@@ -22,7 +22,7 @@ export const fetchRecipesFromBgGPT = async (inventory: string[]): Promise<any> =
     Представи една рецепта, следвайки този формат, на български език, като внимавай за правописни, пунктуационни, граматични и лексикални грешки, трябва да бъде написано правилно, съобразено с правилата и правописа в българския език. Избери рецепта, подходяща за ежедневни ястия в българската кухня, съобразено със съставките.`;
 
     // Replace Cohere API call with local bggpt API call
-    const response = await fetch(`http://YOUR_IP:11434/api/generate`, {
+    const response = await fetch(`http://93.155.203.116:11434/api/generate`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

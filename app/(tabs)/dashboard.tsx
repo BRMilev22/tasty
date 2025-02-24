@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ScrollView, View, ActivityIndicator, Image, StyleSheet, Alert, Animated } from 'react-native';
+import { ScrollView, View, ActivityIndicator, Image, StyleSheet, Alert, Animated, Dimensions } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { useNavigation } from '@react-navigation/native';
@@ -21,6 +21,7 @@ import { showMessage } from 'react-native-flash-message';
 import { NavigationProp } from '@react-navigation/native';
 import LinearGradient from 'react-native-linear-gradient';
 import { LinearGradient as ExpoLinearGradient } from 'expo-linear-gradient';
+import { fetchRandomMeals } from '../services/mealService';
 
 const auth = getAuth();
 const db = getFirestore();
@@ -130,14 +131,25 @@ interface Achievement {
   permanent: boolean;
 }
 
+interface SuggestedMeal {
+  name: string;
+  calories: number;
+  servingSize: string;
+  image: string;
+  protein?: number;
+  carbs?: number;
+  fats?: number;
+  category?: string;
+}
+
 interface MealTimeButtonProps {
   icon: string;
   title: string;
   subtitle?: string;
   calories?: number;
   recommended?: string;
-  onPress: () => void;
   todaysMeals: MealData[];
+  suggestedMeals?: SuggestedMeal[];
 }
 
 interface MealData {
@@ -182,6 +194,7 @@ type RootStackParamList = {
   planMeal: { meal?: PlannedMeal };
   trackWeight: undefined;
   goalsSelect: undefined;
+  mealDetail: { meal: SuggestedMeal };
 };
 
 const calculateAge = (dateOfBirth: any): number => {
@@ -302,6 +315,10 @@ const DashboardScreen: React.FC<DashboardProps> = ({ onLogout }) => {
     snacks: { min: 0, max: 0 },
   });
   const [waterIntake, setWaterIntake] = useState(0);
+  const [breakfastSuggestions, setBreakfastSuggestions] = useState<SuggestedMeal[]>([]);
+  const [lunchSuggestions, setLunchSuggestions] = useState<SuggestedMeal[]>([]);
+  const [dinnerSuggestions, setDinnerSuggestions] = useState<SuggestedMeal[]>([]);
+  const [snackSuggestions, setSnackSuggestions] = useState<SuggestedMeal[]>([]);
 
   useEffect(() => {
     const user = getAuth().currentUser;
@@ -560,6 +577,28 @@ const DashboardScreen: React.FC<DashboardProps> = ({ onLogout }) => {
 
     return () => unsubscribe();
   }, [currentDate]);
+
+  useEffect(() => {
+    const fetchSuggestions = async () => {
+      try {
+        const breakfast = await generateMealSuggestions('breakfast', nutritionStats.targetCalories);
+        const lunch = await generateMealSuggestions('lunch', nutritionStats.targetCalories);
+        const dinner = await generateMealSuggestions('dinner', nutritionStats.targetCalories);
+        const snacks = await generateMealSuggestions('snacks', nutritionStats.targetCalories);
+
+        console.log('Fetched suggestions:', { breakfast, lunch, dinner, snacks }); // Debug log
+
+        setBreakfastSuggestions(breakfast);
+        setLunchSuggestions(lunch);
+        setDinnerSuggestions(dinner);
+        setSnackSuggestions(snacks);
+      } catch (error) {
+        console.error('Error fetching meal suggestions:', error);
+      }
+    };
+
+    fetchSuggestions();
+  }, [nutritionStats.targetCalories]);
 
   const handleLogout = async () => {
     try {
@@ -1021,14 +1060,52 @@ const DashboardScreen: React.FC<DashboardProps> = ({ onLogout }) => {
     );
   };
 
+  const generateMealSuggestions = async (mealType: string, targetCalories: number): Promise<SuggestedMeal[]> => {
+    try {
+      // Get random meals from the API
+      const meals = await fetchRandomMeals(10); // Fetch 10 meals to have enough options
+      
+      // Filter meals based on meal type and calories
+      const filteredMeals = meals.filter(meal => {
+        const mealTypeMap: { [key: string]: string } = {
+          'breakfast': 'закуска',
+          'lunch': 'основно',
+          'dinner': 'основно',
+          'snacks': 'снакс'
+        };
+        
+        const targetType = mealTypeMap[mealType.toLowerCase()];
+        const isCorrectType = meal.category === targetType;
+        const isWithinCalories = meal.calories <= targetCalories;
+        
+        return isCorrectType && isWithinCalories;
+      });
+
+      // Convert to SuggestedMeal format
+      return filteredMeals.slice(0, 2).map(meal => ({
+        name: meal.name,
+        calories: meal.calories,
+        servingSize: '1 serving',
+        image: meal.image,
+        protein: meal.protein,
+        carbs: meal.carbs,
+        fats: meal.fats,
+        category: meal.category
+      }));
+    } catch (error) {
+      console.error('Error generating meal suggestions:', error);
+      return [];
+    }
+  };
+
   const MealTimeButton = ({ 
     icon, 
     title, 
     subtitle, 
     calories, 
     recommended, 
-    onPress,
-    todaysMeals
+    todaysMeals,
+    suggestedMeals: propSuggestedMeals
   }: MealTimeButtonProps) => {
     const [showOptions, setShowOptions] = useState(false);
     const user = auth.currentUser;
@@ -1037,88 +1114,65 @@ const DashboardScreen: React.FC<DashboardProps> = ({ onLogout }) => {
       m.mealType?.toLowerCase() === title.toLowerCase()
     );
 
-    const handleDeleteMeal = async () => {
-      if (!user || !meal) return;
-
-      Alert.alert(
-        translations.deleteConfirmation,
-        translations.deleteConfirmation,
-        [
-          {
-            text: translations.cancel,
-            style: "cancel"
-          },
-          {
-            text: translations.deleteMeal,
-            style: "destructive",
-            onPress: async () => {
-              try {
-                await deleteDoc(doc(db, 'users', user.uid, 'meals', meal.id));
-                setShowOptions(false);
-                showMessage({
-                  message: translations.deleteSuccess,
-                  type: 'success',
-                });
-              } catch (error) {
-                console.error('Error deleting meal:', error);
-                showMessage({
-                  message: translations.deleteError,
-                  type: 'danger',
-                });
-              }
-            }
-          }
-        ]
-      );
-    };
-
     return (
-      <TouchableOpacity 
-        style={styles.mealTimeButton}
-        onPress={meal ? () => setShowOptions(true) : onPress}
-      >
-        <View style={styles.mealTimeContent}>
-          <View style={styles.mealTimeLeft}>
-            <Text style={styles.mealIcon}>{icon}</Text>
-            <View style={styles.mealTimeTexts}>
-              <Text style={styles.mealTimeTitle}>{title}</Text>
-              {subtitle ? (
-                <Text style={styles.mealTimeSubtitle}>{subtitle}</Text>
-              ) : (
-                <Text style={styles.mealTimeRecommended}>
-                  {translations.recommended}: {recommended}
-                </Text>
-              )}
+      <View style={styles.mealTimeSection}>
+        <TouchableOpacity 
+          style={styles.mealTimeButton}
+          onPress={meal ? () => setShowOptions(true) : () => navigation.navigate('addMeal', { mealType: title.toLowerCase() })}
+        >
+          <View style={styles.mealTimeContent}>
+            <View style={styles.mealTimeLeft}>
+              <Text style={styles.mealIcon}>{icon}</Text>
+              <View style={styles.mealTimeTexts}>
+                <Text style={styles.mealTimeTitle}>{title}</Text>
+                {subtitle ? (
+                  <Text style={styles.mealTimeSubtitle}>{subtitle}</Text>
+                ) : (
+                  <Text style={styles.mealTimeRecommended}>
+                    {translations.recommended}: {recommended}
+                  </Text>
+                )}
+              </View>
+            </View>
+            <View style={styles.mealTimeRight}>
+              {calories && <Text style={styles.mealTimeCalories}>{calories} kcal</Text>}
+              <TouchableOpacity 
+                style={meal ? styles.moreButton : styles.addButton}
+                onPress={meal ? () => setShowOptions(true) : () => navigation.navigate('addMeal', { mealType: title.toLowerCase() })}
+              >
+                <Ionicons name={meal ? "ellipsis-horizontal" : "add"} size={24} color={meal ? "#666" : "#333"} />
+              </TouchableOpacity>
             </View>
           </View>
-          <View style={styles.mealTimeRight}>
-            {calories && <Text style={styles.mealTimeCalories}>{calories} kcal</Text>}
-            {meal ? (
-              <TouchableOpacity 
-                style={styles.moreButton}
-                onPress={() => setShowOptions(true)}
+        </TouchableOpacity>
+
+        {!meal && Array.isArray(propSuggestedMeals) && propSuggestedMeals.length > 0 && (
+          <View style={styles.suggestedMealsContainer}>
+            {propSuggestedMeals.map((suggestion, index) => (
+              <TouchableOpacity
+                key={index}
+                onPress={() => navigation.navigate('mealDetail', { meal: suggestion })}
               >
-                <Ionicons name="ellipsis-horizontal" size={24} color="#666" />
+                <View style={styles.suggestedMealItem}>
+                  <View style={styles.bulletPoint} />
+                  <Image 
+                    source={{ uri: suggestion.image }}
+                    style={styles.suggestedMealImage}
+                  />
+                  <View style={styles.suggestedMealContent}>
+                    <Text style={styles.suggestedMealName}>{suggestion.name}</Text>
+                    <Text style={styles.suggestedMealDetails}>
+                      {suggestion.servingSize} • {suggestion.calories} kcal
+                    </Text>
+                  </View>
+                </View>
               </TouchableOpacity>
-            ) : (
-              <TouchableOpacity 
-                style={styles.addButton}
-                onPress={onPress}
-              >
-                <Ionicons name="add" size={24} color="#333" />
-              </TouchableOpacity>
-            )}
+            ))}
           </View>
-        </View>
+        )}
+
         {showOptions && (
           <View style={styles.mealOptions}>
-            <TouchableOpacity 
-              style={styles.mealOptionButton}
-              onPress={handleDeleteMeal}
-            >
-              <Ionicons name="trash-outline" size={20} color="#e74c3c" />
-              <Text style={styles.mealOptionText}>{translations.deleteMeal}</Text>
-            </TouchableOpacity>
             <TouchableOpacity 
               style={styles.mealOptionButton}
               onPress={() => setShowOptions(false)}
@@ -1128,7 +1182,7 @@ const DashboardScreen: React.FC<DashboardProps> = ({ onLogout }) => {
             </TouchableOpacity>
           </View>
         )}
-      </TouchableOpacity>
+      </View>
     );
   };
 
@@ -1261,52 +1315,52 @@ const DashboardScreen: React.FC<DashboardProps> = ({ onLogout }) => {
       remaining = 0;
     }
     
-    // Calculate macro percentages
-    const carbsProgress = Math.min((nutritionStats.carbs / nutritionStats.targetCarbs) * 100, 100);
-    const proteinProgress = Math.min((nutritionStats.protein / nutritionStats.targetProtein) * 100, 100);
-    const fatsProgress = Math.min((nutritionStats.fats / nutritionStats.targetFats) * 100, 100);
+    // Calculate percentages for macros
+    const carbsPercent = Math.round((nutritionStats.carbs / nutritionStats.targetCarbs) * 100);
+    const proteinPercent = Math.round((nutritionStats.protein / nutritionStats.targetProtein) * 100);
+    const fatsPercent = Math.round((nutritionStats.fats / nutritionStats.targetFats) * 100);
     
     return (
       <View style={styles.calorieCircleContainer}>
-        <View style={styles.mainStats}>
-          <View style={styles.statColumn}>
-            <Text style={styles.statValue}>{calories}</Text>
-            <Text style={styles.statLabel}>приети</Text>
+        <View style={styles.macroRow}>
+          <View style={styles.macroCircle}>
+            <Text style={styles.macroValue}>{calories}</Text>
+            <Text style={styles.macroLabel}>приети</Text>
           </View>
           
-          <View style={styles.centerCircle}>
+          <View style={[styles.macroCircle, styles.mainCircle]}>
             <Text style={styles.remainingCalories}>{remaining}</Text>
-            <Text style={styles.remainingLabel}>калории остават</Text>
+            <Text style={styles.remainingLabel}>калории{'\n'}остават</Text>
           </View>
           
-          <View style={styles.statColumn}>
-            <Text style={styles.statValue}>0</Text>
-            <Text style={styles.statLabel}>изгорени</Text>
+          <View style={styles.macroCircle}>
+            <Text style={styles.macroValue}>0</Text>
+            <Text style={styles.macroLabel}>изгорени</Text>
           </View>
         </View>
         
-        <View style={styles.macroStats}>
-          <View style={styles.macroItem}>
-            <Text style={styles.macroLabel}>Въглехидрати</Text>
-            <Text style={styles.macroValue}>{nutritionStats.carbs} / {nutritionStats.targetCarbs}g</Text>
-            <View style={styles.progressBar}>
-              <View style={[styles.progressFill, { width: `${carbsProgress}%` }]} />
+        <View style={styles.macroStatsRow}>
+          <View style={styles.macroStat}>
+            <Text style={styles.macroStatLabel}>Въглехидрати</Text>
+            <View style={styles.macroStatValues}>
+              <Text style={styles.macroStatValue}>{nutritionStats.carbs}/{nutritionStats.targetCarbs}g</Text>
+              <Text style={styles.macroStatPercent}>{carbsPercent}%</Text>
             </View>
           </View>
           
-          <View style={styles.macroItem}>
-            <Text style={styles.macroLabel}>Протеини (белтъци)</Text>
-            <Text style={styles.macroValue}>{nutritionStats.protein} / {nutritionStats.targetProtein}g</Text>
-            <View style={styles.progressBar}>
-              <View style={[styles.progressFill, { width: `${proteinProgress}%` }]} />
+          <View style={styles.macroStat}>
+            <Text style={styles.macroStatLabel}>Протеини</Text>
+            <View style={styles.macroStatValues}>
+              <Text style={styles.macroStatValue}>{nutritionStats.protein}/{nutritionStats.targetProtein}g</Text>
+              <Text style={styles.macroStatPercent}>{proteinPercent}%</Text>
             </View>
           </View>
           
-          <View style={styles.macroItem}>
-            <Text style={styles.macroLabel}>Мазнини</Text>
-            <Text style={styles.macroValue}>{nutritionStats.fats} / {nutritionStats.targetFats}g</Text>
-            <View style={styles.progressBar}>
-              <View style={[styles.progressFill, { width: `${fatsProgress}%` }]} />
+          <View style={styles.macroStat}>
+            <Text style={styles.macroStatLabel}>Мазнини</Text>
+            <View style={styles.macroStatValues}>
+              <Text style={styles.macroStatValue}>{nutritionStats.fats}/{nutritionStats.targetFats}g</Text>
+              <Text style={styles.macroStatPercent}>{fatsPercent}%</Text>
             </View>
           </View>
         </View>
@@ -1552,8 +1606,8 @@ const DashboardScreen: React.FC<DashboardProps> = ({ onLogout }) => {
                           m.mealType?.toLowerCase() === 'breakfast'
                         )?.calories}
                         recommended={`${mealRecommendations.breakfast.min} - ${mealRecommendations.breakfast.max} kcal`}
-                        onPress={() => navigation.navigate('addMeal', { mealType: 'breakfast' })}
                         todaysMeals={todaysMeals}
+                        suggestedMeals={breakfastSuggestions}
                       />
                       <MealTimeButton
                         icon="🍴"
@@ -1567,8 +1621,8 @@ const DashboardScreen: React.FC<DashboardProps> = ({ onLogout }) => {
                           m.mealType?.toLowerCase() === 'lunch'
                         )?.calories}
                         recommended={`${mealRecommendations.lunch.min} - ${mealRecommendations.lunch.max} kcal`}
-                        onPress={() => navigation.navigate('addMeal', { mealType: 'lunch' })}
                         todaysMeals={todaysMeals}
+                        suggestedMeals={lunchSuggestions}
                       />
                       <MealTimeButton
                         icon="🍽️"
@@ -1582,8 +1636,8 @@ const DashboardScreen: React.FC<DashboardProps> = ({ onLogout }) => {
                           m.mealType?.toLowerCase() === 'dinner'
                         )?.calories}
                         recommended={`${mealRecommendations.dinner.min} - ${mealRecommendations.dinner.max} kcal`}
-                        onPress={() => navigation.navigate('addMeal', { mealType: 'dinner' })}
                         todaysMeals={todaysMeals}
+                        suggestedMeals={dinnerSuggestions}
                       />
                       <MealTimeButton
                         icon="🍪"
@@ -1597,8 +1651,8 @@ const DashboardScreen: React.FC<DashboardProps> = ({ onLogout }) => {
                           m.mealType?.toLowerCase() === 'snacks'
                         )?.calories}
                         recommended={`${mealRecommendations.snacks.min} - ${mealRecommendations.snacks.max} kcal`}
-                        onPress={() => navigation.navigate('addMeal', { mealType: 'snacks' })}
                         todaysMeals={todaysMeals}
+                        suggestedMeals={snackSuggestions}
                       />
                       <View style={styles.actionButtons}>
                         <TouchableOpacity
@@ -2005,72 +2059,76 @@ const styles = StyleSheet.create({
   },
   calorieCircleContainer: {
     backgroundColor: '#000000',
-    padding: 20,
-    marginTop: 20,
+    padding: 15,
+    marginTop: 10,
   },
-  mainStats: {
+  macroRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 30,
+    paddingHorizontal: 10,
   },
-  statColumn: {
+  macroCircle: {
     alignItems: 'center',
+    width: Dimensions.get('window').width * 0.2,
   },
-  statValue: {
+  mainCircle: {
+    width: Dimensions.get('window').width * 0.25,
+    height: Dimensions.get('window').width * 0.25,
+    borderRadius: (Dimensions.get('window').width * 0.25) / 2,
+    borderWidth: 3,
+    borderColor: '#4CAF50',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginHorizontal: 10,
+  },
+  macroValue: {
+    fontSize: 18,
+    color: '#FFFFFF',
+    fontWeight: 'bold',
+  },
+  macroLabel: {
+    fontSize: 12,
+    color: '#999999',
+    textAlign: 'center',
+  },
+  remainingCalories: {
     fontSize: 24,
     color: '#FFFFFF',
     fontWeight: 'bold',
   },
-  statLabel: {
+  remainingLabel: {
     fontSize: 12,
     color: '#999999',
-    marginTop: 4,
+    textAlign: 'center',
   },
-  centerCircle: {
-    width: 150,
-    height: 150,
-    borderRadius: 75,
-    borderWidth: 2,
-    borderColor: '#4CAF50',
+  macroStatsRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 15,
+    paddingHorizontal: 10,
+  },
+  macroStat: {
+    flex: 1,
     alignItems: 'center',
-    justifyContent: 'center',
   },
-  remainingCalories: {
-    fontSize: 36,
-    color: '#FFFFFF',
-    fontWeight: 'bold',
-  },
-  remainingLabel: {
-    fontSize: 14,
+  macroStatLabel: {
+    fontSize: 12,
     color: '#999999',
-    marginTop: 4,
+    marginBottom: 2,
   },
-  macroStats: {
-    marginTop: 20,
+  macroStatValues: {
+    alignItems: 'center',
   },
-  macroItem: {
-    marginBottom: 15,
-  },
-  macroLabel: {
-    fontSize: 16,
+  macroStatValue: {
+    fontSize: 12,
     color: '#FFFFFF',
-    marginBottom: 4,
+    fontWeight: '500',
   },
-  macroValue: {
-    fontSize: 14,
-    color: '#999999',
-    marginBottom: 8,
-  },
-  progressBar: {
-    height: 4,
-    backgroundColor: '#333333',
-    borderRadius: 2,
-  },
-  progressFill: {
-    height: '100%',
-    backgroundColor: '#4CAF50',
-    borderRadius: 2,
+  macroStatPercent: {
+    fontSize: 12,
+    color: '#4CAF50',
+    fontWeight: '500',
   },
   dateContainer: {
     marginTop: 15,
@@ -2163,6 +2221,47 @@ const styles = StyleSheet.create({
     color: '#999999',
     textAlign: 'center',
     fontStyle: 'italic',
+  },
+  mealTimeSection: {
+    marginBottom: 15,
+  },
+  suggestedMealsContainer: {
+    marginLeft: 40,
+    marginTop: 10,
+  },
+  suggestedMealItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginVertical: 8,
+    paddingRight: 10,
+  },
+  bulletPoint: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#4CAF50',
+    marginRight: 12,
+    position: 'absolute',
+    left: -20,
+  },
+  suggestedMealContent: {
+    flex: 1,
+  },
+  suggestedMealName: {
+    fontSize: 14,
+    color: '#FFFFFF',
+    fontWeight: '500',
+  },
+  suggestedMealDetails: {
+    fontSize: 12,
+    color: '#999999',
+    marginTop: 2,
+  },
+  suggestedMealImage: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    marginRight: 12,
   },
 });
 

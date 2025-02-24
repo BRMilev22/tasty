@@ -12,11 +12,11 @@ import GoalSelectionScreen from './goalsSelect';
 import HeightSelectionScreen from './heightSelect';
 import WeightSelectionScreen from './weightSelect';
 import EditProfileScreen from './editProfile';
-import AddMealScreen from './(tabs)/addMeal';
 import ExpoCamera from './(tabs)/scan'
 import PlanMealScreen from './(tabs)/planMeal';
 import { ExternalLink } from '@/components/ExternalLink';
 import TrackWeightScreen from './(tabs)/trackWeight';
+import MealDetailScreen from './(tabs)/mealDetail';
 const Stack = createNativeStackNavigator();
 
 const _layout = () => {
@@ -103,10 +103,14 @@ const _layout = () => {
   <Stack.Screen name="heightSelect" component={HeightSelectionScreen} options={{ headerShown: false }} />
   <Stack.Screen name="weightSelect" component={WeightSelectionScreen} options={{ headerShown: false }} />
   <Stack.Screen name="genderSelect" component={GenderSelectionScreen} options={{ headerShown: false }} />
-  <Stack.Screen name="addMeal" component={AddMealScreen} options={{ headerShown: false }} />
   <Stack.Screen name="scan" component={ExpoCamera} options={{ headerShown: false }} />
   <Stack.Screen name="planMeal" component={PlanMealScreen} options={{ headerShown: false }} />
   <Stack.Screen name="trackWeight" component={TrackWeightScreen} options={{ headerShown: false }} />
+  <Stack.Screen
+    name="mealDetail"
+    component={MealDetailScreen}
+    options={{ headerShown: false }}
+  />
 </Stack.Navigator>
   );
 };

@@ -4,6 +4,7 @@ import Ionicons from 'react-native-vector-icons/Ionicons';
 import { fetchRandomMeals, getFavoriteMeals, toggleFavorite } from '../services/mealService';
 import { Meal } from '../data/predefinedMeals';
 import { auth } from '../../firebaseConfig';
+import { useNavigation, NavigationProp } from '@react-navigation/native';
 
 interface MealSelectorProps {
   onSelect: (meal: Meal) => void;
@@ -21,6 +22,12 @@ const categories = [
 
 const { width: screenWidth } = Dimensions.get('window');
 
+// Add this type definition
+type RootStackParamList = {
+  mealDetail: { meal: any };
+  // ... other routes
+};
+
 const MealSelector = ({ onSelect, onManualAdd }: MealSelectorProps) => {
   const [meals, setMeals] = useState<Meal[]>([]);
   const [loading, setLoading] = useState(true);
@@ -30,6 +37,7 @@ const MealSelector = ({ onSelect, onManualAdd }: MealSelectorProps) => {
   const [selectedCategory, setSelectedCategory] = useState('всички');
   const [refreshing, setRefreshing] = useState(false);
   const [showOnlyFavorites, setShowOnlyFavorites] = useState(false);
+  const navigation = useNavigation<NavigationProp<RootStackParamList>>();
 
   useEffect(() => {
     loadMeals();
@@ -115,7 +123,7 @@ const MealSelector = ({ onSelect, onManualAdd }: MealSelectorProps) => {
     return (
       <TouchableOpacity
         style={styles.carouselItem}
-        onPress={() => setSelectedMeal(item)}
+        onPress={() => navigation.navigate('mealDetail', { meal: item })}
       >
         <View style={styles.imageContainer}>
           <Image
