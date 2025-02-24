@@ -12,6 +12,29 @@ interface Ingredient {
   image: string;
 }
 
+const translations = {
+  block: 'Блокирай',
+  like: 'Харесай',
+  save: 'Запази',
+  add: 'Добави',
+  more: 'Още',
+  prepTime: 'минути подготовка',
+  cookTime: 'минути готвене',
+  amountToEat: 'Количество за хапване',
+  serving: 'порция',
+  calories: 'Калории',
+  ingredients: 'Съставки',
+  ingredientsFor: 'за количество за хапване от',
+  servings: 'порции',
+  directions: 'Начин на приготвяне',
+  directionsFor: 'за оригинална рецепта от 1 порция',
+  addSuccess: 'Ястието беше добавено успешно',
+  addError: 'Грешка при добавяне на ястието',
+  carbs: 'Въглехидрати',
+  fat: 'Мазнини',
+  protein: 'Протеин'
+};
+
 const MealDetailScreen = () => {
   const route = useRoute();
   const navigation = useNavigation();
@@ -81,14 +104,14 @@ const MealDetailScreen = () => {
 
       await addDoc(collection(db, 'users', user.uid, 'meals'), mealData);
       showMessage({
-        message: 'Ястието беше добавено успешно',
+        message: translations.addSuccess,
         type: 'success',
       });
       navigation.goBack();
     } catch (error) {
       console.error('Error adding meal:', error);
       showMessage({
-        message: 'Грешка при добавяне на ястието',
+        message: translations.addError,
         type: 'danger',
       });
     }
@@ -112,99 +135,85 @@ const MealDetailScreen = () => {
       
       <Image source={{ uri: meal.image }} style={styles.mealImage} />
       
-      <View style={styles.actionBar}>
+      <View style={styles.actionButtons}>
         <TouchableOpacity style={styles.actionButton}>
-          <Ionicons name="thumbs-down" size={24} color="#FF6B6B" />
-          <Text style={styles.actionText}>Block</Text>
+          <Ionicons name="thumbs-down" size={24} color="#ff4444" />
+          <Text style={styles.actionButtonText}>{translations.block}</Text>
         </TouchableOpacity>
-        
         <TouchableOpacity style={styles.actionButton}>
           <Ionicons name="thumbs-up" size={24} color="#4CAF50" />
-          <Text style={styles.actionText}>Like</Text>
+          <Text style={styles.actionButtonText}>{translations.like}</Text>
         </TouchableOpacity>
-        
         <TouchableOpacity style={styles.actionButton}>
           <Ionicons name="star" size={24} color="#FFD700" />
-          <Text style={styles.actionText}>Save</Text>
+          <Text style={styles.actionButtonText}>{translations.save}</Text>
         </TouchableOpacity>
-        
         <TouchableOpacity style={styles.actionButton} onPress={handleAddMeal}>
-          <Ionicons name="calendar" size={24} color="#FF9800" />
-          <Text style={styles.actionText}>Add</Text>
+          <Ionicons name="calendar" size={24} color="#FFA500" />
+          <Text style={styles.actionButtonText}>{translations.add}</Text>
         </TouchableOpacity>
-        
         <TouchableOpacity style={styles.actionButton}>
-          <Ionicons name="ellipsis-horizontal" size={24} color="#fff" />
-          <Text style={styles.actionText}>More</Text>
+          <Ionicons name="ellipsis-horizontal" size={24} color="#ffffff" />
+          <Text style={styles.actionButtonText}>{translations.more}</Text>
         </TouchableOpacity>
       </View>
 
       <View style={styles.timeInfo}>
         <View style={styles.timeItem}>
-          <Ionicons name="time-outline" size={24} color="#999" />
-          <Text style={styles.timeText}>5 minutes to prep</Text>
+          <Ionicons name="time-outline" size={24} color="#ffffff" />
+          <Text style={styles.timeText}>5 {translations.prepTime}</Text>
         </View>
         <View style={styles.timeItem}>
-          <Ionicons name="flame-outline" size={24} color="#999" />
-          <Text style={styles.timeText}>15 minutes to cook</Text>
+          <Ionicons name="flame-outline" size={24} color="#ffffff" />
+          <Text style={styles.timeText}>15 {translations.cookTime}</Text>
         </View>
       </View>
 
-      <View style={styles.servingControl}>
-        <Text style={styles.servingLabel}>Amount to eat</Text>
-        <View style={styles.servingAdjust}>
+      <View style={styles.servingSection}>
+        <Text style={styles.sectionTitle}>{translations.amountToEat}</Text>
+        <View style={styles.servingControls}>
           <TouchableOpacity 
-            style={styles.servingButton}
             onPress={() => setServings(Math.max(1, servings - 1))}
+            style={styles.servingButton}
           >
-            <Ionicons name="remove" size={24} color="#FF6B6B" />
+            <Text style={styles.servingButtonText}>-</Text>
           </TouchableOpacity>
           <Text style={styles.servingCount}>{servings}</Text>
           <TouchableOpacity 
-            style={styles.servingButton}
             onPress={() => setServings(servings + 1)}
+            style={styles.servingButton}
           >
-            <Ionicons name="add" size={24} color="#4CAF50" />
+            <Text style={styles.servingButtonText}>+</Text>
           </TouchableOpacity>
-          <Text style={styles.servingUnit}>serving</Text>
+          <Text style={styles.servingText}>{translations.serving}</Text>
         </View>
       </View>
 
       <View style={styles.nutritionInfo}>
-        <View style={styles.macroCircle}>
-          <Text style={styles.macroValue}>{meal.calories * servings}</Text>
-          <Text style={styles.macroLabel}>Calories</Text>
-        </View>
-        <View style={styles.macroDetails}>
-          <Text style={styles.macroText}>
-            {meal.carbs * servings}g Carbs, {meal.fats * servings}g Fat, {meal.protein * servings}g Protein
-          </Text>
-        </View>
+        <Text style={styles.calories}>{meal.calories * servings}</Text>
+        <Text style={styles.caloriesLabel}>{translations.calories}</Text>
+        <Text style={styles.macros}>
+          {meal.carbs * servings}г {translations.carbs}, {meal.fats * servings}г {translations.fat}, {meal.protein * servings}г {translations.protein}
+        </Text>
       </View>
 
-      <Text style={styles.sectionTitle}>Ingredients</Text>
-      <Text style={styles.sectionSubtitle}>for amount to eat of {servings} serving</Text>
-      
-      <View style={styles.ingredientsList}>
-        {ingredients.map((ingredient, index) => (
+      <View style={styles.ingredientsSection}>
+        <Text style={styles.sectionTitle}>{translations.ingredients}</Text>
+        <Text style={styles.sectionSubtitle}>
+          {translations.ingredientsFor} {servings} {servings === 1 ? translations.serving : translations.servings}
+        </Text>
+        {meal.ingredients && meal.ingredients.map((ingredient: any, index: number) => (
           <View key={index} style={styles.ingredientItem}>
-            <Image 
-              source={{ uri: ingredient.image }} 
-              style={styles.ingredientImage}
-            />
-            <View style={styles.ingredientInfo}>
-              <Text style={styles.ingredientName}>{ingredient.name}</Text>
-              <Text style={styles.ingredientMeasure}>{ingredient.measure}</Text>
-            </View>
+            <Text style={styles.ingredientName}>{ingredient.name}</Text>
+            <Text style={styles.ingredientMeasure}>{ingredient.measure}</Text>
           </View>
         ))}
       </View>
 
-      <Text style={styles.sectionTitle}>Directions</Text>
-      <Text style={styles.sectionSubtitle}>for original recipe of 1 serving.</Text>
-      
-      <View style={styles.directionsList}>
-        <Text style={styles.directionsText}>{instructions[0]}</Text>
+      <View style={styles.directionsSection}>
+        <Text style={styles.sectionTitle}>{translations.directions}</Text>
+        <Text style={styles.sectionSubtitle}>{translations.directionsFor}</Text>
+        <Text style={styles.instructions}>{meal.instructions}</Text>
       </View>
     </ScrollView>
   );
@@ -213,7 +222,7 @@ const MealDetailScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#000',
+    backgroundColor: '#000000',
   },
   backButton: {
     position: 'absolute',
@@ -234,135 +243,125 @@ const styles = StyleSheet.create({
     height: 300,
     marginTop: 20,
   },
-  actionBar: {
+  actionButtons: {
     flexDirection: 'row',
     justifyContent: 'space-around',
-    paddingVertical: 15,
+    padding: 15,
     borderBottomWidth: 1,
     borderBottomColor: '#333',
   },
   actionButton: {
     alignItems: 'center',
   },
-  actionText: {
-    color: '#999',
-    fontSize: 12,
+  actionButtonText: {
+    color: '#ffffff',
     marginTop: 5,
+    fontSize: 12,
   },
   timeInfo: {
     flexDirection: 'row',
     justifyContent: 'space-around',
-    paddingVertical: 20,
+    padding: 15,
+    borderBottomWidth: 1,
+    borderBottomColor: '#333',
   },
   timeItem: {
     flexDirection: 'row',
     alignItems: 'center',
   },
   timeText: {
-    color: '#999',
-    marginLeft: 10,
+    color: '#ffffff',
+    marginLeft: 8,
   },
-  servingControl: {
+  servingSection: {
     padding: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: '#333',
   },
-  servingLabel: {
-    color: '#fff',
-    fontSize: 16,
+  sectionTitle: {
+    color: '#ffffff',
+    fontSize: 20,
+    fontWeight: 'bold',
     marginBottom: 10,
   },
-  servingAdjust: {
+  servingControls: {
     flexDirection: 'row',
     alignItems: 'center',
   },
   servingButton: {
-    padding: 10,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#333',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  servingButtonText: {
+    color: '#ffffff',
+    fontSize: 24,
   },
   servingCount: {
-    color: '#fff',
-    fontSize: 20,
+    color: '#ffffff',
+    fontSize: 24,
     marginHorizontal: 20,
   },
-  servingUnit: {
+  servingText: {
     color: '#999',
     marginLeft: 10,
   },
   nutritionInfo: {
+    alignItems: 'center',
     padding: 20,
+    borderTopWidth: 1,
     borderBottomWidth: 1,
-    borderBottomColor: '#333',
+    borderColor: '#333',
   },
-  macroCircle: {
-    alignItems: 'center',
-    marginBottom: 10,
-  },
-  macroValue: {
-    color: '#fff',
-    fontSize: 24,
+  calories: {
+    color: '#ffffff',
+    fontSize: 48,
     fontWeight: 'bold',
   },
-  macroLabel: {
+  caloriesLabel: {
     color: '#999',
+    fontSize: 16,
   },
-  macroDetails: {
-    alignItems: 'center',
+  macros: {
+    color: '#ffffff',
+    marginTop: 10,
   },
-  macroText: {
-    color: '#fff',
-  },
-  sectionTitle: {
-    color: '#fff',
-    fontSize: 20,
-    fontWeight: 'bold',
-    margin: 20,
-    marginBottom: 5,
+  ingredientsSection: {
+    padding: 20,
   },
   sectionSubtitle: {
     color: '#999',
-    marginHorizontal: 20,
+    marginBottom: 15,
+  },
+  ingredientItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: '#333',
+  },
+  ingredientName: {
+    color: '#ffffff',
+    fontSize: 16,
+  },
+  ingredientMeasure: {
+    color: '#999',
+    fontSize: 16,
+  },
+  directionsSection: {
+    padding: 20,
+  },
+  instructions: {
+    color: '#ffffff',
+    fontSize: 16,
+    lineHeight: 24,
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: '#000',
-  },
-  ingredientsList: {
-    padding: 20,
-  },
-  ingredientItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 15,
-  },
-  ingredientImage: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    marginRight: 15,
-  },
-  ingredientInfo: {
-    flex: 1,
-  },
-  ingredientName: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '500',
-  },
-  ingredientMeasure: {
-    color: '#999',
-    fontSize: 14,
-    marginTop: 2,
-  },
-  directionsList: {
-    padding: 20,
-    paddingTop: 10,
-  },
-  directionsText: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    lineHeight: 24,
   },
 });
 

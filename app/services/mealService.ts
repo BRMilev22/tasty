@@ -1,99 +1,133 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Meal } from '../data/predefinedMeals';
 
+// Update to use your actual local IP address
+const API_URL = 'http://192.168.0.125:3000';
 const FAVORITES_STORAGE_KEY = 'favorite_meals';
 
-interface MealDBResponse {
-  meals: {
-    idMeal: string;
-    strMeal: string;
-    strMealThumb: string;
-    strCategory: string;
-  }[];
+interface DBMeal {
+  id: string;
+  name: string;
+  category: string;
+  area: string;
+  instructions: string;
+  image: string;
+  youtube_link: string;
+  source: string;
+  [key: string]: any; // For dynamic ingredient and measure fields
 }
 
-// Estimated average nutritional values by category
-const nutritionEstimates: { [key: string]: { calories: number; protein: number; carbs: number; fats: number } } = {
-  Breakfast: { calories: 350, protein: 15, carbs: 45, fats: 12 },
-  Starter: { calories: 200, protein: 8, carbs: 20, fats: 10 },
-  Side: { calories: 150, protein: 5, carbs: 25, fats: 5 },
-  Dessert: { calories: 300, protein: 5, carbs: 45, fats: 12 },
-  Vegetarian: { calories: 400, protein: 15, carbs: 55, fats: 15 },
-  Seafood: { calories: 350, protein: 35, carbs: 10, fats: 18 },
-  Beef: { calories: 450, protein: 40, carbs: 8, fats: 25 },
-  Chicken: { calories: 350, protein: 35, carbs: 5, fats: 15 },
-  Pasta: { calories: 450, protein: 15, carbs: 65, fats: 12 },
-  Pork: { calories: 400, protein: 35, carbs: 5, fats: 25 },
-  Lamb: { calories: 420, protein: 38, carbs: 5, fats: 25 },
-  Goat: { calories: 380, protein: 35, carbs: 5, fats: 20 },
-  Miscellaneous: { calories: 350, protein: 20, carbs: 35, fats: 15 },
+// Estimated calories by category
+const categoryCalories: { [key: string]: { calories: number; protein: number; carbs: number; fats: number } } = {
+  'Вегетариански': { calories: 400, protein: 15, carbs: 55, fats: 15 },
+  'Десерт': { calories: 300, protein: 5, carbs: 45, fats: 12 },
+  'Основно ястие': { calories: 450, protein: 35, carbs: 30, fats: 20 },
+  'Салата': { calories: 200, protein: 8, carbs: 20, fats: 10 },
+  'Супа': { calories: 250, protein: 12, carbs: 25, fats: 8 },
+  'Предястие': { calories: 200, protein: 8, carbs: 20, fats: 10 },
+  'Тестени': { calories: 450, protein: 15, carbs: 65, fats: 12 },
+  'Морски дарове': { calories: 350, protein: 35, carbs: 10, fats: 18 },
+  'Свинско месо': { calories: 400, protein: 35, carbs: 5, fats: 25 },
+  'Пилешко месо': { calories: 350, protein: 35, carbs: 5, fats: 15 },
+  'Телешко месо': { calories: 450, protein: 40, carbs: 8, fats: 25 },
+};
+
+// Update the category mapping
+const mapCategory = (category: string): string => {
+  // Map database categories to app categories
+  const categoryMap: { [key: string]: string } = {
+    'Вегетариански': 'закуска',
+    'Десерт': 'снакс',
+    'Основно': 'обяд',
+    'Салата': 'закуска',
+    'Супа': 'обяд',
+    'Предястие': 'закуска',
+    'Тестени': 'обяд',
+    'Морски дарове': 'обяд',
+    'Свинско': 'обяд',
+    'Пилешко': 'обяд',
+    'Телешко': 'обяд',
+    'Закуска': 'закуска',
+    'Снакс': 'снакс',
+    'Риба': 'обяд',
+    'Ястие': 'обяд'
+  };
+
+  // Log the category for debugging
+  console.log('Mapping category:', category, 'to:', categoryMap[category] || 'обяд');
+  
+  return categoryMap[category] || 'обяд';
 };
 
 export const fetchRandomMeals = async (number: number = 50): Promise<Meal[]> => {
   try {
-    const meals: Meal[] = [];
-    const categories = ['Breakfast', 'Starter', 'Side', 'Dessert', 'Vegetarian', 'Seafood', 
-                       'Beef', 'Chicken', 'Pasta', 'Pork', 'Lamb', 'Goat', 'Miscellaneous'];
-    
-    // Fetch meals from different categories to ensure variety
-    for (const category of categories) {
-      const response = await fetch(
-        `https://www.themealdb.com/api/json/v1/1/filter.php?c=${category}`
-      );
-      
-      if (!response.ok) {
-        console.error('API Response not OK for category:', category);
-        continue;
-      }
+    const url = `${API_URL}/recipes/random`;
+    const response = await fetch(url);
+    const data = await response.json();
 
-      const data: MealDBResponse = await response.json();
-      
-      if (!data.meals) continue;
-
-      // Take random meals from each category
-      const categoryMeals = data.meals
-        .sort(() => Math.random() - 0.5)
-        .slice(0, Math.ceil(number / categories.length))
-        .map(meal => {
-          const nutrition = nutritionEstimates[category];
-          return {
-            id: meal.idMeal,
-            name: meal.strMeal,
-            calories: nutrition.calories,
-            protein: nutrition.protein,
-            carbs: nutrition.carbs,
-            fats: nutrition.fats,
-            image: meal.strMealThumb,
-            category: mapCategory(category),
-          };
-        });
-
-      meals.push(...categoryMeals);
+    // Log raw data from API
+    if (data.meals?.length > 0) {
+      console.log('Raw API response meal:', data.meals[0]);
     }
 
-    // Shuffle the final array
-    return meals.sort(() => Math.random() - 0.5);
+    return data.meals.map((meal: DBMeal) => {
+      const mappedCategory = mapCategory(meal.category);
+      const nutrition = categoryCalories[meal.category] || categoryCalories['Основно ястие'];
 
+      // Get all ingredients and measures
+      const ingredients = [];
+      for (let i = 1; i <= 20; i++) {
+        const ingredient = meal[`ingredient${i}`];
+        const measure = meal[`measure${i}`];
+        if (ingredient && ingredient.trim() !== '' && measure && measure.trim() !== '') {
+          ingredients.push({
+            name: ingredient,
+            measure: measure
+          });
+        }
+      }
+
+      // Log what we're processing
+      console.log('Processing meal:', {
+        name: meal.name,
+        ingredientsCount: ingredients.length,
+        hasInstructions: !!meal.instructions
+      });
+
+      // Handle the image URL
+      let imageUrl = meal.thumbnail;
+      if (imageUrl) {
+        // Remove @ if it exists at the start
+        imageUrl = imageUrl.startsWith('@') ? imageUrl.substring(1) : imageUrl;
+        // Add https:// if it's missing
+        if (!imageUrl.startsWith('http')) {
+          imageUrl = `https://${imageUrl}`;
+        }
+      } else {
+        // Fallback image URL
+        imageUrl = 'https://www.themealdb.com/images/media/meals/default.jpg';
+      }
+
+      return {
+        id: meal.id,
+        name: meal.name,
+        calories: nutrition.calories,
+        protein: nutrition.protein,
+        carbs: nutrition.carbs,
+        fats: nutrition.fats,
+        image: imageUrl,
+        category: mappedCategory,
+        area: meal.area,
+        instructions: meal.instructions,
+        ingredients: ingredients,
+        youtube_link: meal.youtube_link,
+        source: meal.source,
+        mealType: mappedCategory
+      };
+    });
   } catch (error) {
     console.error('Error fetching meals:', error);
     return fallbackMeals;
-  }
-};
-
-const mapCategory = (category: string): string => {
-  switch (category.toLowerCase()) {
-    case 'breakfast':
-      return 'закуска';
-    case 'starter':
-    case 'side':
-      return 'снакс';
-    case 'dessert':
-      return 'десерт';
-    case 'vegetarian':
-    case 'salad':
-      return 'салата';
-    default:
-      return 'основно';
   }
 };
 
@@ -106,7 +140,7 @@ const fallbackMeals: Meal[] = [
     protein: 13,
     carbs: 55,
     fats: 5,
-    category: 'закуска',
+    category: 'Закуска',
     image: 'https://images.unsplash.com/photo-1517673400267-0251440c45dc?ixlib=rb-4.0.3',
   },
   {
@@ -116,7 +150,7 @@ const fallbackMeals: Meal[] = [
     protein: 31,
     carbs: 0,
     fats: 3.6,
-    category: 'основно',
+    category: 'Основно ястие',
     image: 'https://images.unsplash.com/photo-1632778149955-e80f8ceca2e8?ixlib=rb-4.0.3',
   },
   {
@@ -126,15 +160,14 @@ const fallbackMeals: Meal[] = [
     protein: 7,
     carbs: 13,
     fats: 18,
-    category: 'салата',
+    category: 'Салата',
     image: 'https://images.unsplash.com/photo-1623428187969-5da2dcea5ebf?ixlib=rb-4.0.3',
   },
-  // Add more fallback meals here...
 ];
 
 export const getFavoriteMeals = async (): Promise<string[]> => {
   try {
-    const storedFavorites = await AsyncStorage.getItem('favoriteMeals');
+    const storedFavorites = await AsyncStorage.getItem(FAVORITES_STORAGE_KEY);
     return storedFavorites ? JSON.parse(storedFavorites) : [];
   } catch (error) {
     console.error('Error getting favorites:', error);
@@ -149,7 +182,7 @@ export const toggleFavorite = async (mealId: string): Promise<string[]> => {
       ? currentFavorites.filter(id => id !== mealId)
       : [...currentFavorites, mealId];
     
-    await AsyncStorage.setItem('favoriteMeals', JSON.stringify(newFavorites));
+    await AsyncStorage.setItem(FAVORITES_STORAGE_KEY, JSON.stringify(newFavorites));
     return newFavorites;
   } catch (error) {
     console.error('Error toggling favorite:', error);

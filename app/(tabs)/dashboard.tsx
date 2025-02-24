@@ -140,6 +140,8 @@ interface SuggestedMeal {
   carbs?: number;
   fats?: number;
   category?: string;
+  instructions?: string;
+  ingredients?: any[];
 }
 
 interface MealTimeButtonProps {
@@ -1063,26 +1065,25 @@ const DashboardScreen: React.FC<DashboardProps> = ({ onLogout }) => {
   const generateMealSuggestions = async (mealType: string, targetCalories: number): Promise<SuggestedMeal[]> => {
     try {
       // Get random meals from the API
-      const meals = await fetchRandomMeals(10); // Fetch 10 meals to have enough options
+      const meals = await fetchRandomMeals(10);
       
       // Filter meals based on meal type and calories
       const filteredMeals = meals.filter(meal => {
         const mealTypeMap: { [key: string]: string } = {
           'breakfast': 'закуска',
-          'lunch': 'основно',
-          'dinner': 'основно',
+          'lunch': 'обяд',
+          'dinner': 'обяд', // We'll use the same meals for lunch and dinner
           'snacks': 'снакс'
         };
         
         const targetType = mealTypeMap[mealType.toLowerCase()];
-        const isCorrectType = meal.category === targetType;
-        const isWithinCalories = meal.calories <= targetCalories;
+        const isCorrectType = meal.category === targetType || meal.mealType === targetType;
+        const isWithinCalories = meal.calories <= targetCalories * 1.2; // Allow some flexibility
         
         return isCorrectType && isWithinCalories;
       });
 
-      // Convert to SuggestedMeal format
-      return filteredMeals.slice(0, 2).map(meal => ({
+      return filteredMeals.slice(0, 3).map(meal => ({
         name: meal.name,
         calories: meal.calories,
         servingSize: '1 serving',
@@ -1090,7 +1091,9 @@ const DashboardScreen: React.FC<DashboardProps> = ({ onLogout }) => {
         protein: meal.protein,
         carbs: meal.carbs,
         fats: meal.fats,
-        category: meal.category
+        category: meal.category,
+        instructions: meal.instructions,
+        ingredients: meal.ingredients
       }));
     } catch (error) {
       console.error('Error generating meal suggestions:', error);
@@ -1105,20 +1108,29 @@ const DashboardScreen: React.FC<DashboardProps> = ({ onLogout }) => {
     calories, 
     recommended, 
     todaysMeals,
-    suggestedMeals: propSuggestedMeals
+    suggestedMeals 
   }: MealTimeButtonProps) => {
-    const [showOptions, setShowOptions] = useState(false);
-    const user = auth.currentUser;
-    const meal = todaysMeals.find(m => 
-      m.type?.toLowerCase() === title.toLowerCase() ||
-      m.mealType?.toLowerCase() === title.toLowerCase()
-    );
+    const navigation = useNavigation();
+    
+    const mealTypeMap = {
+      [translations.breakfast]: 'breakfast',
+      [translations.lunch]: 'lunch',
+      [translations.dinner]: 'dinner',
+      [translations.snacks]: 'snacks'
+    };
+
+    const handlePress = () => {
+      navigation.navigate('mealDetail', {
+        meal: suggestedMeals && suggestedMeals[0],
+        mealType: mealTypeMap[title]
+      });
+    };
 
     return (
       <View style={styles.mealTimeSection}>
         <TouchableOpacity 
           style={styles.mealTimeButton}
-          onPress={meal ? () => setShowOptions(true) : () => navigation.navigate('addMeal', { mealType: title.toLowerCase() })}
+          onPress={handlePress}
         >
           <View style={styles.mealTimeContent}>
             <View style={styles.mealTimeLeft}>
@@ -1137,27 +1149,34 @@ const DashboardScreen: React.FC<DashboardProps> = ({ onLogout }) => {
             <View style={styles.mealTimeRight}>
               {calories && <Text style={styles.mealTimeCalories}>{calories} kcal</Text>}
               <TouchableOpacity 
-                style={meal ? styles.moreButton : styles.addButton}
-                onPress={meal ? () => setShowOptions(true) : () => navigation.navigate('addMeal', { mealType: title.toLowerCase() })}
+                style={styles.addButton}
+                onPress={handlePress}
               >
-                <Ionicons name={meal ? "ellipsis-horizontal" : "add"} size={24} color={meal ? "#666" : "#333"} />
+                <Ionicons name="add" size={24} color="#ffffff" />
               </TouchableOpacity>
             </View>
           </View>
         </TouchableOpacity>
 
-        {!meal && Array.isArray(propSuggestedMeals) && propSuggestedMeals.length > 0 && (
+        {Array.isArray(suggestedMeals) && suggestedMeals.length > 0 && (
           <View style={styles.suggestedMealsContainer}>
-            {propSuggestedMeals.map((suggestion, index) => (
+            {suggestedMeals.map((suggestion, index) => (
               <TouchableOpacity
                 key={index}
-                onPress={() => navigation.navigate('mealDetail', { meal: suggestion })}
+                onPress={handlePress}
               >
                 <View style={styles.suggestedMealItem}>
                   <View style={styles.bulletPoint} />
                   <Image 
                     source={{ uri: suggestion.image }}
                     style={styles.suggestedMealImage}
+                    onError={(e) => {
+                      console.log('Image error for:', {
+                        name: suggestion.name,
+                        image: suggestion.image,
+                        error: e.nativeEvent.error
+                      });
+                    }}
                   />
                   <View style={styles.suggestedMealContent}>
                     <Text style={styles.suggestedMealName}>{suggestion.name}</Text>
@@ -1168,18 +1187,6 @@ const DashboardScreen: React.FC<DashboardProps> = ({ onLogout }) => {
                 </View>
               </TouchableOpacity>
             ))}
-          </View>
-        )}
-
-        {showOptions && (
-          <View style={styles.mealOptions}>
-            <TouchableOpacity 
-              style={styles.mealOptionButton}
-              onPress={() => setShowOptions(false)}
-            >
-              <Ionicons name="close-outline" size={20} color="#666" />
-              <Text style={styles.mealOptionText}>{translations.cancel}</Text>
-            </TouchableOpacity>
           </View>
         )}
       </View>
@@ -2258,10 +2265,12 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   suggestedMealImage: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: '#333',
     marginRight: 12,
+    resizeMode: 'cover' // Add this to ensure the image fills the container
   },
 });
 
