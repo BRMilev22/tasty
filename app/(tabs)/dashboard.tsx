@@ -1123,36 +1123,226 @@ const DashboardScreen: React.FC<DashboardProps> = ({ onLogout }) => {
   const generateMealSuggestions = async (mealType: string, targetCalories: number): Promise<SuggestedMeal[]> => {
     try {
       // Get random meals from the API
-      const meals = await fetchRandomMeals(10);
+      const meals = await fetchRandomMeals(30); // Get more meals for better selection
       
-      // Filter meals based on meal type and calories
-      const filteredMeals = meals.filter(meal => {
-        const mealTypeMap: { [key: string]: string } = {
-          'breakfast': 'закуска',
-          'lunch': 'обяд',
-          'dinner': 'обяд', // We'll use the same meals for lunch and dinner
-          'snacks': 'снакс'
+      // Get the recommended calorie range for this meal type
+      const recommendations = calculateMealRecommendations(targetCalories);
+      let minCaloriesForMealType: number;
+      let maxCaloriesForMealType: number;
+      let maxMealsToShow: number = 3; // Default max meals
+      
+      switch(mealType.toLowerCase()) {
+        case 'breakfast':
+          minCaloriesForMealType = recommendations.breakfast.min;
+          maxCaloriesForMealType = recommendations.breakfast.max;
+          maxMealsToShow = 2; // Limit breakfast to 2 meals
+          break;
+        case 'lunch':
+          minCaloriesForMealType = recommendations.lunch.min;
+          maxCaloriesForMealType = recommendations.lunch.max;
+          break;
+        case 'dinner':
+          minCaloriesForMealType = recommendations.dinner.min;
+          maxCaloriesForMealType = recommendations.dinner.max;
+          break;
+        case 'snacks':
+          minCaloriesForMealType = recommendations.snacks.min;
+          maxCaloriesForMealType = recommendations.snacks.max;
+          break;
+        default:
+          minCaloriesForMealType = targetCalories * 0.2;
+          maxCaloriesForMealType = targetCalories * 0.3;
+      }
+      
+      // Filter meals based on meal type
+      const mealTypeMap: { [key: string]: string } = {
+        'breakfast': 'закуска',
+        'lunch': 'обяд',
+        'dinner': 'обяд',
+        'snacks': 'снакс'
+      };
+      
+      const targetType = mealTypeMap[mealType.toLowerCase()];
+      const typeFilteredMeals = meals.filter(meal => {
+        const isCorrectType = meal.category === targetType || meal.mealType === targetType;
+        return isCorrectType;
+      });
+      
+      // Sort meals by calories (ascending)
+      typeFilteredMeals.sort((a, b) => a.calories - b.calories);
+      
+      // Find the best combination of meals that meets the calorie requirements
+      const findBestMealCombination = (meals: any[], minCalories: number, maxCalories: number, maxMeals: number): SuggestedMeal[] => {
+        // Check if meals array is empty
+        if (!meals || meals.length === 0) {
+          console.log('No meals available for selection');
+          return []; // Return empty array if no meals are available
+        }
+        
+        // For snacks, be even more restrictive
+        const isSnack = maxCalories < 400;
+        if (isSnack) {
+          // Pre-filter meals that are too high in calories
+          meals = meals.filter(meal => meal.calories <= maxCalories * 0.8);
+          
+          // For snacks, prefer just 1 item if possible
+          const singleSnacks = meals.filter(meal => 
+            meal.calories >= minCalories && meal.calories <= maxCalories
+          );
+          
+          if (singleSnacks.length > 0) {
+            // Sort by how close they are to the middle of the range
+            const targetCalories = (minCalories + maxCalories) / 2;
+            singleSnacks.sort((a, b) => 
+              Math.abs(a.calories - targetCalories) - Math.abs(b.calories - targetCalories)
+            );
+            
+            return [{
+              name: singleSnacks[0].name,
+              calories: singleSnacks[0].calories,
+              servingSize: '1 пор',
+              image: singleSnacks[0].image,
+              protein: singleSnacks[0].protein,
+              carbs: singleSnacks[0].carbs,
+              fats: singleSnacks[0].fats,
+              category: singleSnacks[0].category,
+              instructions: singleSnacks[0].instructions,
+              ingredients: singleSnacks[0].ingredients
+            }];
+          }
+          
+          // If we filtered out all meals for snacks, return empty array
+          if (meals.length === 0) {
+            console.log('No suitable snack meals found after filtering');
+            return [];
+          }
+        }
+        
+        // Try different numbers of meals, starting with 1
+        for (let numMeals = 1; numMeals <= maxMeals; numMeals++) {
+          // Try all possible combinations of 'numMeals' meals
+          const combinations = getCombinations(meals, numMeals, maxCalories);
+          
+          // Find combinations that meet the calorie requirements
+          const validCombinations = combinations.filter(combo => {
+            const totalCalories = combo.reduce((sum, meal) => sum + meal.calories, 0);
+            return totalCalories >= minCalories && totalCalories <= maxCalories;
+          });
+          
+          if (validCombinations.length > 0) {
+            // Sort valid combinations by how close they are to the target calories
+            const targetCalories = (minCalories + maxCalories) / 2;
+            validCombinations.sort((a, b) => {
+              const totalCaloriesA = a.reduce((sum, meal) => sum + meal.calories, 0);
+              const totalCaloriesB = b.reduce((sum, meal) => sum + meal.calories, 0);
+              return Math.abs(totalCaloriesA - targetCalories) - Math.abs(totalCaloriesB - targetCalories);
+            });
+            
+            // Return the best combination
+            return validCombinations[0].map(meal => ({
+              name: meal.name,
+              calories: meal.calories,
+              servingSize: '1 пор',
+              image: meal.image,
+              protein: meal.protein,
+              carbs: meal.carbs,
+              fats: meal.fats,
+              category: meal.category,
+              instructions: meal.instructions,
+              ingredients: meal.ingredients
+            }));
+          }
+        }
+        
+        // Update the final fallback to check if meals array is empty
+        if (meals.length === 0) {
+          console.log('No meals available for fallback');
+          return [];
+        }
+        
+        // If no valid combinations found, try to find a single meal that's close to the range
+        const closestMeal = [...meals].sort((a, b) => {
+          const aDistance = Math.min(
+            Math.abs(a.calories - minCalories),
+            Math.abs(a.calories - maxCalories)
+          );
+          const bDistance = Math.min(
+            Math.abs(b.calories - minCalories),
+            Math.abs(b.calories - maxCalories)
+          );
+          return aDistance - bDistance;
+        })[0];
+        
+        // Check if closestMeal exists
+        if (!closestMeal) {
+          console.log('No closest meal found');
+          return [];
+        }
+        
+        return [{
+          name: closestMeal.name,
+          calories: closestMeal.calories,
+          servingSize: '1 пор',
+          image: closestMeal.image,
+          protein: closestMeal.protein,
+          carbs: closestMeal.carbs,
+          fats: closestMeal.fats,
+          category: closestMeal.category,
+          instructions: closestMeal.instructions,
+          ingredients: closestMeal.ingredients
+        }];
+      };
+      
+      // Helper function to generate all combinations of size k from array
+      const getCombinations = (array: any[], k: number, maxCalories: number): any[][] => {
+        // For performance reasons, limit the number of combinations we check
+        // For snacks, be more selective about which meals we consider
+        const isSnack = maxCalories < 400; // Rough check if this is for snacks
+        
+        // Pre-filter meals that are too high in calories for snacks
+        if (isSnack) {
+          array = array.filter(meal => meal.calories <= maxCalories * 0.8);
+        }
+        
+        // Limit array size for performance
+        if (array.length > 15) {
+          array = array.slice(0, 15);
+        }
+        
+        const result: any[][] = [];
+        
+        // Recursive function to generate combinations
+        const generateCombos = (start: number, combo: any[]) => {
+          // Early termination if the current combination already exceeds max calories
+          const currentCalories = combo.reduce((sum, meal) => sum + meal.calories, 0);
+          if (currentCalories > maxCalories) {
+            return;
+          }
+          
+          if (combo.length === k) {
+            result.push([...combo]);
+            return;
+          }
+          
+          for (let i = start; i < array.length; i++) {
+            // Skip this meal if adding it would exceed max calories
+            if (currentCalories + array[i].calories > maxCalories) {
+              continue;
+            }
+            
+            combo.push(array[i]);
+            generateCombos(i + 1, combo);
+            combo.pop();
+          }
         };
         
-        const targetType = mealTypeMap[mealType.toLowerCase()];
-        const isCorrectType = meal.category === targetType || meal.mealType === targetType;
-        const isWithinCalories = meal.calories <= targetCalories * 1.2; // Allow some flexibility
-        
-        return isCorrectType && isWithinCalories;
-      });
-
-      return filteredMeals.slice(0, 3).map(meal => ({
-        name: meal.name,
-        calories: meal.calories,
-        servingSize: '1 пор',
-        image: meal.image,
-        protein: meal.protein,
-        carbs: meal.carbs,
-        fats: meal.fats,
-        category: meal.category,
-        instructions: meal.instructions,
-        ingredients: meal.ingredients
-      }));
+        generateCombos(0, []);
+        return result;
+      };
+      
+      // Find the best combination of meals
+      return findBestMealCombination(typeFilteredMeals, minCaloriesForMealType, maxCaloriesForMealType, maxMealsToShow);
+      
     } catch (error) {
       console.error('Error generating meal suggestions:', error);
       return [];
