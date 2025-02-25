@@ -304,6 +304,156 @@ const mealTypeMap: { [key: string]: string } = {
   'Снаксове': 'snacks'
 };
 
+// Add these new interfaces at the top with the other interfaces
+interface MealTimeWindow {
+  start: number; // Hours in 24h format
+  end: number;
+}
+
+interface MealTimings {
+  breakfast: MealTimeWindow;
+  lunch: MealTimeWindow;
+  dinner: MealTimeWindow;
+  snacks: MealTimeWindow[];
+}
+
+// Add this constant with the meal timings
+const defaultMealTimings: MealTimings = {
+  breakfast: { start: 6, end: 10 },
+  lunch: { start: 12, end: 15 },
+  dinner: { start: 18, end: 22 },
+  snacks: [
+    { start: 10, end: 12 },
+    { start: 15, end: 18 }
+  ]
+};
+
+// Add this function to check missed meals
+const checkMissedMeals = (
+  currentTime: Date,
+  todaysMeals: MealData[],
+  mealTimings: MealTimings = defaultMealTimings
+): string[] => {
+  const currentHour = currentTime.getHours();
+  const missedMeals: string[] = [];
+
+  // Check breakfast
+  if (currentHour > mealTimings.breakfast.end) {
+    const hasBreakfast = todaysMeals.some(meal => 
+      meal.type?.toLowerCase() === 'breakfast' || 
+      meal.mealType?.toLowerCase() === 'breakfast'
+    );
+    if (!hasBreakfast) {
+      missedMeals.push('breakfast');
+    }
+  }
+
+  // Check lunch
+  if (currentHour > mealTimings.lunch.end) {
+    const hasLunch = todaysMeals.some(meal => 
+      meal.type?.toLowerCase() === 'lunch' || 
+      meal.mealType?.toLowerCase() === 'lunch'
+    );
+    if (!hasLunch) {
+      missedMeals.push('lunch');
+    }
+  }
+
+  // Check dinner
+  if (currentHour > mealTimings.dinner.end) {
+    const hasDinner = todaysMeals.some(meal => 
+      meal.type?.toLowerCase() === 'dinner' || 
+      meal.mealType?.toLowerCase() === 'dinner'
+    );
+    if (!hasDinner) {
+      missedMeals.push('dinner');
+    }
+  }
+
+  return missedMeals;
+};
+
+// Add this component for the missed meals alert
+const MissedMealAlert = ({ 
+  mealType, 
+  onLogMeal, 
+  onSkipMeal, 
+  onClose 
+}: { 
+  mealType: string; 
+  onLogMeal: () => void; 
+  onSkipMeal: () => void; 
+  onClose: () => void; 
+}) => {
+  return (
+    <View style={styles.alertOverlay}>
+      <View style={styles.alertContainer}>
+        <Text style={styles.alertTitle}>Пропуснато хранене</Text>
+        <Text style={styles.alertMessage}>
+          Изглежда, че сте пропуснали {
+            mealType === 'breakfast' ? 'закуската' :
+            mealType === 'lunch' ? 'обяда' :
+            'вечерята'
+          }. Какво бихте искали да направите?
+        </Text>
+        <View style={styles.alertButtons}>
+          <TouchableOpacity 
+            style={[styles.alertButton, styles.alertButtonPrimary]}
+            onPress={onLogMeal}
+          >
+            <Text style={styles.alertButtonText}>Добави хранене</Text>
+          </TouchableOpacity>
+          <TouchableOpacity 
+            style={styles.alertButton}
+            onPress={onSkipMeal}
+          >
+            <Text style={styles.alertButtonTextSecondary}>Пропусни</Text>
+          </TouchableOpacity>
+        </View>
+        <TouchableOpacity 
+          style={styles.alertCloseButton}
+          onPress={onClose}
+        >
+          <Ionicons name="close" size={24} color="#999999" />
+        </TouchableOpacity>
+      </View>
+    </View>
+  );
+};
+
+// Add these new interfaces
+interface MissedMealRecord {
+  date: string;
+  skippedMeals: string[];
+}
+
+// Update the component name and its display text
+const SkippedMealNotificationToggle = ({ 
+  isNotificationEnabled, 
+  setIsNotificationEnabled 
+}: { 
+  isNotificationEnabled: boolean;
+  setIsNotificationEnabled: (value: boolean) => void;
+}) => (
+  <TouchableOpacity
+    style={styles.notificationToggleButton}
+    onPress={() => {
+      setIsNotificationEnabled(!isNotificationEnabled);
+      showMessage({
+        message: isNotificationEnabled ? 
+          'Напомняния за пропуснати хранения изключени' : 
+          'Напомняния за пропуснати хранения включени',
+        type: 'info',
+        duration: 2000,
+      });
+    }}
+  >
+    <Text style={styles.notificationToggleText}>
+      {isNotificationEnabled ? '🔴 Изключи напомняния' : '⚪ Включи напомняния'}
+    </Text>
+  </TouchableOpacity>
+);
+
 const DashboardScreen: React.FC<DashboardProps> = ({ onLogout }) => {
   const navigation = useNavigation<NavigationProp<RootStackParamList>>();
   const user = auth.currentUser;
@@ -341,6 +491,60 @@ const DashboardScreen: React.FC<DashboardProps> = ({ onLogout }) => {
   const [dinnerSuggestions, setDinnerSuggestions] = useState<SuggestedMeal[]>([]);
   const [snackSuggestions, setSnackSuggestions] = useState<SuggestedMeal[]>([]);
   const [storedSuggestions, setStoredSuggestions] = useState<StoredMealSuggestions | null>(null);
+  // Add these new state variables
+  const [showMissedMealAlert, setShowMissedMealAlert] = useState(false);
+  const [missedMealType, setMissedMealType] = useState<string | null>(null);
+  const [checkedMeals, setCheckedMeals] = useState<Set<string>>(new Set());
+  const [isDevelopmentMode, setIsDevelopmentMode] = useState(false);
+  const [isNotificationEnabled, setIsNotificationEnabled] = useState(true);
+  
+  // Function to save skipped meals to AsyncStorage
+  const saveSkippedMeal = async (mealType: string) => {
+    try {
+      const today = new Date().toISOString().split('T')[0];
+      const storedSkippedMeals = await AsyncStorage.getItem('skippedMeals');
+      let missedMealRecords: MissedMealRecord[] = [];
+      
+      if (storedSkippedMeals) {
+        missedMealRecords = JSON.parse(storedSkippedMeals);
+      }
+
+      const todayRecord = missedMealRecords.find(record => record.date === today);
+      
+      if (todayRecord) {
+        if (!todayRecord.skippedMeals.includes(mealType)) {
+          todayRecord.skippedMeals.push(mealType);
+        }
+      } else {
+        missedMealRecords.push({
+          date: today,
+          skippedMeals: [mealType]
+        });
+      }
+
+      await AsyncStorage.setItem('skippedMeals', JSON.stringify(missedMealRecords));
+    } catch (error) {
+      console.error('Error saving skipped meal:', error);
+    }
+  };
+
+  // Function to check if a meal was already skipped today
+  const checkIfMealSkipped = async (mealType: string): Promise<boolean> => {
+    try {
+      const today = new Date().toISOString().split('T')[0];
+      const storedSkippedMeals = await AsyncStorage.getItem('skippedMeals');
+      
+      if (!storedSkippedMeals) return false;
+
+      const missedMealRecords: MissedMealRecord[] = JSON.parse(storedSkippedMeals);
+      const todayRecord = missedMealRecords.find(record => record.date === today);
+      
+      return todayRecord ? todayRecord.skippedMeals.includes(mealType) : false;
+    } catch (error) {
+      console.error('Error checking skipped meal:', error);
+      return false;
+    }
+  };
 
   useEffect(() => {
     const user = getAuth().currentUser;
@@ -659,6 +863,53 @@ const DashboardScreen: React.FC<DashboardProps> = ({ onLogout }) => {
 
     fetchAndStoreSuggestions();
   }, [currentDate, nutritionStats.targetCalories, user?.uid]); // Add user?.uid to dependencies
+
+  useEffect(() => {
+    const checkMeals = async () => {
+      const currentTime = new Date();
+      const missedMeals = checkMissedMeals(currentTime, todaysMeals);
+      
+      // Find the first unchecked and not skipped meal
+      for (const meal of missedMeals) {
+        const isSkipped = !isNotificationEnabled ? false : await checkIfMealSkipped(meal);
+        if (!checkedMeals.has(meal) && !isSkipped) {
+          setMissedMealType(meal);
+          setShowMissedMealAlert(true);
+          break;
+        }
+      }
+    };
+
+    // Check every 30 minutes
+    const interval = setInterval(checkMeals, 1800000);
+    
+    // Initial check
+    checkMeals();
+
+    return () => clearInterval(interval);
+  }, [todaysMeals, checkedMeals, isNotificationEnabled]);
+
+  // Add these handlers for the missed meal alert
+  const handleLogMissedMeal = () => {
+    if (missedMealType) {
+      // Navigate to planMeal without params
+      navigation.navigate('planMeal');
+      setCheckedMeals(prev => new Set([...prev, missedMealType]));
+      setShowMissedMealAlert(false);
+    }
+  };
+
+  const handleSkipMissedMeal = async () => {
+    if (missedMealType) {
+      await saveSkippedMeal(missedMealType);
+      setCheckedMeals(prev => new Set([...prev, missedMealType]));
+      setShowMissedMealAlert(false);
+    }
+  };
+
+  const handleCloseMissedMealAlert = () => {
+    setShowMissedMealAlert(false);
+  };
 
   const handleLogout = async () => {
     try {
@@ -1857,6 +2108,11 @@ const DashboardScreen: React.FC<DashboardProps> = ({ onLogout }) => {
     }
   };
 
+  // Update the navigation to planMeal
+  const handlePlanMeal = () => {
+    navigation.navigate('planMeal', { directLog: true }); // Add directLog parameter
+  };
+
   if (loading) {
     return (
       <StyledView className="flex-1 justify-center items-center bg-[#f4f7fa]">
@@ -1866,182 +2122,197 @@ const DashboardScreen: React.FC<DashboardProps> = ({ onLogout }) => {
   }
 
   return (
-    <Tab.Navigator
-      screenOptions={({ route }) => ({
-        tabBarIcon: ({ focused, color, size }) => {
-          let iconName;
-          if (route.name === 'Dashboard') {
-            iconName = 'home-outline';
-          } else if (route.name === 'Goals') {
-            iconName = 'flag-outline';
-          } else if (route.name === 'Inventory') {
-            iconName = 'cart-outline';
-          } else if (route.name === 'Recipes') {
-            iconName = 'restaurant-outline';
-          } else if (route.name === 'scan') {
-            iconName = 'scan-outline';
-          } else if (route.name === 'Profile') { // Add Profile tab
-            iconName = 'person-outline';
-          }
+    <>
+      <Tab.Navigator
+        screenOptions={({ route }) => ({
+          tabBarIcon: ({ focused, color, size }) => {
+            let iconName;
+            if (route.name === 'Dashboard') {
+              iconName = 'home-outline';
+            } else if (route.name === 'Goals') {
+              iconName = 'flag-outline';
+            } else if (route.name === 'Inventory') {
+              iconName = 'cart-outline';
+            } else if (route.name === 'Recipes') {
+              iconName = 'restaurant-outline';
+            } else if (route.name === 'scan') {
+              iconName = 'scan-outline';
+            } else if (route.name === 'Profile') { // Add Profile tab
+              iconName = 'person-outline';
+            }
 
-          return <Ionicons name={iconName || 'home-outline'} size={24} color={color} />;
-        },
-        tabBarActiveTintColor: theme.colors.primary,
-        tabBarInactiveTintColor: theme.colors.textSecondary,
-        tabBarStyle: {
-          backgroundColor: theme.colors.surface,
-          height: 60,
-          paddingBottom: 10,
-          paddingTop: 10,
-          borderTopWidth: 0,
-          shadowColor: '#000',
-          shadowOffset: { width: 0, height: 2 },
-          shadowOpacity: 0.25,
-          shadowRadius: 4,
-          elevation: 5,
-        },
-        tabBarShowLabel: false,
-      })}
-    >
-      <Tab.Screen name="Dashboard" options={{ headerShown: false }}>
-        {() => (
-          <SafeAreaView style={styles.container}>
-            <StyledImageBackground
-              source={{
-                uri: 'https://i.imgur.com/8F9ZGpX.png',
-              }}
-              style={styles.imageBackground}
-              blurRadius={5}
-            >
-              <View style={styles.headerBackground}>
-                <DateSelector currentDate={currentDate} onDateChange={setCurrentDate} />
-              </View>
-              <View style={styles.mainContainer}>
-                <FlatList
-                  data={[{ key: 'content' }]}
-                  renderItem={() => (
-                    <>
-                      <CalorieCircle 
-                        calories={nutritionStats.calories} 
-                        totalCalories={nutritionStats.targetCalories} 
-                      />
-                      <WaterTracker 
-                        currentAmount={waterIntake} 
-                        targetAmount={water || 2.5} 
-                        onAddWater={handleAddWater}
-                      />
-                      <MealTimeButton
-                        icon="🥐"
-                        title={translations.breakfast}
-                        subtitle={todaysMeals.find(m => 
-                          m.type?.toLowerCase() === 'breakfast' || 
-                          m.mealType?.toLowerCase() === 'breakfast'
-                        )?.name}
-                        calories={todaysMeals.find(m => 
-                          m.type?.toLowerCase() === 'breakfast' || 
-                          m.mealType?.toLowerCase() === 'breakfast'
-                        )?.calories}
-                        recommended={`${mealRecommendations.breakfast.min} - ${mealRecommendations.breakfast.max} kcal`}
-                        todaysMeals={todaysMeals}
-                        suggestedMeals={breakfastSuggestions}
-                      />
-                      <MealTimeButton
-                        icon="🍴"
-                        title={translations.lunch}
-                        subtitle={todaysMeals.find(m => 
-                          m.type?.toLowerCase() === 'lunch' || 
-                          m.mealType?.toLowerCase() === 'lunch'
-                        )?.name}
-                        calories={todaysMeals.find(m => 
-                          m.type?.toLowerCase() === 'lunch' || 
-                          m.mealType?.toLowerCase() === 'lunch'
-                        )?.calories}
-                        recommended={`${mealRecommendations.lunch.min} - ${mealRecommendations.lunch.max} kcal`}
-                        todaysMeals={todaysMeals}
-                        suggestedMeals={lunchSuggestions}
-                      />
-                      <MealTimeButton
-                        icon="🍽️"
-                        title={translations.dinner}
-                        subtitle={todaysMeals.find(m => 
-                          m.type?.toLowerCase() === 'dinner' || 
-                          m.mealType?.toLowerCase() === 'dinner'
-                        )?.name}
-                        calories={todaysMeals.find(m => 
-                          m.type?.toLowerCase() === 'dinner' || 
-                          m.mealType?.toLowerCase() === 'dinner'
-                        )?.calories}
-                        recommended={`${mealRecommendations.dinner.min} - ${mealRecommendations.dinner.max} kcal`}
-                        todaysMeals={todaysMeals}
-                        suggestedMeals={dinnerSuggestions}
-                      />
-                      <MealTimeButton
-                        icon="🍪"
-                        title={translations.snacks}
-                        subtitle={todaysMeals.find(m => 
-                          m.type?.toLowerCase() === 'snacks' || 
-                          m.mealType?.toLowerCase() === 'snacks'
-                        )?.name}
-                        calories={todaysMeals.find(m => 
-                          m.type?.toLowerCase() === 'snacks' || 
-                          m.mealType?.toLowerCase() === 'snacks'
-                        )?.calories}
-                        recommended={`${mealRecommendations.snacks.min} - ${mealRecommendations.snacks.max} kcal`}
-                        todaysMeals={todaysMeals}
-                        suggestedMeals={snackSuggestions}
-                      />
-                      <View style={styles.actionButtons}>
-                        <TouchableOpacity
-                          style={styles.actionButton}
-                          onPress={() => navigation.navigate('planMeal')}
-                        >
-                          <Ionicons name="calendar-outline" size={24} color="#ffffff" />
-                          <Text style={styles.actionButtonText}>Планирайте ястие</Text>
-                        </TouchableOpacity>
+            return <Ionicons name={iconName || 'home-outline'} size={24} color={color} />;
+          },
+          tabBarActiveTintColor: theme.colors.primary,
+          tabBarInactiveTintColor: theme.colors.textSecondary,
+          tabBarStyle: {
+            backgroundColor: theme.colors.surface,
+            height: 60,
+            paddingBottom: 10,
+            paddingTop: 10,
+            borderTopWidth: 0,
+            shadowColor: '#000',
+            shadowOffset: { width: 0, height: 2 },
+            shadowOpacity: 0.25,
+            shadowRadius: 4,
+            elevation: 5,
+          },
+          tabBarShowLabel: false,
+        })}
+      >
+        <Tab.Screen name="Dashboard" options={{ headerShown: false }}>
+          {() => (
+            <SafeAreaView style={styles.container}>
+              <StyledImageBackground
+                source={{
+                  uri: 'https://i.imgur.com/8F9ZGpX.png',
+                }}
+                style={styles.imageBackground}
+                blurRadius={5}
+              >
+                <View style={styles.headerBackground}>
+                  <DateSelector currentDate={currentDate} onDateChange={setCurrentDate} />
+                </View>
+                <View style={styles.mainContainer}>
+                  <FlatList
+                    data={[{ key: 'content' }]}
+                    renderItem={() => (
+                      <>
+                        <CalorieCircle 
+                          calories={nutritionStats.calories} 
+                          totalCalories={nutritionStats.targetCalories} 
+                        />
+                        <WaterTracker 
+                          currentAmount={waterIntake} 
+                          targetAmount={water || 2.5} 
+                          onAddWater={handleAddWater}
+                        />
+                        <MealTimeButton
+                          icon="🥐"
+                          title={translations.breakfast}
+                          subtitle={todaysMeals.find(m => 
+                            m.type?.toLowerCase() === 'breakfast' || 
+                            m.mealType?.toLowerCase() === 'breakfast'
+                          )?.name}
+                          calories={todaysMeals.find(m => 
+                            m.type?.toLowerCase() === 'breakfast' || 
+                            m.mealType?.toLowerCase() === 'breakfast'
+                          )?.calories}
+                          recommended={`${mealRecommendations.breakfast.min} - ${mealRecommendations.breakfast.max} kcal`}
+                          todaysMeals={todaysMeals}
+                          suggestedMeals={breakfastSuggestions}
+                        />
+                        <MealTimeButton
+                          icon="🍴"
+                          title={translations.lunch}
+                          subtitle={todaysMeals.find(m => 
+                            m.type?.toLowerCase() === 'lunch' || 
+                            m.mealType?.toLowerCase() === 'lunch'
+                          )?.name}
+                          calories={todaysMeals.find(m => 
+                            m.type?.toLowerCase() === 'lunch' || 
+                            m.mealType?.toLowerCase() === 'lunch'
+                          )?.calories}
+                          recommended={`${mealRecommendations.lunch.min} - ${mealRecommendations.lunch.max} kcal`}
+                          todaysMeals={todaysMeals}
+                          suggestedMeals={lunchSuggestions}
+                        />
+                        <MealTimeButton
+                          icon="🍽️"
+                          title={translations.dinner}
+                          subtitle={todaysMeals.find(m => 
+                            m.type?.toLowerCase() === 'dinner' || 
+                            m.mealType?.toLowerCase() === 'dinner'
+                          )?.name}
+                          calories={todaysMeals.find(m => 
+                            m.type?.toLowerCase() === 'dinner' || 
+                            m.mealType?.toLowerCase() === 'dinner'
+                          )?.calories}
+                          recommended={`${mealRecommendations.dinner.min} - ${mealRecommendations.dinner.max} kcal`}
+                          todaysMeals={todaysMeals}
+                          suggestedMeals={dinnerSuggestions}
+                        />
+                        <MealTimeButton
+                          icon="🍪"
+                          title={translations.snacks}
+                          subtitle={todaysMeals.find(m => 
+                            m.type?.toLowerCase() === 'snacks' || 
+                            m.mealType?.toLowerCase() === 'snacks'
+                          )?.name}
+                          calories={todaysMeals.find(m => 
+                            m.type?.toLowerCase() === 'snacks' || 
+                            m.mealType?.toLowerCase() === 'snacks'
+                          )?.calories}
+                          recommended={`${mealRecommendations.snacks.min} - ${mealRecommendations.snacks.max} kcal`}
+                          todaysMeals={todaysMeals}
+                          suggestedMeals={snackSuggestions}
+                        />
+                        <View style={styles.actionButtons}>
+                          <TouchableOpacity
+                            style={styles.actionButton}
+                            onPress={handlePlanMeal}
+                          >
+                            <Ionicons name="restaurant-outline" size={24} color="#ffffff" />
+                            <Text style={styles.actionButtonText}>Отчетете хранене</Text>
+                          </TouchableOpacity>
 
-                        <TouchableOpacity
-                          style={styles.actionButton}
-                          onPress={() => navigation.navigate('trackWeight')}
-                        >
-                          <Ionicons name="scale-outline" size={24} color="#ffffff" />
-                          <Text style={styles.actionButtonText}>Запишете тегло</Text>
-                        </TouchableOpacity>
-                      </View>
-                      <TodaysMealsList 
-                        meals={todaysMeals} 
-                        onDeleteMeal={handleDeleteMeal}
-                      />
-                      <WeightProgressCard weightHistory={weightHistory} />
-                      <PlannedMealsCard meals={plannedMeals} />
-                      <AchievementsCard achievements={achievements} />
-                      <View style={styles.logoutContainer}>
-                        <TouchableOpacity
-                          onPress={handleLogout}
-                          style={styles.logoutButton}
-                        >
-                          <Text style={styles.logoutText}>Отпишете се</Text>
-                        </TouchableOpacity>
-                      </View>
-                    </>
-                  )}
-                  keyExtractor={() => 'content'}
-                  showsVerticalScrollIndicator={false}
-                />
-              </View>
-            </StyledImageBackground>
-          </SafeAreaView>
-        )}
-      </Tab.Screen>
-      <Tab.Screen name="Goals" component={GoalsScreen} options={{ headerShown: false }} />
-      <Tab.Screen name="Inventory" component={InventoryScreen} options={{ headerShown: false }} />
-      <Tab.Screen name="Recipes" component={RecipesScreen} options={{ headerShown: false }} />
-      <Tab.Screen name="scan" component={ExpoCamera} options={{ headerShown: false }} />
-      <Tab.Screen 
-        name="Profile" 
-        component={EditProfileScreen} 
-        options={{ headerShown: false }} 
-      />
-    </Tab.Navigator>
+                          <TouchableOpacity
+                            style={styles.actionButton}
+                            onPress={() => navigation.navigate('trackWeight')}
+                          >
+                            <Ionicons name="scale-outline" size={24} color="#ffffff" />
+                            <Text style={styles.actionButtonText}>Запишете тегло</Text>
+                          </TouchableOpacity>
+                        </View>
+                        <TodaysMealsList 
+                          meals={todaysMeals} 
+                          onDeleteMeal={handleDeleteMeal}
+                        />
+                        <WeightProgressCard weightHistory={weightHistory} />
+                        <PlannedMealsCard meals={plannedMeals} />
+                        <AchievementsCard achievements={achievements} />
+                        <View style={styles.logoutContainer}>
+                          <SkippedMealNotificationToggle 
+                            isNotificationEnabled={isNotificationEnabled}
+                            setIsNotificationEnabled={setIsNotificationEnabled}
+                          />
+                          <TouchableOpacity
+                            onPress={handleLogout}
+                            style={styles.logoutButton}
+                          >
+                            <Text style={styles.logoutText}>Отпишете се</Text>
+                          </TouchableOpacity>
+                        </View>
+                      </>
+                    )}
+                    keyExtractor={() => 'content'}
+                    showsVerticalScrollIndicator={false}
+                  />
+                </View>
+              </StyledImageBackground>
+            </SafeAreaView>
+          )}
+        </Tab.Screen>
+        <Tab.Screen name="Goals" component={GoalsScreen} options={{ headerShown: false }} />
+        <Tab.Screen name="Inventory" component={InventoryScreen} options={{ headerShown: false }} />
+        <Tab.Screen name="Recipes" component={RecipesScreen} options={{ headerShown: false }} />
+        <Tab.Screen name="scan" component={ExpoCamera} options={{ headerShown: false }} />
+        <Tab.Screen 
+          name="Profile" 
+          component={EditProfileScreen} 
+          options={{ headerShown: false }} 
+        />
+      </Tab.Navigator>
+
+      {showMissedMealAlert && missedMealType && (
+        <MissedMealAlert
+          mealType={missedMealType}
+          onLogMeal={handleLogMissedMeal}
+          onSkipMeal={handleSkipMissedMeal}
+          onClose={handleCloseMissedMealAlert}
+        />
+      )}
+    </>
   );
 };
 
@@ -2630,6 +2901,87 @@ const styles = StyleSheet.create({
   
   eatenIcon: {
     marginRight: 4,
+  },
+  alertOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 1000,
+  },
+  alertContainer: {
+    backgroundColor: '#1A1A1A',
+    borderRadius: 15,
+    padding: 20,
+    width: '85%',
+    maxWidth: 400,
+  },
+  alertTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#FFFFFF',
+    marginBottom: 10,
+  },
+  alertMessage: {
+    fontSize: 16,
+    color: '#CCCCCC',
+    marginBottom: 20,
+  },
+  alertButtons: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  alertButton: {
+    flex: 1,
+    padding: 12,
+    borderRadius: 8,
+    marginHorizontal: 5,
+    alignItems: 'center',
+  },
+  alertButtonPrimary: {
+    backgroundColor: '#4CAF50',
+  },
+  alertButtonText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  alertButtonTextSecondary: {
+    color: '#4CAF50',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  alertCloseButton: {
+    position: 'absolute',
+    top: 10,
+    right: 10,
+    padding: 5,
+  },
+  devModeButton: {
+    backgroundColor: '#1A1A1A',
+    padding: 10,
+    borderRadius: 8,
+    marginVertical: 10,
+    alignSelf: 'center',
+  },
+  devModeText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+  },
+  notificationToggleButton: {
+    backgroundColor: '#1A1A1A',
+    padding: 10,
+    borderRadius: 8,
+    marginVertical: 10,
+    alignSelf: 'center',
+  },
+  notificationToggleText: {
+    color: '#FFFFFF',
+    fontSize: 14,
   },
 });
 
