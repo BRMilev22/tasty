@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { ScrollView, View, ActivityIndicator, Image, StyleSheet, Alert, Animated, Dimensions } from 'react-native';
+import { ScrollView, View, ActivityIndicator, Image, StyleSheet, Alert, Animated, Dimensions, SafeAreaView } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { useNavigation } from '@react-navigation/native';
 import { getAuth } from 'firebase/auth';
-import { getFirestore, doc, getDoc, onSnapshot, collection, query, where, orderBy, limit, deleteDoc, updateDoc, addDoc, getDocs, Timestamp } from 'firebase/firestore';
+import { getFirestore, doc, getDoc, onSnapshot, collection, query, where, orderBy, limit, deleteDoc, updateDoc, addDoc, getDocs, Timestamp, setDoc } from 'firebase/firestore';
 import { styled } from 'nativewind';
 import GoalsScreen from './goals';
 import InventoryScreen from './inventory';
@@ -22,6 +22,7 @@ import { NavigationProp } from '@react-navigation/native';
 import LinearGradient from 'react-native-linear-gradient';
 import { LinearGradient as ExpoLinearGradient } from 'expo-linear-gradient';
 import { fetchRandomMeals } from '../services/mealService';
+import EditProfileScreen from '../editProfile';
 
 const auth = getAuth();
 const db = getFirestore();
@@ -285,6 +286,15 @@ const calculateMealRecommendations = (totalCalories: number): MealRecommendation
   };
 };
 
+// Add new interface for stored meal suggestions
+interface StoredMealSuggestions {
+  date: string;
+  breakfast: SuggestedMeal[];
+  lunch: SuggestedMeal[];
+  dinner: SuggestedMeal[];
+  snacks: SuggestedMeal[];
+}
+
 const DashboardScreen: React.FC<DashboardProps> = ({ onLogout }) => {
   const navigation = useNavigation<NavigationProp<RootStackParamList>>();
   const user = auth.currentUser;
@@ -321,6 +331,7 @@ const DashboardScreen: React.FC<DashboardProps> = ({ onLogout }) => {
   const [lunchSuggestions, setLunchSuggestions] = useState<SuggestedMeal[]>([]);
   const [dinnerSuggestions, setDinnerSuggestions] = useState<SuggestedMeal[]>([]);
   const [snackSuggestions, setSnackSuggestions] = useState<SuggestedMeal[]>([]);
+  const [storedSuggestions, setStoredSuggestions] = useState<StoredMealSuggestions | null>(null);
 
   useEffect(() => {
     const user = getAuth().currentUser;
@@ -581,26 +592,64 @@ const DashboardScreen: React.FC<DashboardProps> = ({ onLogout }) => {
   }, [currentDate]);
 
   useEffect(() => {
-    const fetchSuggestions = async () => {
+    const fetchAndStoreSuggestions = async () => {
       try {
-        const breakfast = await generateMealSuggestions('breakfast', nutritionStats.targetCalories);
-        const lunch = await generateMealSuggestions('lunch', nutritionStats.targetCalories);
-        const dinner = await generateMealSuggestions('dinner', nutritionStats.targetCalories);
-        const snacks = await generateMealSuggestions('snacks', nutritionStats.targetCalories);
+        if (!user) return;
 
-        console.log('Fetched suggestions:', { breakfast, lunch, dinner, snacks }); // Debug log
+        // Use currentDate instead of today
+        const dateKey = currentDate.toISOString().split('T')[0];
 
-        setBreakfastSuggestions(breakfast);
-        setLunchSuggestions(lunch);
-        setDinnerSuggestions(dinner);
-        setSnackSuggestions(snacks);
+        // Check if we already have suggestions stored for the selected date
+        const suggestionsRef = doc(db, 'users', user.uid, 'mealSuggestions', dateKey);
+        const suggestionsDoc = await getDoc(suggestionsRef);
+
+        if (suggestionsDoc.exists()) {
+          // Use stored suggestions for the selected date
+          const stored = suggestionsDoc.data() as StoredMealSuggestions;
+          setStoredSuggestions(stored);
+          setBreakfastSuggestions(stored.breakfast);
+          setLunchSuggestions(stored.lunch);
+          setDinnerSuggestions(stored.dinner);
+          setSnackSuggestions(stored.snacks);
+        } else {
+          // Generate new suggestions for the selected date
+          const breakfast = await generateMealSuggestions('breakfast', nutritionStats.targetCalories);
+          const lunch = await generateMealSuggestions('lunch', nutritionStats.targetCalories);
+          const dinner = await generateMealSuggestions('dinner', nutritionStats.targetCalories);
+          const snacks = await generateMealSuggestions('snacks', nutritionStats.targetCalories);
+
+          // Store the suggestions with the selected date
+          const newSuggestions: StoredMealSuggestions = {
+            date: dateKey,
+            breakfast,
+            lunch,
+            dinner,
+            snacks
+          };
+
+          // Only store suggestions for today or future dates
+          const today = new Date();
+          today.setHours(0, 0, 0, 0);
+          const selectedDate = new Date(currentDate);
+          selectedDate.setHours(0, 0, 0, 0);
+
+          if (selectedDate >= today) {
+            await setDoc(suggestionsRef, newSuggestions);
+          }
+          
+          setStoredSuggestions(newSuggestions);
+          setBreakfastSuggestions(breakfast);
+          setLunchSuggestions(lunch);
+          setDinnerSuggestions(dinner);
+          setSnackSuggestions(snacks);
+        }
       } catch (error) {
-        console.error('Error fetching meal suggestions:', error);
+        console.error('Error fetching/storing meal suggestions:', error);
       }
     };
 
-    fetchSuggestions();
-  }, [nutritionStats.targetCalories]);
+    fetchAndStoreSuggestions();
+  }, [currentDate, nutritionStats.targetCalories, user?.uid]); // Add user?.uid to dependencies
 
   const handleLogout = async () => {
     try {
@@ -1086,7 +1135,7 @@ const DashboardScreen: React.FC<DashboardProps> = ({ onLogout }) => {
       return filteredMeals.slice(0, 3).map(meal => ({
         name: meal.name,
         calories: meal.calories,
-        servingSize: '1 serving',
+        servingSize: '1 пор',
         image: meal.image,
         protein: meal.protein,
         carbs: meal.carbs,
@@ -1317,26 +1366,28 @@ const DashboardScreen: React.FC<DashboardProps> = ({ onLogout }) => {
   };
 
   const CalorieCircle = ({ calories, totalCalories }: { calories: number; totalCalories: number }) => {
-    let remaining: number = totalCalories - calories;
-    if (remaining <= 0) {
-      remaining = 0;
-    }
+    // Calculate remaining calories and ensure it's not negative
+    let remaining: number = Math.max(0, totalCalories - calories);
     
-    // Calculate percentages for macros
-    const carbsPercent = Math.round((nutritionStats.carbs / nutritionStats.targetCarbs) * 100);
-    const proteinPercent = Math.round((nutritionStats.protein / nutritionStats.targetProtein) * 100);
-    const fatsPercent = Math.round((nutritionStats.fats / nutritionStats.targetFats) * 100);
+    // Format numbers to have no decimal places
+    const formattedCalories = Math.round(calories);
+    const formattedRemaining = Math.round(remaining);
+    
+    // Calculate percentages for macros with fixed precision
+    const carbsPercent = Math.min(100, Math.round((nutritionStats.carbs / nutritionStats.targetCarbs) * 100));
+    const proteinPercent = Math.min(100, Math.round((nutritionStats.protein / nutritionStats.targetProtein) * 100));
+    const fatsPercent = Math.min(100, Math.round((nutritionStats.fats / nutritionStats.targetFats) * 100));
     
     return (
       <View style={styles.calorieCircleContainer}>
         <View style={styles.macroRow}>
           <View style={styles.macroCircle}>
-            <Text style={styles.macroValue}>{calories}</Text>
+            <Text style={styles.macroValue}>{formattedCalories}</Text>
             <Text style={styles.macroLabel}>приети</Text>
           </View>
           
           <View style={[styles.macroCircle, styles.mainCircle]}>
-            <Text style={styles.remainingCalories}>{remaining}</Text>
+            <Text style={styles.remainingCalories}>{formattedRemaining}</Text>
             <Text style={styles.remainingLabel}>калории{'\n'}остават</Text>
           </View>
           
@@ -1350,7 +1401,9 @@ const DashboardScreen: React.FC<DashboardProps> = ({ onLogout }) => {
           <View style={styles.macroStat}>
             <Text style={styles.macroStatLabel}>Въглехидрати</Text>
             <View style={styles.macroStatValues}>
-              <Text style={styles.macroStatValue}>{nutritionStats.carbs}/{nutritionStats.targetCarbs}g</Text>
+              <Text style={styles.macroStatValue}>
+                {Math.round(nutritionStats.carbs)}/{Math.round(nutritionStats.targetCarbs)}g
+              </Text>
               <Text style={styles.macroStatPercent}>{carbsPercent}%</Text>
             </View>
           </View>
@@ -1358,7 +1411,9 @@ const DashboardScreen: React.FC<DashboardProps> = ({ onLogout }) => {
           <View style={styles.macroStat}>
             <Text style={styles.macroStatLabel}>Протеини</Text>
             <View style={styles.macroStatValues}>
-              <Text style={styles.macroStatValue}>{nutritionStats.protein}/{nutritionStats.targetProtein}g</Text>
+              <Text style={styles.macroStatValue}>
+                {Math.round(nutritionStats.protein)}/{Math.round(nutritionStats.targetProtein)}g
+              </Text>
               <Text style={styles.macroStatPercent}>{proteinPercent}%</Text>
             </View>
           </View>
@@ -1366,7 +1421,9 @@ const DashboardScreen: React.FC<DashboardProps> = ({ onLogout }) => {
           <View style={styles.macroStat}>
             <Text style={styles.macroStatLabel}>Мазнини</Text>
             <View style={styles.macroStatValues}>
-              <Text style={styles.macroStatValue}>{nutritionStats.fats}/{nutritionStats.targetFats}g</Text>
+              <Text style={styles.macroStatValue}>
+                {Math.round(nutritionStats.fats)}/{Math.round(nutritionStats.targetFats)}g
+              </Text>
               <Text style={styles.macroStatPercent}>{fatsPercent}%</Text>
             </View>
           </View>
@@ -1394,21 +1451,30 @@ const DashboardScreen: React.FC<DashboardProps> = ({ onLogout }) => {
 
     return (
       <View style={styles.dateContainer}>
-        <TouchableOpacity 
-          style={styles.dateSelectorButton}
-          onPress={() => setShowDatePicker(true)}
-        >
-          <Ionicons name="calendar-outline" size={24} color="#FFFFFF" />
-          <Text style={styles.dateText}>
-            {currentDate.toDateString() === new Date().toDateString() 
-              ? translations.today 
-              : currentDate.toDateString() === new Date(Date.now() - 86400000).toDateString()
-              ? translations.yesterday
-              : formatDate(currentDate)
-            }
-          </Text>
-          <Ionicons name="chevron-down-outline" size={24} color="#FFFFFF" />
-        </TouchableOpacity>
+        <View style={styles.dateHeader}>
+          <TouchableOpacity 
+            style={styles.dateSelectorButton}
+            onPress={() => setShowDatePicker(true)}
+          >
+            <Ionicons name="calendar-outline" size={24} color="#FFFFFF" />
+            <Text style={styles.dateText}>
+              {currentDate.toDateString() === new Date().toDateString() 
+                ? translations.today 
+                : currentDate.toDateString() === new Date(Date.now() - 86400000).toDateString()
+                ? translations.yesterday
+                : formatDate(currentDate)
+              }
+            </Text>
+            <Ionicons name="chevron-down-outline" size={24} color="#FFFFFF" />
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.regenerateButton}
+            onPress={handleRegenerateMeals}
+          >
+            <Ionicons name="refresh-outline" size={20} color="#4CAF50" />
+          </TouchableOpacity>
+        </View>
 
         {showDatePicker && (
           <View style={styles.datePickerContainer}>
@@ -1516,6 +1582,54 @@ const DashboardScreen: React.FC<DashboardProps> = ({ onLogout }) => {
     );
   };
 
+  // Add this new function inside DashboardScreen component
+  const handleRegenerateMeals = async () => {
+    try {
+      if (!user) return;
+
+      const dateKey = currentDate.toISOString().split('T')[0];
+      
+      // Generate new suggestions
+      const breakfast = await generateMealSuggestions('breakfast', nutritionStats.targetCalories);
+      const lunch = await generateMealSuggestions('lunch', nutritionStats.targetCalories);
+      const dinner = await generateMealSuggestions('dinner', nutritionStats.targetCalories);
+      const snacks = await generateMealSuggestions('snacks', nutritionStats.targetCalories);
+
+      // Create new suggestions object
+      const newSuggestions: StoredMealSuggestions = {
+        date: dateKey,
+        breakfast,
+        lunch,
+        dinner,
+        snacks
+      };
+
+      // Update Firestore
+      const suggestionsRef = doc(db, 'users', user.uid, 'mealSuggestions', dateKey);
+      await setDoc(suggestionsRef, newSuggestions);
+      
+      // Update local state
+      setStoredSuggestions(newSuggestions);
+      setBreakfastSuggestions(breakfast);
+      setLunchSuggestions(lunch);
+      setDinnerSuggestions(dinner);
+      setSnackSuggestions(snacks);
+
+      showMessage({
+        message: 'Ястията са регенерирани успешно',
+        type: 'success',
+        duration: 2000,
+      });
+    } catch (error) {
+      console.error('Error regenerating meals:', error);
+      showMessage({
+        message: 'Грешка при регенериране на ястията',
+        type: 'danger',
+        duration: 2000,
+      });
+    }
+  };
+
   if (loading) {
     return (
       <StyledView className="flex-1 justify-center items-center bg-[#f4f7fa]">
@@ -1539,6 +1653,8 @@ const DashboardScreen: React.FC<DashboardProps> = ({ onLogout }) => {
             iconName = 'restaurant-outline';
           } else if (route.name === 'scan') {
             iconName = 'scan-outline';
+          } else if (route.name === 'Profile') { // Add Profile tab
+            iconName = 'person-outline';
           }
 
           return <Ionicons name={iconName || 'home-outline'} size={24} color={color} />;
@@ -1562,7 +1678,7 @@ const DashboardScreen: React.FC<DashboardProps> = ({ onLogout }) => {
     >
       <Tab.Screen name="Dashboard" options={{ headerShown: false }}>
         {() => (
-          <StyledView style={styles.container}>
+          <SafeAreaView style={styles.container}>
             <StyledImageBackground
               source={{
                 uri: 'https://i.imgur.com/8F9ZGpX.png',
@@ -1571,20 +1687,6 @@ const DashboardScreen: React.FC<DashboardProps> = ({ onLogout }) => {
               blurRadius={5}
             >
               <View style={styles.headerBackground}>
-                <View style={styles.headerContainer}>
-                  <StyledText style={styles.welcomeText}>
-                    Добре дошли, {user?.email || 'User'}!
-                  </StyledText>
-                  <TouchableOpacity onPress={() => navigation.navigate('editProfile')}>
-                    <Image
-                      source={{
-                        uri: profileImage ||
-                          'https://static.vecteezy.com/system/resources/thumbnails/009/292/244/small/default-avatar-icon-of-social-media-user-vector.jpg',
-                      }}
-                      style={styles.profileImage}
-                    />
-                  </TouchableOpacity>
-                </View>
                 <DateSelector currentDate={currentDate} onDateChange={setCurrentDate} />
               </View>
               <View style={styles.mainContainer}>
@@ -1700,13 +1802,18 @@ const DashboardScreen: React.FC<DashboardProps> = ({ onLogout }) => {
                 />
               </View>
             </StyledImageBackground>
-          </StyledView>
+          </SafeAreaView>
         )}
       </Tab.Screen>
       <Tab.Screen name="Goals" component={GoalsScreen} options={{ headerShown: false }} />
       <Tab.Screen name="Inventory" component={InventoryScreen} options={{ headerShown: false }} />
       <Tab.Screen name="Recipes" component={RecipesScreen} options={{ headerShown: false }} />
       <Tab.Screen name="scan" component={ExpoCamera} options={{ headerShown: false }} />
+      <Tab.Screen 
+        name="Profile" 
+        component={EditProfileScreen} 
+        options={{ headerShown: false }} 
+      />
     </Tab.Navigator>
   );
 };
@@ -1714,6 +1821,7 @@ const DashboardScreen: React.FC<DashboardProps> = ({ onLogout }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: '#000000',
   },
   imageBackground: {
     flex: 1,
@@ -1722,14 +1830,7 @@ const styles = StyleSheet.create({
   headerBackground: {
     backgroundColor: '#000000',
     paddingBottom: 15,
-  },
-  headerContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingTop: 80,
-    paddingHorizontal: 15,
-    backgroundColor: '#000000',
+    paddingTop: 10, // Add some padding at the top
   },
   welcomeText: {
     fontSize: 24,
@@ -2138,7 +2239,6 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   dateContainer: {
-    marginTop: 15,
     paddingHorizontal: 15,
   },
   dateSelectorButton: {
@@ -2271,6 +2371,17 @@ const styles = StyleSheet.create({
     backgroundColor: '#333',
     marginRight: 12,
     resizeMode: 'cover' // Add this to ensure the image fills the container
+  },
+  dateHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  regenerateButton: {
+    padding: 8,
+    borderRadius: 20,
+    backgroundColor: 'rgba(26, 26, 26, 0.8)',
+    marginLeft: 10,
   },
 });
 

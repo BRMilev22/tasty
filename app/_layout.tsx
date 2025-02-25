@@ -98,7 +98,6 @@ const _layout = () => {
     options={{ headerShown: false }}
     component={RegisterScreen}
   />
-  <Stack.Screen name="editProfile" component={EditProfileScreen} options={{ headerShown: false }} />
   <Stack.Screen name="goalsSelect" component={GoalSelectionScreen} options={{ headerShown: false }} />
   <Stack.Screen name="heightSelect" component={HeightSelectionScreen} options={{ headerShown: false }} />
   <Stack.Screen name="weightSelect" component={WeightSelectionScreen} options={{ headerShown: false }} />

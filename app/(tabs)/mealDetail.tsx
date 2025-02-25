@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, Image, StyleSheet, TouchableOpacity, ScrollView, ActivityIndicator } from 'react-native';
+import { View, Text, Image, StyleSheet, TouchableOpacity, ScrollView, ActivityIndicator, Dimensions } from 'react-native';
 import { useRoute, useNavigation } from '@react-navigation/native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { getAuth } from 'firebase/auth';
 import { getFirestore, addDoc, collection, serverTimestamp } from 'firebase/firestore';
 import { showMessage } from 'react-native-flash-message';
+import { PieChart } from 'react-native-chart-kit';
 
 interface Ingredient {
   name: string;
@@ -117,6 +118,36 @@ const MealDetailScreen = () => {
     }
   };
 
+  const getPieChartData = () => {
+    const protein = meal.protein * servings;
+    const carbs = meal.carbs * servings;
+    const fats = meal.fats * servings;
+    
+    return [
+      {
+        name: translations.protein,
+        value: protein,
+        color: '#FF6B6B',
+        legendFontColor: '#ffffff',
+        legendFontSize: 14,
+      },
+      {
+        name: translations.carbs,
+        value: carbs,
+        color: '#4ECDC4',
+        legendFontColor: '#ffffff',
+        legendFontSize: 14,
+      },
+      {
+        name: translations.fat,
+        value: fats,
+        color: '#FFE66D',
+        legendFontColor: '#ffffff',
+        legendFontSize: 14,
+      },
+    ];
+  };
+
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
@@ -192,9 +223,22 @@ const MealDetailScreen = () => {
       <View style={styles.nutritionInfo}>
         <Text style={styles.calories}>{meal.calories * servings}</Text>
         <Text style={styles.caloriesLabel}>{translations.calories}</Text>
-        <Text style={styles.macros}>
-          {meal.carbs * servings}г {translations.carbs}, {meal.fats * servings}г {translations.fat}, {meal.protein * servings}г {translations.protein}
-        </Text>
+        
+        <View style={styles.chartContainer}>
+          <PieChart
+            data={getPieChartData()}
+            width={Dimensions.get('window').width - 40}
+            height={220}
+            chartConfig={{
+              color: (opacity = 1) => `rgba(255, 255, 255, ${opacity})`,
+              labelColor: (opacity = 1) => `rgba(255, 255, 255, ${opacity})`,
+            }}
+            accessor="value"
+            backgroundColor="transparent"
+            paddingLeft="0"
+            absolute
+          />
+        </View>
       </View>
 
       <View style={styles.ingredientsSection}>
@@ -323,9 +367,9 @@ const styles = StyleSheet.create({
     color: '#999',
     fontSize: 16,
   },
-  macros: {
-    color: '#ffffff',
-    marginTop: 10,
+  chartContainer: {
+    marginTop: 20,
+    alignItems: 'center',
   },
   ingredientsSection: {
     padding: 20,
