@@ -2,7 +2,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Meal } from '../data/predefinedMeals';
 
 // Update to use your actual local IP address
-const API_URL = 'http://192.168.0.125:3000';
+const API_URL = 'http://localhost:3000';
 const FAVORITES_STORAGE_KEY = 'favorite_meals';
 
 interface DBMeal {
@@ -14,6 +14,10 @@ interface DBMeal {
   image: string;
   youtube_link: string;
   source: string;
+  kcal?: number;
+  protein?: number;
+  carbs?: number;
+  fat?: number;
   [key: string]: any; // For dynamic ingredient and measure fields
 }
 
@@ -67,12 +71,17 @@ export const fetchRandomMeals = async (number: number = 50): Promise<Meal[]> => 
 
     // Log raw data from API
     if (data.meals?.length > 0) {
-      console.log('Raw API response meal:', data.meals[0]);
+      console.log('Raw API response meal:', {
+        name: data.meals[0].name,
+        kcal: data.meals[0].kcal,
+        protein: data.meals[0].protein,
+        carbs: data.meals[0].carbs,
+        fat: data.meals[0].fat
+      });
     }
 
     return data.meals.map((meal: DBMeal) => {
       const mappedCategory = mapCategory(meal.category);
-      const nutrition = categoryCalories[meal.category] || categoryCalories['Основно ястие'];
 
       // Get all ingredients and measures
       const ingredients = [];
@@ -87,34 +96,30 @@ export const fetchRandomMeals = async (number: number = 50): Promise<Meal[]> => 
         }
       }
 
-      // Log what we're processing
-      console.log('Processing meal:', {
-        name: meal.name,
-        ingredientsCount: ingredients.length,
-        hasInstructions: !!meal.instructions
-      });
-
       // Handle the image URL
       let imageUrl = meal.thumbnail;
       if (imageUrl) {
-        // Remove @ if it exists at the start
         imageUrl = imageUrl.startsWith('@') ? imageUrl.substring(1) : imageUrl;
-        // Add https:// if it's missing
         if (!imageUrl.startsWith('http')) {
           imageUrl = `https://${imageUrl}`;
         }
       } else {
-        // Fallback image URL
         imageUrl = 'https://www.themealdb.com/images/media/meals/default.jpg';
       }
+
+      // Parse numeric values from the database
+      const calories = parseFloat(meal.kcal?.toString() || '0');
+      const protein = parseFloat(meal.protein?.toString() || '0');
+      const carbs = parseFloat(meal.carbs?.toString() || '0');
+      const fats = parseFloat(meal.fat?.toString() || '0');
 
       return {
         id: meal.id,
         name: meal.name,
-        calories: nutrition.calories,
-        protein: nutrition.protein,
-        carbs: nutrition.carbs,
-        fats: nutrition.fats,
+        calories: calories,
+        protein: protein,
+        carbs: carbs,
+        fats: fats,
         image: imageUrl,
         category: mappedCategory,
         area: meal.area,

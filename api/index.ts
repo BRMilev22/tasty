@@ -67,6 +67,10 @@ interface MealRow extends RowDataPacket {
   thumbnail: string;
   youtube_link: string;
   source: string;
+  carbs: number;
+  protein: number;
+  fat: number;
+  kcal: number;
   [key: string]: any; // For dynamic ingredient and measure fields
 }
 
@@ -88,6 +92,10 @@ app.get('/recipes/random', async (req, res) => {
         thumbnail,
         youtube_link,
         source,
+        carbs,
+        protein,
+        fat,
+        kcal,
         ingredient1, measure1,
         ingredient2, measure2,
         ingredient3, measure3,
@@ -115,12 +123,15 @@ app.get('/recipes/random', async (req, res) => {
 
     // Log the first meal to verify data
     if (rows.length > 0) {
-      const firstMeal = rows[0];
       console.log('Sample meal data:', {
-        name: firstMeal.name,
-        ingredient1: firstMeal.ingredient1,
-        measure1: firstMeal.measure1,
-        instructions: firstMeal.instructions?.substring(0, 100) + '...'
+        name: rows[0].name,
+        carbs: rows[0].carbs,
+        protein: rows[0].protein,
+        fat: rows[0].fat,
+        kcal: rows[0].kcal,
+        ingredient1: rows[0].ingredient1,
+        measure1: rows[0].measure1,
+        instructions: rows[0].instructions?.substring(0, 100) + '...'
       });
     }
 
