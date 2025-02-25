@@ -1410,18 +1410,13 @@ const DashboardScreen: React.FC<DashboardProps> = ({ onLogout }) => {
     icon, 
     title, 
     subtitle, 
-    calories, 
+    calories, // We'll keep this prop for now to avoid breaking other code
     recommended, 
     todaysMeals,
     suggestedMeals 
   }: MealTimeButtonProps) => {
     const [showSuggestions, setShowSuggestions] = useState(false);
     const navigation = useNavigation<NavigationProp<RootStackParamList>>();
-
-    // Calculate total calories for this meal type
-    const mealTypeCalories = todaysMeals
-      .filter(meal => meal.type?.toLowerCase() === title.toLowerCase())
-      .reduce((sum, meal) => sum + (meal.calories || 0), 0);
 
     const handleAddPress = () => {
       navigation.navigate('addMeal', { mealType: title });
@@ -1447,7 +1442,7 @@ const DashboardScreen: React.FC<DashboardProps> = ({ onLogout }) => {
               </View>
             </View>
             <View style={styles.mealTimeRight}>
-              <Text style={styles.mealTimeCalories}>{mealTypeCalories} kcal</Text>
+              {/* Removed the calories text here */}
               <TouchableOpacity style={styles.addButton} onPress={handleAddPress}>
                 <Ionicons name="add-circle" size={28} color="#4CAF50" />
               </TouchableOpacity>
