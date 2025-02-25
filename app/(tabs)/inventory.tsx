@@ -5,6 +5,7 @@ import { db } from '../../firebaseConfig';
 import { getAuth } from 'firebase/auth';
 import { styled } from 'nativewind';
 import Ionicons from 'react-native-vector-icons/Ionicons';
+import FontAwesome5 from 'react-native-vector-icons/FontAwesome5';
 
 const auth = getAuth();
 
@@ -26,6 +27,7 @@ interface InventoryItem {
     carbohydrates: number;
     proteins: number;
   };
+  barcode?: string;
 }
 
 const InventoryScreen = () => {
@@ -34,6 +36,8 @@ const InventoryScreen = () => {
   const [itemName, setItemName] = useState('');
   const [itemQuantity, setItemQuantity] = useState('');
   const [itemUnit, setItemUnit] = useState('');
+  const [selectedItem, setSelectedItem] = useState<InventoryItem | null>(null);
+  const [isNutritionalModalVisible, setIsNutritionalModalVisible] = useState(false);
   const user = auth.currentUser;
 
   useEffect(() => {
@@ -46,6 +50,7 @@ const InventoryScreen = () => {
           quantity: doc.data().quantity,
           unit: doc.data().unit,
           nutriments: doc.data().nutriments,
+          barcode: doc.data().barcode,
         }));
         setInventoryItems(items);
       });
@@ -72,7 +77,7 @@ const InventoryScreen = () => {
     }
 
     try {
-      const newItem = {
+      const newItem: Omit<InventoryItem, 'id'> = {
         name: itemName,
         quantity: parseInt(itemQuantity),
         unit: itemUnit,
@@ -101,8 +106,49 @@ const InventoryScreen = () => {
       >
         <Ionicons name="trash-outline" size={20} color="#e74c3c" />
       </StyledTouchableOpacity>
+      {item.barcode && !isNaN(Number(item.barcode)) && (
+        <>
+          <StyledTouchableOpacity 
+            className="bg-transparent p-2 rounded-lg border border-blue-500 ml-2" 
+            onPress={() => {
+              setSelectedItem(item);
+              setIsNutritionalModalVisible(true);
+            }}
+          >
+            <Ionicons name="information-circle-outline" size={20} color="#3498db" />
+          </StyledTouchableOpacity>
+          <StyledTouchableOpacity 
+            className="bg-transparent p-2 rounded-lg border border-green-500 ml-2" 
+            onPress={() => addScannedItemToMeals(item)}
+          >
+            <Ionicons name="add-circle-outline" size={20} color="#2ecc71" />
+          </StyledTouchableOpacity>
+        </>
+      )}
     </StyledView>
   );
+
+  // Function to add scanned item to today's meals
+  const addScannedItemToMeals = async (item: InventoryItem) => {
+    if (!user) return;
+
+    try {
+      await addDoc(collection(db, 'users', user.uid, 'meals'), {
+        name: item.name,
+        calories: item.nutriments.energy,
+        protein: item.nutriments.proteins,
+        carbs: item.nutriments.carbohydrates,
+        fats: item.nutriments.fat,
+        timestamp: new Date(),
+        source: 'scanned_item',
+      });
+
+      Alert.alert('Успех', 'Артикулът е добавен към днешните хранения.');
+    } catch (error) {
+      console.error('Error adding scanned item to meals:', error);
+      Alert.alert('Грешка', 'Неуспешно добавяне на артикула.');
+    }
+  };
 
   return (
     <StyledView className="flex-1 bg-black p-5">
@@ -153,6 +199,57 @@ const InventoryScreen = () => {
           </StyledView>
         </StyledView>
       </StyledModal>
+
+      {/* Nutritional Information Modal */}
+      {selectedItem && (
+        <StyledModal
+          animationType="slide"
+          transparent={true}
+          visible={isNutritionalModalVisible}
+          onRequestClose={() => setIsNutritionalModalVisible(false)}
+        >
+          <StyledView className="flex-1 justify-center items-center bg-black/80">
+            <StyledView className="bg-black p-6 rounded-lg w-80 border border-green-500">
+              <StyledText className="text-lg font-bold text-white text-center mb-4">📊 Хранителна информация</StyledText>
+              
+              <StyledView className="flex-row items-center mb-2">
+                <Text className="text-xl">🔥</Text>
+                <StyledText className="text-white ml-2">
+                  Калории: {selectedItem.nutriments.energy || "Не са намерени калории"}
+                </StyledText>
+              </StyledView>
+
+              <StyledView className="flex-row items-center mb-2">
+                <Text className="text-xl">🍞</Text>
+                <StyledText className="text-white ml-2">
+                  Въглехидрати: {selectedItem.nutriments.carbohydrates || "Не са намерени въглехидрати"}
+                </StyledText>
+              </StyledView>
+
+              <StyledView className="flex-row items-center mb-2">
+                <Text className="text-xl">🍗</Text>
+                <StyledText className="text-white ml-2">
+                  Протеини: {selectedItem.nutriments.proteins || "Не са намерени протеини"}
+                </StyledText>
+              </StyledView>
+
+              <StyledView className="flex-row items-center mb-2">
+                <Text className="text-xl">🥓</Text>
+                <StyledText className="text-white ml-2">
+                  Мазнини: {selectedItem.nutriments.fat || "Не са намерени мазнини"}
+                </StyledText>
+              </StyledView>
+
+              <StyledTouchableOpacity
+                className="bg-white p-3 rounded-lg border border-green-500 mt-4"
+                onPress={() => setIsNutritionalModalVisible(false)}
+              >
+                <StyledText className="text-black">❌ Затворете</StyledText>
+              </StyledTouchableOpacity>
+            </StyledView>
+          </StyledView>
+        </StyledModal>
+      )}
     </StyledView>
   );
 };
