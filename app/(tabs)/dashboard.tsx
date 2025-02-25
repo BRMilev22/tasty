@@ -143,6 +143,7 @@ interface SuggestedMeal {
   category?: string;
   instructions?: string;
   ingredients?: any[];
+  eaten?: boolean; // Add this property
 }
 
 interface MealTimeButtonProps {
@@ -294,6 +295,14 @@ interface StoredMealSuggestions {
   dinner: SuggestedMeal[];
   snacks: SuggestedMeal[];
 }
+
+// Add this constant at the top level of the file, outside any component
+const mealTypeMap: { [key: string]: string } = {
+  'Закуска': 'breakfast',
+  'Обяд': 'lunch',
+  'Вечеря': 'dinner',
+  'Снаксове': 'snacks'
+};
 
 const DashboardScreen: React.FC<DashboardProps> = ({ onLogout }) => {
   const navigation = useNavigation<NavigationProp<RootStackParamList>>();
@@ -1150,6 +1159,63 @@ const DashboardScreen: React.FC<DashboardProps> = ({ onLogout }) => {
     }
   };
 
+  const checkIfMealEaten = (mealName: string, todaysMeals: MealData[]): boolean => {
+    return todaysMeals.some(meal => 
+      meal.name.toLowerCase() === mealName.toLowerCase()
+    );
+  };
+
+  const SuggestedMealItem = ({ meal, mealType, eaten }: { meal: SuggestedMeal; mealType: string; eaten: boolean }) => {
+    const navigation = useNavigation<NavigationProp<RootStackParamList>>();
+    const [imageError, setImageError] = useState(false);
+
+    const handlePress = () => {
+      navigation.navigate('mealDetail', {
+        meal: meal,
+        mealType: mealTypeMap[mealType] || 'breakfast',
+        eaten: eaten
+      });
+    };
+
+    return (
+      <TouchableOpacity 
+        style={[
+          styles.suggestedMealItem, 
+          eaten && styles.suggestedMealItemEaten
+        ]} 
+        onPress={handlePress}
+      >
+        <View style={styles.bulletPoint} />
+        <Image 
+          source={{ uri: meal.image }} 
+          style={[
+            styles.suggestedMealImage,
+            eaten && styles.suggestedMealImageEaten
+          ]}
+          onError={() => setImageError(true)}
+        />
+        <View style={styles.suggestedMealContent}>
+          <View style={styles.suggestedMealNameRow}>
+            {eaten && (
+              <Ionicons name="checkmark-circle" size={16} color="#4CAF50" style={styles.eatenIcon} />
+            )}
+            <Text 
+              style={[
+                styles.suggestedMealName,
+                eaten && styles.suggestedMealNameEaten
+              ]}
+            >
+              {meal.name}
+            </Text>
+          </View>
+          <Text style={styles.suggestedMealDetails}>
+            {meal.servingSize} • {Math.round(meal.calories)} kcal
+          </Text>
+        </View>
+      </TouchableOpacity>
+    );
+  };
+
   const MealTimeButton = ({ 
     icon, 
     title, 
@@ -1159,83 +1225,59 @@ const DashboardScreen: React.FC<DashboardProps> = ({ onLogout }) => {
     todaysMeals,
     suggestedMeals 
   }: MealTimeButtonProps) => {
-    const navigation = useNavigation();
-    
-    const mealTypeMap = {
-      [translations.breakfast]: 'breakfast',
-      [translations.lunch]: 'lunch',
-      [translations.dinner]: 'dinner',
-      [translations.snacks]: 'snacks'
+    const [showSuggestions, setShowSuggestions] = useState(false);
+    const navigation = useNavigation<NavigationProp<RootStackParamList>>();
+
+    // Calculate total calories for this meal type
+    const mealTypeCalories = todaysMeals
+      .filter(meal => meal.type?.toLowerCase() === title.toLowerCase())
+      .reduce((sum, meal) => sum + (meal.calories || 0), 0);
+
+    const handleAddPress = () => {
+      navigation.navigate('addMeal', { mealType: title });
     };
 
-    const handlePress = () => {
-      navigation.navigate('mealDetail', {
-        meal: suggestedMeals && suggestedMeals[0],
-        mealType: mealTypeMap[title]
-      });
+    const toggleSuggestions = () => {
+      setShowSuggestions(!showSuggestions);
     };
 
     return (
       <View style={styles.mealTimeSection}>
         <TouchableOpacity 
           style={styles.mealTimeButton}
-          onPress={handlePress}
+          onPress={toggleSuggestions}
         >
           <View style={styles.mealTimeContent}>
             <View style={styles.mealTimeLeft}>
               <Text style={styles.mealIcon}>{icon}</Text>
               <View style={styles.mealTimeTexts}>
                 <Text style={styles.mealTimeTitle}>{title}</Text>
-                {subtitle ? (
-                  <Text style={styles.mealTimeSubtitle}>{subtitle}</Text>
-                ) : (
-                  <Text style={styles.mealTimeRecommended}>
-                    {translations.recommended}: {recommended}
-                  </Text>
-                )}
+                {subtitle && <Text style={styles.mealTimeSubtitle}>{subtitle}</Text>}
+                {recommended && <Text style={styles.mealTimeRecommended}>{recommended}</Text>}
               </View>
             </View>
             <View style={styles.mealTimeRight}>
-              {calories && <Text style={styles.mealTimeCalories}>{calories} kcal</Text>}
-              <TouchableOpacity 
-                style={styles.addButton}
-                onPress={handlePress}
-              >
-                <Ionicons name="add" size={24} color="#ffffff" />
+              <Text style={styles.mealTimeCalories}>{mealTypeCalories} kcal</Text>
+              <TouchableOpacity style={styles.addButton} onPress={handleAddPress}>
+                <Ionicons name="add-circle" size={28} color="#4CAF50" />
               </TouchableOpacity>
             </View>
           </View>
         </TouchableOpacity>
 
-        {Array.isArray(suggestedMeals) && suggestedMeals.length > 0 && (
+        {showSuggestions && suggestedMeals && suggestedMeals.length > 0 && (
           <View style={styles.suggestedMealsContainer}>
-            {suggestedMeals.map((suggestion, index) => (
-              <TouchableOpacity
-                key={index}
-                onPress={handlePress}
-              >
-                <View style={styles.suggestedMealItem}>
-                  <View style={styles.bulletPoint} />
-                  <Image 
-                    source={{ uri: suggestion.image }}
-                    style={styles.suggestedMealImage}
-                    onError={(e) => {
-                      console.log('Image error for:', {
-                        name: suggestion.name,
-                        image: suggestion.image,
-                        error: e.nativeEvent.error
-                      });
-                    }}
-                  />
-                  <View style={styles.suggestedMealContent}>
-                    <Text style={styles.suggestedMealName}>{suggestion.name}</Text>
-                    <Text style={styles.suggestedMealDetails}>
-                      {suggestion.servingSize} • {suggestion.calories} kcal
-                    </Text>
-                  </View>
-                </View>
-              </TouchableOpacity>
-            ))}
+            {suggestedMeals.map((meal, index) => {
+              const isEaten = checkIfMealEaten(meal.name, todaysMeals);
+              return (
+                <SuggestedMealItem 
+                  key={`${meal.name}-${index}`} 
+                  meal={meal} 
+                  mealType={title}
+                  eaten={isEaten}
+                />
+              );
+            })}
           </View>
         )}
       </View>
@@ -2382,6 +2424,27 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     backgroundColor: 'rgba(26, 26, 26, 0.8)',
     marginLeft: 10,
+  },
+  suggestedMealItemEaten: {
+    opacity: 0.7,
+  },
+  
+  suggestedMealImageEaten: {
+    opacity: 0.6,
+  },
+  
+  suggestedMealNameEaten: {
+    textDecorationLine: 'line-through',
+    color: '#4CAF50',
+  },
+  
+  suggestedMealNameRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  
+  eatenIcon: {
+    marginRight: 4,
   },
 });
 
