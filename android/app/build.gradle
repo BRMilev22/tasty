@@ -86,7 +86,7 @@ android {
     buildToolsVersion rootProject.ext.buildToolsVersion
     compileSdk rootProject.ext.compileSdkVersion
 
-    namespace 'com.anonymous.tasty'
+    namespace "com.tasty"
     defaultConfig {
         applicationId 'com.anonymous.tasty'
         minSdkVersion rootProject.ext.minSdkVersion
