@@ -11,6 +11,7 @@ import {
   Animated,
   StyleSheet,
 } from 'react-native';
+import Slider from '@react-native-community/slider';
 import { styled } from 'nativewind';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { getAuth } from 'firebase/auth';
@@ -36,7 +37,19 @@ interface Goal {
   createdAt: Date;
   userId: string;
   fadeAnim: Animated.Value;
+  category: 'weight' | 'nutrition' | 'exercise' | 'other';
+  targetDate?: Date;
+  progress: number; // 0-100
+  notes?: string;
 }
+
+// Add category icons mapping
+const categoryIcons = {
+  weight: 'scale-outline',
+  nutrition: 'nutrition-outline',
+  exercise: 'fitness-outline',
+  other: 'flag-outline'
+} as const;
 
 const GoalsScreen = () => {
   const [goals, setGoals] = useState<Goal[]>([]);
@@ -45,6 +58,11 @@ const GoalsScreen = () => {
   const [selectedGoalIndex, setSelectedGoalIndex] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const user = auth.currentUser;
+  const [selectedGoal, setSelectedGoal] = useState<Goal | null>(null);
+  const [category, setCategory] = useState<Goal['category']>('other');
+  const [targetDate, setTargetDate] = useState<Date | undefined>();
+  const [progress, setProgress] = useState(0);
+  const [notes, setNotes] = useState('');
 
   // Fetch goals from Firestore
   useEffect(() => {
@@ -63,7 +81,11 @@ const GoalsScreen = () => {
           completed: data.completed || false,
           createdAt: data.createdAt?.toDate() || new Date(),
           userId: data.userId,
-          fadeAnim: new Animated.Value(1)
+          fadeAnim: new Animated.Value(1),
+          category: data.category || 'other',
+          targetDate: data.targetDate?.toDate(),
+          progress: data.progress || 0,
+          notes: data.notes,
         });
       });
       setGoals(goalsData);
@@ -83,9 +105,11 @@ const GoalsScreen = () => {
           text: newGoal,
           completed: false,
           createdAt: new Date(),
-          userId: user.uid
+          userId: user.uid,
+          category: 'other',
+          progress: 0,
         });
-      setNewGoal('');
+        setNewGoal('');
         setIsLoading(false);
       } catch (error) {
         console.error('Error adding goal:', error);
@@ -155,45 +179,129 @@ const GoalsScreen = () => {
   const renderGoal = ({ item, index }: { item: Goal; index: number }) => (
     <Animated.View style={{ opacity: item.fadeAnim }}>
       <StyledView style={[styles.goalCard, item.completed && styles.completedGoalCard]}>
-        <StyledTouchableOpacity 
-          style={[styles.checkboxContainer, item.completed && styles.completedCheckbox]}
-          onPress={() => toggleGoalCompletion(item)}
-        >
-          {item.completed ? (
-            <Ionicons name="checkmark" size={20} color="#FFFFFF" />
-          ) : (
-            <StyledView style={styles.emptyCheckbox} />
-          )}
-        </StyledTouchableOpacity>
-        
-        <StyledView className="flex-1 ml-3">
-          <StyledText style={[styles.goalText, item.completed && styles.completedGoalText]}>
-            {item.text}
-          </StyledText>
+        {/* Category Icon */}
+        <StyledView style={styles.categoryIcon}>
+          <Ionicons 
+            name={categoryIcons[item.category]} 
+            size={24} 
+            color="#FFFFFF" 
+          />
         </StyledView>
-        
-        <StyledView className="flex-row">
+
+        <StyledView style={styles.goalContent}>
+          {/* Goal Text and Progress */}
+          <StyledView style={styles.goalHeader}>
+            <StyledText style={[styles.goalText, item.completed && styles.completedGoalText]}>
+              {item.text}
+            </StyledText>
+            <StyledText style={styles.progressText}>
+              {item.progress}%
+            </StyledText>
+          </StyledView>
+
+          {/* Progress Bar */}
+          <StyledView style={styles.progressBarContainer}>
+            <StyledView 
+              style={[
+                styles.progressBar, 
+                { width: `${item.progress}%` }
+              ]} 
+            />
+          </StyledView>
+
+          {/* Target Date if exists */}
+          {item.targetDate && (
+            <StyledText style={styles.dateText}>
+              Due: {item.targetDate.toLocaleDateString()}
+            </StyledText>
+          )}
+        </StyledView>
+
+        {/* Actions */}
+        <StyledView style={styles.actionsContainer}>
           <StyledTouchableOpacity 
             style={styles.actionButton}
-          onPress={() => {
-            setNewGoal(item.text);
-            setSelectedGoalIndex(index);
-            setModalVisible(true);
-          }}
-        >
+            onPress={() => openEditModal(item)}
+          >
             <Ionicons name="pencil-outline" size={20} color="#FFFFFF" />
-        </StyledTouchableOpacity>
+          </StyledTouchableOpacity>
           
-        <StyledTouchableOpacity 
+          <StyledTouchableOpacity 
             style={[styles.actionButton, styles.deleteButton]}
             onPress={() => deleteGoal(item)}
-        >
+          >
             <Ionicons name="trash-outline" size={20} color="#FFFFFF" />
-        </StyledTouchableOpacity>
+          </StyledTouchableOpacity>
         </StyledView>
       </StyledView>
     </Animated.View>
   );
+
+  const openEditModal = (goal: Goal) => {
+    setSelectedGoal(goal);
+    setNewGoal(goal.text);
+    setCategory(goal.category);
+    setProgress(goal.progress);
+    setNotes(goal.notes || '');
+    setTargetDate(goal.targetDate);
+    setModalVisible(true);
+  };
+
+  const closeModal = () => {
+    setModalVisible(false);
+    setNewGoal('');
+    setCategory('other');
+    setTargetDate(undefined);
+    setProgress(0);
+    setNotes('');
+    setSelectedGoal(null);
+  };
+
+  const handleSaveGoal = async () => {
+    if (!user) return;
+    
+    try {
+      setIsLoading(true);
+      const goalData = {
+        text: newGoal,
+        category: category,
+        progress: progress,
+        notes: notes?.trim() || null,
+        // Only add these fields for new goals
+        ...(selectedGoal ? {} : {
+          completed: false,
+          createdAt: new Date(),
+          userId: user.uid,
+        })
+      };
+
+      if (targetDate) {
+        goalData.targetDate = targetDate;
+      }
+
+      if (selectedGoal) {
+        // Update existing goal
+        await updateDoc(doc(db, 'users', user.uid, 'goals', selectedGoal.id), goalData);
+      } else {
+        // Create new goal
+        await addDoc(collection(db, 'users', user.uid, 'goals'), goalData);
+      }
+      
+      // Reset form
+      setNewGoal('');
+      setCategory('other');
+      setTargetDate(undefined);
+      setProgress(0);
+      setNotes('');
+      setSelectedGoal(null);
+      setModalVisible(false);
+      setIsLoading(false);
+    } catch (error) {
+      console.error('Error saving goal:', error);
+      Alert.alert('Грешка', 'Възникна проблем при запазването на целта.');
+      setIsLoading(false);
+    }
+  };
 
   return (
     <StyledView style={styles.container}>
@@ -248,36 +356,64 @@ const GoalsScreen = () => {
       <StyledModal animationType="slide" transparent={true} visible={isModalVisible}>
         <StyledView style={styles.modalOverlay}>
           <StyledView style={styles.modalContainer}>
-            <StyledText style={styles.modalTitle}>Редактирайте цел</StyledText>
+            <StyledText style={styles.modalTitle}>
+              {selectedGoal ? 'Edit Goal' : 'New Goal'}
+            </StyledText>
             
-            {/* Input field inside modal */}
-            <StyledView style={styles.modalInputContainer}>
-              <Ionicons name="flag-outline" size={24} color="white" />
-              <StyledTextInput
-                style={styles.modalInput}
-                value={newGoal}
-                onChangeText={setNewGoal}
-                autoFocus
-              />
+            {/* Category Selector */}
+            <StyledView style={styles.categorySelector}>
+              {Object.entries(categoryIcons).map(([cat, icon]) => (
+                <StyledTouchableOpacity
+                  key={cat}
+                  style={[
+                    styles.categoryButton,
+                    category === cat && styles.selectedCategory
+                  ]}
+                  onPress={() => setCategory(cat as Goal['category'])}
+                >
+                  <Ionicons name={icon} size={24} color="#FFFFFF" />
+                </StyledTouchableOpacity>
+              ))}
             </StyledView>
 
+            {/* Goal Text Input */}
+            <StyledTextInput
+              style={styles.modalInput}
+              value={newGoal}
+              onChangeText={setNewGoal}
+              placeholder="Enter your goal"
+              placeholderTextColor="#AAAAAA"
+            />
+
+            {/* Progress Slider */}
+            <StyledView style={styles.progressInput}>
+              <StyledText style={styles.inputLabel}>Progress</StyledText>
+              <Slider
+                value={progress}
+                onValueChange={setProgress}
+                minimumValue={0}
+                maximumValue={100}
+                step={1}
+                minimumTrackTintColor="#4CAF50"
+                maximumTrackTintColor="#AAAAAA"
+              />
+              <StyledText style={styles.progressValue}>{progress}%</StyledText>
+            </StyledView>
+
+            {/* Buttons */}
             <StyledView style={styles.modalButtonsContainer}>
               <StyledTouchableOpacity 
                 style={[styles.modalButton, styles.modalCancelButton]} 
-                onPress={() => {
-                  setModalVisible(false);
-                  setNewGoal('');
-                  setSelectedGoalIndex(null);
-                }}
+                onPress={closeModal}
               >
-                <StyledText style={styles.modalButtonText}>Откажи</StyledText>
+                <StyledText style={styles.modalButtonText}>Cancel</StyledText>
               </StyledTouchableOpacity>
               
               <StyledTouchableOpacity 
                 style={[styles.modalButton, styles.modalSaveButton]} 
-                onPress={editGoal}
+                onPress={handleSaveGoal}
               >
-                <StyledText style={styles.modalButtonText}>Запази</StyledText>
+                <StyledText style={styles.modalButtonText}>Save</StyledText>
               </StyledTouchableOpacity>
             </StyledView>
           </StyledView>
@@ -474,21 +610,40 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     textAlign: 'center',
   },
-  modalInputContainer: {
+  categorySelector: {
     flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(40, 40, 40, 0.6)',
-    borderRadius: 12,
-    padding: 12,
+    justifyContent: 'space-between',
     marginBottom: 24,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  categoryButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(76, 175, 80, 0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  selectedCategory: {
+    backgroundColor: 'rgba(76, 175, 80, 0.8)',
   },
   modalInput: {
     flex: 1,
     color: '#FFFFFF',
     fontSize: 16,
     marginLeft: 12,
+  },
+  progressInput: {
+    marginBottom: 24,
+  },
+  inputLabel: {
+    color: '#AAAAAA',
+    fontSize: 14,
+    fontWeight: 'bold',
+  },
+  progressValue: {
+    color: '#4CAF50',
+    fontSize: 14,
+    fontWeight: 'bold',
   },
   modalButtonsContainer: {
     flexDirection: 'row',
@@ -521,6 +676,49 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: 'bold',
     color: '#FFFFFF',
+  },
+  categoryIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(76, 175, 80, 0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  goalContent: {
+    flex: 1,
+  },
+  goalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  progressText: {
+    color: '#4CAF50',
+    fontSize: 14,
+    fontWeight: 'bold',
+  },
+  progressBarContainer: {
+    height: 4,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderRadius: 2,
+    overflow: 'hidden',
+    marginBottom: 8,
+  },
+  progressBar: {
+    height: '100%',
+    backgroundColor: '#4CAF50',
+    borderRadius: 2,
+  },
+  dateText: {
+    color: '#AAAAAA',
+    fontSize: 12,
+  },
+  actionsContainer: {
+    flexDirection: 'row',
+    marginLeft: 12,
   },
 });
 
