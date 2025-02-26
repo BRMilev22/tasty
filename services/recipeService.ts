@@ -1,34 +1,247 @@
-export const fetchRecipesFromBgGPT = async (inventory: string[]): Promise<any> => {
+interface InventoryItem {
+  name: string;
+  quantity: number;
+  unit: string;
+}
+
+interface GeneratedRecipe {
+  title: string;
+  description: string;
+  fullRecipe: string[];
+  rating: number;
+  ingredients: {
+    name: string;
+    amount: string;
+  }[];
+  nutritionalInfo?: {
+    calories: number;
+    protein: number;
+    carbs: number;
+    fat: number;
+  };
+}
+
+// Define categories for ingredients
+const ingredientCategories = {
+  proteins: ['пилешко', 'телешко', 'свинско', 'риба', 'яйца', 'сирене', 'кайма', 'кашкавал', 'извара'],
+  carbs: ['ориз', 'спагети', 'макарони', 'хляб', 'брашно', 'картофи', 'овесени', 'грис'],
+  vegetables: ['домат', 'краставица', 'морков', 'лук', 'чесън', 'пипер', 'тиквичка', 'зеле', 'спанак'],
+  fruits: ['ябълка', 'банан', 'портокал', 'лимон', 'ягода'],
+  dairy: ['мляко', 'сирене', 'кашкавал', 'извара', 'кисело мляко', 'сметана'],
+  spices: ['сол', 'черен пипер', 'червен пипер', 'чубрица', 'джоджен'],
+  drinks: ['вода', 'сок', 'кола', 'бира', 'вино', 'ред бул', 'кафе', 'чай'],
+  snacks: ['бисквити', 'вафла', 'шоколад', 'чипс', 'бонбони'],
+  strictly_forbidden: ['ред бул', 'кола', 'енергийна напитка', 'газирана напитка']
+};
+
+// Function to check if an ingredient is cookable
+const isCookableIngredient = (name: string): boolean => {
+  const lowerName = name.toLowerCase();
+  
+  // Първо проверяваме за забранени съставки
+  if (ingredientCategories.strictly_forbidden.some(item => 
+    lowerName.includes(item.toLowerCase())
+  )) {
+    return false;
+  }
+
+  // Проверяваме дали е напитка или снакс
+  if (ingredientCategories.drinks.some(item => 
+    lowerName.includes(item.toLowerCase())
+  )) {
+    return false;
+  }
+
+  if (ingredientCategories.snacks.some(item => 
+    lowerName.includes(item.toLowerCase())
+  )) {
+    return false;
+  }
+
+  // Проверяваме дали е готвима съставка
+  return (
+    ingredientCategories.proteins.some(item => lowerName.includes(item.toLowerCase())) ||
+    ingredientCategories.carbs.some(item => lowerName.includes(item.toLowerCase())) ||
+    ingredientCategories.vegetables.some(item => lowerName.includes(item.toLowerCase())) ||
+    ingredientCategories.fruits.some(item => lowerName.includes(item.toLowerCase())) ||
+    ingredientCategories.dairy.some(item => lowerName.includes(item.toLowerCase())) ||
+    ingredientCategories.spices.some(item => lowerName.includes(item.toLowerCase()))
+  );
+};
+
+// Function to filter and organize ingredients for cooking
+const prepareIngredientsForRecipe = (inventory: InventoryItem[]): InventoryItem[] => {
+  // First, strictly filter out forbidden items and non-cookable items
+  const cookableIngredients = inventory.filter(item => {
+    const lowerName = item.name.toLowerCase();
+    
+    // Check strictly forbidden items first
+    if (ingredientCategories.strictly_forbidden.some(forbidden => 
+      lowerName.includes(forbidden.toLowerCase())
+    )) {
+      console.log(`Filtering out forbidden item: ${item.name}`);
+      return false;
+    }
+
+    // Check drinks and snacks
+    if (ingredientCategories.drinks.some(drink => 
+      lowerName.includes(drink.toLowerCase())
+    )) {
+      console.log(`Filtering out drink: ${item.name}`);
+      return false;
+    }
+
+    if (ingredientCategories.snacks.some(snack => 
+      lowerName.includes(snack.toLowerCase())
+    )) {
+      console.log(`Filtering out snack: ${item.name}`);
+      return false;
+    }
+
+    // Check if it's a valid cookable ingredient
+    const isCookable = (
+      ingredientCategories.proteins.some(item => lowerName.includes(item.toLowerCase())) ||
+      ingredientCategories.carbs.some(item => lowerName.includes(item.toLowerCase())) ||
+      ingredientCategories.vegetables.some(item => lowerName.includes(item.toLowerCase())) ||
+      ingredientCategories.fruits.some(item => lowerName.includes(item.toLowerCase())) ||
+      ingredientCategories.dairy.some(item => lowerName.includes(item.toLowerCase())) ||
+      ingredientCategories.spices.some(item => lowerName.includes(item.toLowerCase()))
+    );
+
+    if (!isCookable) {
+      console.log(`Filtering out non-cookable item: ${item.name}`);
+    }
+
+    return isCookable;
+  });
+
+  // Log filtered ingredients for debugging
+  console.log('Cookable ingredients after filtering:', cookableIngredients.map(i => i.name));
+
+  // Sort ingredients by category importance
+  const categorizedIngredients = {
+    proteins: cookableIngredients.filter(item => 
+      ingredientCategories.proteins.some(protein => 
+        item.name.toLowerCase().includes(protein.toLowerCase())
+      )
+    ),
+    carbs: cookableIngredients.filter(item =>
+      ingredientCategories.carbs.some(carb => 
+        item.name.toLowerCase().includes(carb.toLowerCase())
+      )
+    ),
+    vegetables: cookableIngredients.filter(item =>
+      ingredientCategories.vegetables.some(veg => 
+        item.name.toLowerCase().includes(veg.toLowerCase())
+      )
+    ),
+    other: cookableIngredients.filter(item => 
+      !ingredientCategories.proteins.some(protein => item.name.toLowerCase().includes(protein.toLowerCase())) &&
+      !ingredientCategories.carbs.some(carb => item.name.toLowerCase().includes(carb.toLowerCase())) &&
+      !ingredientCategories.vegetables.some(veg => item.name.toLowerCase().includes(veg.toLowerCase()))
+    )
+  };
+
+  const selectedIngredients = [
+    ...categorizedIngredients.proteins.slice(0, 2),
+    ...categorizedIngredients.carbs.slice(0, 1),
+    ...categorizedIngredients.vegetables.slice(0, 3),
+    ...categorizedIngredients.other.slice(0, 2)
+  ];
+
+  // Final safety check
+  return selectedIngredients.filter(item => isCookableIngredient(item.name));
+};
+
+// Example recipes to help guide the AI
+const exampleRecipes = [
+  {
+    title: "Мусака",
+    ingredients: [
+      { name: "кайма", amount: "500 г" },
+      { name: "картофи", amount: "1 кг" },
+      { name: "лук", amount: "2 бр" },
+      { name: "морков", amount: "1 бр" }
+    ],
+    steps: [
+      "Запържете каймата със ситно нарязания лук",
+      "Обелете и нарежете картофите на кубчета",
+      "Смесете каймата и картофите",
+      "Печете на 200 градуса за 40 минути"
+    ]
+  },
+  // Add more example recipes...
+];
+
+// Add this helper function to clean and validate the AI response
+const cleanAndParseResponse = (response: string): GeneratedRecipe => {
+  try {
+    // Try to parse directly first
+    return JSON.parse(response);
+  } catch (e) {
+    // If direct parsing fails, try to clean the response
+    try {
+      // Find the first { and last }
+      const start = response.indexOf('{');
+      const end = response.lastIndexOf('}') + 1;
+      
+      if (start === -1 || end === 0) {
+        throw new Error('No JSON object found in response');
+      }
+
+      // Extract just the JSON part
+      const jsonStr = response.slice(start, end);
+      
+      // Try to parse the cleaned JSON
+      const parsed = JSON.parse(jsonStr);
+      
+      // Validate the required fields
+      if (!parsed.title || !parsed.ingredients || !parsed.fullRecipe) {
+        throw new Error('Missing required fields in recipe');
+      }
+
+      return parsed;
+    } catch (parseError) {
+      console.error('Error parsing cleaned response:', parseError);
+      throw new Error('Invalid recipe format received');
+    }
+  }
+};
+
+// Update the fetchRecipesFromBgGPT function
+export const fetchRecipesFromBgGPT = async (inventory: InventoryItem[]): Promise<GeneratedRecipe[]> => {
   try {
     if (!inventory || inventory.length === 0) {
       throw new Error("Инвентарът е празен или неопределен.");
     }
 
-    // Enhanced prompt to improve the quality and relevance of the response
-    const prompt = `Ти си кулинарен експерт и главен готвач. Трябва да помогнеш на потребителя, като представиш пълни и практични рецепти с разнообразни ястия, препоръчително да могат да се направят лесно в българската кухня на български език, като внимаваш за правописни, пунктуационни, граматични и лексикални грешки, трябва да бъде написано правилно, съобразено с правилата и правописа в българския език, използвайки САМО И ЕДИНСТВЕНО следните съставки: ${inventory.join(', ')}. Избери подходящи и популярни рецепти в българския кулинарен стил, които ще са лесни за приготвяне в домашни условия по всяко време на деня. За всяка рецепта, моля, включи следната информация:
-    - title: Име на рецептата (напр. "Мусака", "Шопска салата"), като нека името да бъде кратко, лесно, интересно и нормално, съобразено с рецептата и съставките.
-    - description: Кратко описание на рецептата и основните й съставки, които трябва да са САМО И ЕДИНСТВЕНО: ${inventory.join(', ')}, като отново внимавай за правописни, пунктуационни, граматични и лексикални грешки, трябва да бъде написано правилно, съобразено с правилата и правописа в българския език.
-    - fullRecipe: Стъпка по стъпка инструкции за приготвяне. Всяка стъпка трябва да бъде отделен елемент в масива. Некa да бъдат кратки, лесни, интересни и нормални, съобразени с рецептата и съставките.
-    - rating: Оценка от 1 до 5 звезди, базирана на сложността и вкуса на рецептата.
+    const cookingIngredients = prepareIngredientsForRecipe(inventory);
 
-    Пример: 
-    {
-      "title": "Шопска салата",
-      "description": "Освежаваща българска салата със свежи домати, краставици, сирене и лук.",
-      "fullRecipe": ["Стъпка 1: Нарежете доматите и краставиците на кубчета.", "Стъпка 2: Добавете нарязания на ситно лук.", "Стъпка 3: Поръсете с настъргано сирене и зехтин."],
-      "rating": 5
+    if (cookingIngredients.length === 0) {
+      throw new Error("Няма подходящи съставки за готвене.");
     }
 
-    Представи една рецепта, следвайки този формат, на български език, като внимавай за правописни, пунктуационни, граматични и лексикални грешки, трябва да бъде написано правилно, съобразено с правилата и правописа в българския език. Избери рецепта, подходяща за ежедневни ястия в българската кухня, съобразено със съставките.`;
+    const prompt = `Моля създай рецепта, използвайки следните съставки:
+${cookingIngredients.map(item => `- ${item.name} (${item.quantity} ${item.unit})`).join('\n')}
 
-    // Replace Cohere API call with local bggpt API call
+ВАЖНО: 
+1. Създай традиционна българска рецепта
+2. Използвай само изброените съставки
+3. Не използвай напитки или снаксове
+4. Форматирай рецептата така:
+**Рецепта:**
+**Име на ястието**
+**Необходими продукти:**
+- продукт (количество)
+**Начин на приготвяне:**
+1. стъпка 1
+2. стъпка 2`;
+
     const response = await fetch(`http://localhost:11434/api/generate`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        model: 'todorov/bggpt',
+        model: 'bulgarian-recipe-bot:latest',
         prompt: prompt,
         stream: false
       }),
@@ -38,47 +251,63 @@ export const fetchRecipesFromBgGPT = async (inventory: string[]): Promise<any> =
       throw new Error(`HTTP error! status: ${response.status}`);
     }
 
-    const data = await response.text();
-    let jsonData;
+    const data = await response.json();
+    
     try {
-      jsonData = JSON.parse(data);
+      const responseText = data.response;
+      
+      if (responseText.startsWith('Грешка:')) {
+        throw new Error(responseText);
+      }
+
+      // Extract recipe name
+      const nameMatch = responseText.match(/\*\*(.*?)\*\*/g);
+      const title = nameMatch ? nameMatch[1].replace(/\*/g, '').trim() : '';
+
+      // Extract ingredients
+      const ingredientsMatch = responseText.match(/\*\*Необходими продукти:\*\*([\s\S]*?)\*\*Начин/);
+      const ingredientsText = ingredientsMatch ? ingredientsMatch[1] : '';
+      const ingredients = ingredientsText
+        .split('\n')
+        .filter(line => line.trim().startsWith('-'))
+        .map(line => {
+          // Remove the dash and split by parentheses
+          const [name, amount] = line.replace('-', '').trim().split(/[\(\)]/);
+          return {
+            name: name.trim(),
+            amount: amount || ''
+          };
+        });
+
+      // Extract steps
+      const stepsMatch = responseText.match(/\*\*Начин на приготвяне:\*\*([\s\S]*?)$/);
+      const stepsText = stepsMatch ? stepsMatch[1] : '';
+      const steps = stepsText
+        .split('\n')
+        .filter(line => line.trim())
+        .map(line => line.replace(/^\d+\.\s*/, '').trim());
+
+      const recipe: GeneratedRecipe = {
+        title,
+        description: `Традиционна рецепта за ${title.toLowerCase()}`,
+        ingredients,
+        fullRecipe: steps,
+        rating: 5,
+        nutritionalInfo: {
+          calories: 400,
+          protein: 25,
+          carbs: 30,
+          fat: 15
+        }
+      };
+
+      return [recipe];
     } catch (e) {
-      console.log('Raw response:', data);
-      throw new Error('Invalid JSON response from API');
+      console.error('Error parsing recipe response:', e);
+      throw new Error('Невалиден формат на рецептата');
     }
-
-    console.log('BGGPT API response:', jsonData);
-
-    // Parse the response text
-    const recipeData = jsonData.response || '';
-    if (!recipeData) {
-      return [{
-        title: "Без име на рецептата",
-        description: "Няма налично описание.",
-        fullRecipe: ["Няма налични инструкции за рецептата."],
-        rating: Math.floor(Math.random() * 5) + 1,
-      }];
-    }
-
-    // Parse and format the recipe data with type annotations
-    const lines = recipeData.split('\n').map((line: string) => line.trim()).filter((line: string) => line !== "");
-
-    const titleMatch = lines.find((line: string) => line.includes("title"));
-    const title = titleMatch ? titleMatch.split(':')[1]?.trim() : "Без име на рецептата"; 
-    
-    const descriptionMatch = lines.find((line: string) => line.includes("description"));
-    const description = descriptionMatch ? descriptionMatch.split(':')[1]?.trim() : "Няма налично описание."; 
-    
-    const fullRecipeLines = lines.slice(2).map((line: string, index: number) => line.trim()).filter((line: string) => line !== "");
-    const fullRecipe = Array.isArray(fullRecipeLines) ? fullRecipeLines : ["Няма налични инструкции за рецептата."];
-
-    const ratingMatch = lines.find((line: string) => line.includes("rating"));
-    const rating = ratingMatch ? parseInt(ratingMatch.replace(/[^0-9]/g, '')) : Math.floor(Math.random() * 5) + 1;
-
-    return [{ title, description, fullRecipe, rating }];
-    
   } catch (error) {
-    console.error('Грешка при генериране на рецепти:', error);
-    return [];
+    console.error('Error generating recipe:', error);
+    throw error;
   }
 };

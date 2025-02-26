@@ -679,16 +679,28 @@ const DashboardScreen: React.FC<DashboardProps> = ({ onLogout }) => {
       let totalCarbs = 0;
       let totalFats = 0;
       
-      const meals = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      }));
-      
-      meals.forEach((meal) => {
-        totalCalories += meal.calories || 0;
-        totalProtein += meal.protein || 0;
-        totalCarbs += meal.carbs || 0;
-        totalFats += meal.fats || 0;
+      const meals = snapshot.docs.map(doc => {
+        const data = doc.data();
+        // Transform the nested nutriments structure to flat structure
+        const mealData = {
+          id: doc.id,
+          name: data.name,
+          calories: data.nutriments?.calories || data.calories || 0,
+          protein: data.nutriments?.protein || data.protein || 0,
+          carbs: data.nutriments?.carbs || data.carbs || 0,
+          fats: data.nutriments?.fat || data.fats || 0, // Note: handle both 'fat' and 'fats'
+          timestamp: data.timestamp,
+          type: data.type,
+          mealType: data.mealType
+        };
+        
+        // Add to totals
+        totalCalories += mealData.calories;
+        totalProtein += mealData.protein;
+        totalCarbs += mealData.carbs;
+        totalFats += mealData.fats;
+        
+        return mealData;
       });
 
       setTodaysMeals(meals);

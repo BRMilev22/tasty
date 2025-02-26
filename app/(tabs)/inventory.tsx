@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -8,11 +8,17 @@ import {
   Alert,
   TextInput,
   Animated,
+  Modal,
+  Keyboard,
+  ActivityIndicator,
+  ScrollView,
 } from 'react-native';
 import { styled } from 'nativewind';
 import { getAuth } from 'firebase/auth';
-import { getFirestore, collection, query, where, onSnapshot, deleteDoc, doc, updateDoc } from 'firebase/firestore';
+import { getFirestore, collection, query, where, onSnapshot, deleteDoc, doc, updateDoc, addDoc } from 'firebase/firestore';
 import Ionicons from 'react-native-vector-icons/Ionicons';
+import { BlurView } from 'expo-blur';
+import { Link } from 'expo-router';
 
 const StyledView = styled(View);
 const StyledText = styled(Text);
@@ -32,6 +38,31 @@ interface InventoryItem {
     fat: number;
   };
   fadeAnim: Animated.Value;
+}
+
+interface AddItemFormData {
+  name: string;
+  quantity: number;
+  unit: string;
+  nutriments: {
+    calories: number;
+    protein: number;
+    carbs: number;
+    fat: number;
+  };
+}
+
+interface MealLog {
+  name: string;
+  quantity: number;
+  unit: string;
+  nutriments?: {
+    calories: number;
+    protein: number;
+    carbs: number;
+    fat: number;
+  };
+  timestamp: Date;
 }
 
 const colors = {
@@ -62,6 +93,13 @@ const InventoryScreen = () => {
   const [inventory, setInventory] = useState<InventoryItem[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [isLoading, setIsLoading] = useState(true);
+  const [isAddModalVisible, setIsAddModalVisible] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isEatModalVisible, setIsEatModalVisible] = useState(false);
+  const [selectedItem, setSelectedItem] = useState<InventoryItem | null>(null);
+  const [portionSize, setPortionSize] = useState(1);
+  const [isEditModalVisible, setIsEditModalVisible] = useState(false);
+  const [editingItem, setEditingItem] = useState<InventoryItem | null>(null);
   const auth = getAuth();
   const db = getFirestore();
   const user = auth.currentUser;
@@ -145,84 +183,652 @@ const InventoryScreen = () => {
     }
   };
 
-  const renderItem = ({ item }: { item: InventoryItem }) => {
-    // Add color indicators based on quantity
-    const getQuantityColor = (quantity: number) => {
-      if (quantity <= 1) return colors.error;
-      if (quantity <= 3) return colors.warning;
-      return colors.success;
-    };
+  const handleAddItem = async (formData: AddItemFormData) => {
+    if (!user || !formData.name.trim()) return;
+    
+    setIsSubmitting(true);
+    try {
+      await addDoc(collection(db, 'users', user.uid, 'inventory'), {
+        ...formData,
+        createdAt: new Date()
+      });
+      
+      setIsAddModalVisible(false);
+      Alert.alert('Успех', 'Продуктът е добавен успешно!');
+    } catch (error) {
+      console.error('Error adding item:', error);
+      Alert.alert('Грешка', 'Възникна проблем при добавянето на продукта.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
-    return (
-      <Animated.View style={[
-        styles.itemCard, 
-        { opacity: item.fadeAnim }
-      ]}>
-        <StyledView style={styles.itemHeader}>
-          <StyledText style={styles.itemName}>{item.name}</StyledText>
-          <StyledTouchableOpacity 
-            style={styles.deleteButton}
-            onPress={() => handleDelete(item)}
-          >
-            <Ionicons name="trash-outline" size={20} color="#e74c3c" />
-          </StyledTouchableOpacity>
-        </StyledView>
+  const handleEatItem = async (item: InventoryItem, portion: number) => {
+    if (!user) return;
+    
+    try {
+      // Update inventory quantity
+      const newQuantity = item.quantity - portion;
+      
+      console.log('Original item:', {
+        name: item.name,
+        quantity: item.quantity,
+        nutriments: item.nutriments
+      });
+      
+      console.log('Logging portion:', portion);
 
-        <StyledView style={styles.itemDetails}>
-          <StyledView style={styles.quantityContainer}>
-            <StyledTouchableOpacity 
+      // Calculate nutrients for the logged portion
+      const portionNutriments = item.nutriments ? {
+        calories: Math.round(item.nutriments.calories * (portion / item.quantity)),
+        protein: Math.round(item.nutriments.protein * (portion / item.quantity)),
+        carbs: Math.round(item.nutriments.carbs * (portion / item.quantity)),
+        fat: Math.round(item.nutriments.fat * (portion / item.quantity))
+      } : undefined;
+
+      console.log('Calculated portion nutrients:', portionNutriments);
+
+      // Log the meal with calculated nutrients
+      const mealLog: MealLog = {
+        name: item.name,
+        quantity: portion,
+        unit: item.unit,
+        nutriments: portionNutriments,
+        timestamp: new Date()
+      };
+
+      console.log('Meal log to be saved:', mealLog);
+
+      await addDoc(collection(db, 'users', user.uid, 'meals'), mealLog);
+      
+      if (newQuantity <= 0) {
+        await deleteDoc(doc(db, 'users', user.uid, 'inventory', item.id));
+      } else {
+        await updateDoc(doc(db, 'users', user.uid, 'inventory', item.id), {
+          quantity: newQuantity
+        });
+      }
+
+      Alert.alert('Успех', 'Храната е добавена към дневника');
+    } catch (error) {
+      console.error('Error logging meal:', error);
+      Alert.alert('Грешка', 'Възникна проблем при добавянето на храната.');
+    }
+  };
+
+  const handleEditItem = async (formData: AddItemFormData, itemId: string) => {
+    if (!user) return;
+    
+    setIsSubmitting(true);
+    try {
+      await updateDoc(doc(db, 'users', user.uid, 'inventory', itemId), {
+        ...formData,
+        updatedAt: new Date()
+      });
+      
+      setIsEditModalVisible(false);
+      setEditingItem(null);
+      Alert.alert('Успех', 'Продуктът е обновен успешно!');
+    } catch (error) {
+      console.error('Error updating item:', error);
+      Alert.alert('Грешка', 'Възникна проблем при обновяването на продукта.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const renderItem = ({ item }: { item: InventoryItem }) => (
+    <Animated.View style={[styles.itemCard, { opacity: item.fadeAnim }]}>
+      <View style={styles.itemContent}>
+        {/* Left section with name and nutrients */}
+        <View style={styles.itemMainInfo}>
+          <Text style={styles.itemName}>{item.name}</Text>
+          {item.nutriments && (
+            <View style={styles.nutrientsRow}>
+              <Text style={styles.nutrientText}>
+                {item.nutriments?.calories ? `${Math.round(item.nutriments.calories)} кал` : '- кал'}
+              </Text>
+              <Text style={styles.nutrientDivider}>•</Text>
+              <Text style={styles.nutrientText}>
+                {item.nutriments?.protein ? `${Math.round(item.nutriments.protein)}г прот` : '- прот'}
+              </Text>
+              <Text style={styles.nutrientDivider}>•</Text>
+              <Text style={styles.nutrientText}>
+                {item.nutriments?.carbs ? `${Math.round(item.nutriments.carbs)}г въгл` : '- въгл'}
+              </Text>
+              <Text style={styles.nutrientDivider}>•</Text>
+              <Text style={styles.nutrientText}>
+                {item.nutriments?.fat ? `${Math.round(item.nutriments.fat)}г мазн` : '- мазн'}
+              </Text>
+            </View>
+          )}
+        </View>
+
+        {/* Right section with quantity and actions */}
+        <View style={styles.itemControls}>
+          <View style={styles.quantityControls}>
+            <TouchableOpacity 
               style={styles.quantityButton}
               onPress={() => handleQuantityChange(item, -1)}
             >
-              <Ionicons name="remove" size={20} color="#FFFFFF" />
-            </StyledTouchableOpacity>
+              <Ionicons name="remove" size={16} color="#FFFFFF" />
+            </TouchableOpacity>
             
-            <StyledText style={styles.quantityText}>
+            <Text style={styles.quantityText}>
               {item.quantity} {item.unit}
-            </StyledText>
+            </Text>
             
-            <StyledTouchableOpacity 
+            <TouchableOpacity 
               style={styles.quantityButton}
               onPress={() => handleQuantityChange(item, 1)}
             >
-              <Ionicons name="add" size={20} color="#FFFFFF" />
-            </StyledTouchableOpacity>
-          </StyledView>
+              <Ionicons name="add" size={16} color="#FFFFFF" />
+            </TouchableOpacity>
+          </View>
 
-          <StyledView style={styles.nutrientsContainer}>
-            <StyledView style={styles.nutrientBubble}>
-              <StyledText style={styles.nutrientLabel}>Калории</StyledText>
-              <StyledText style={styles.nutrientValue}>
-                {item.nutriments?.calories ? Math.round(item.nutriments.calories) : '-'}
-              </StyledText>
-            </StyledView>
-            <StyledView style={styles.nutrientBubble}>
-              <StyledText style={styles.nutrientLabel}>Протеини</StyledText>
-              <StyledText style={styles.nutrientValue}>
-                {item.nutriments?.protein ? `${Math.round(item.nutriments.protein)}g` : '-'}
-              </StyledText>
-            </StyledView>
-            <StyledView style={styles.nutrientBubble}>
-              <StyledText style={styles.nutrientLabel}>Въгл.</StyledText>
-              <StyledText style={styles.nutrientValue}>
-                {item.nutriments?.carbs ? `${Math.round(item.nutriments.carbs)}g` : '-'}
-              </StyledText>
-            </StyledView>
-            <StyledView style={styles.nutrientBubble}>
-              <StyledText style={styles.nutrientLabel}>Мазнини</StyledText>
-              <StyledText style={styles.nutrientValue}>
-                {item.nutriments?.fat ? `${Math.round(item.nutriments.fat)}g` : '-'}
-              </StyledText>
-            </StyledView>
-          </StyledView>
-        </StyledView>
-      </Animated.View>
-    );
-  };
+          <View style={styles.actionButtons}>
+            <TouchableOpacity 
+              style={styles.actionButton}
+              onPress={() => {
+                setSelectedItem(item);
+                setPortionSize(1);
+                setIsEatModalVisible(true);
+              }}
+            >
+              <Ionicons name="restaurant-outline" size={16} color="#4CAF50" />
+            </TouchableOpacity>
+            <TouchableOpacity 
+              style={styles.actionButton}
+              onPress={() => {
+                setEditingItem(item);
+                setIsEditModalVisible(true);
+              }}
+            >
+              <Ionicons name="pencil-outline" size={16} color="#2196F3" />
+            </TouchableOpacity>
+            <TouchableOpacity 
+              style={styles.actionButton}
+              onPress={() => handleDelete(item)}
+            >
+              <Ionicons name="trash-outline" size={16} color="#e74c3c" />
+            </TouchableOpacity>
+          </View>
+        </View>
+      </View>
+    </Animated.View>
+  );
 
   const filteredInventory = inventory.filter(item =>
     item.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
+
+  const AddItemModal = ({ visible, onClose, onSubmit }: {
+    visible: boolean;
+    onClose: () => void;
+    onSubmit: (data: AddItemFormData) => void;
+  }) => {
+    // Add local state for unit selection
+    const [selectedUnit, setSelectedUnit] = useState('бр');
+    
+    const formData = useRef<AddItemFormData>({
+      name: '',
+      quantity: 1,
+      unit: 'бр',
+      nutriments: {
+        calories: 0,
+        protein: 0,
+        carbs: 0,
+        fat: 0
+      }
+    });
+
+    const resetForm = () => {
+      setSelectedUnit('бр'); // Reset the selected unit
+      formData.current = {
+        name: '',
+        quantity: 1,
+        unit: 'бр',
+        nutriments: {
+          calories: 0,
+          protein: 0,
+          carbs: 0,
+          fat: 0
+        }
+      };
+    };
+
+    return (
+      <Modal
+        visible={visible}
+        transparent
+        onRequestClose={() => {
+          resetForm();
+          onClose();
+        }}
+      >
+        <BlurView intensity={80} style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Добавяне на продукт</Text>
+              <TouchableOpacity 
+                onPress={() => {
+                  resetForm();
+                  onClose();
+                }}
+                style={styles.modalCloseButton}
+              >
+                <Ionicons name="close" size={24} color="#FFFFFF" />
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView style={styles.modalScroll}>
+              <View style={styles.inputGroup}>
+                <Text style={styles.inputLabel}>Име на продукта</Text>
+                <TextInput
+                  style={styles.textInput}
+                  defaultValue=""
+                  onChangeText={(text) => {
+                    formData.current.name = text;
+                  }}
+                  placeholder="Въведете име..."
+                  placeholderTextColor="#666666"
+                />
+              </View>
+
+              <View style={styles.rowInputs}>
+                <View style={[styles.inputGroup, { flex: 2, marginRight: 8 }]}>
+                  <Text style={styles.inputLabel}>Количество</Text>
+                  <TextInput
+                    style={styles.textInput}
+                    defaultValue="1"
+                    onChangeText={(text) => {
+                      formData.current.quantity = parseFloat(text) || 0;
+                    }}
+                    keyboardType="numeric"
+                    placeholder="1"
+                    placeholderTextColor="#666666"
+                  />
+                </View>
+
+                <View style={[styles.inputGroup, { flex: 3 }]}>
+                  <Text style={styles.inputLabel}>Мерна единица</Text>
+                  <View style={styles.unitSelector}>
+                    {['бр', 'г', 'кг', 'мл', 'л'].map((unit) => (
+                      <TouchableOpacity
+                        key={unit}
+                        style={[
+                          styles.unitButton,
+                          selectedUnit === unit && styles.unitButtonActive
+                        ]}
+                        onPress={() => {
+                          setSelectedUnit(unit);
+                          formData.current.unit = unit;
+                        }}
+                      >
+                        <Text style={[
+                          styles.unitButtonText,
+                          selectedUnit === unit && styles.unitButtonTextActive
+                        ]}>
+                          {unit}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                </View>
+              </View>
+
+              <Text style={styles.sectionTitle}>Хранителна информация</Text>
+              
+              <View style={styles.nutrientsGrid}>
+                <View style={styles.nutrientInput}>
+                  <Text style={styles.nutrientLabel}>Калории</Text>
+                  <TextInput
+                    style={styles.nutrientTextInput}
+                    defaultValue="0"
+                    onChangeText={(text) => {
+                      formData.current.nutriments.calories = parseFloat(text) || 0;
+                    }}
+                    keyboardType="numeric"
+                    placeholder="0"
+                    placeholderTextColor="#666666"
+                  />
+                </View>
+
+                <View style={styles.nutrientInput}>
+                  <Text style={styles.nutrientLabel}>Протеини (г)</Text>
+                  <TextInput
+                    style={styles.nutrientTextInput}
+                    defaultValue="0"
+                    onChangeText={(text) => {
+                      formData.current.nutriments.protein = parseFloat(text) || 0;
+                    }}
+                    keyboardType="numeric"
+                    placeholder="0"
+                    placeholderTextColor="#666666"
+                  />
+                </View>
+
+                <View style={styles.nutrientInput}>
+                  <Text style={styles.nutrientLabel}>Въглехидрати (г)</Text>
+                  <TextInput
+                    style={styles.nutrientTextInput}
+                    defaultValue="0"
+                    onChangeText={(text) => {
+                      formData.current.nutriments.carbs = parseFloat(text) || 0;
+                    }}
+                    keyboardType="numeric"
+                    placeholder="0"
+                    placeholderTextColor="#666666"
+                  />
+                </View>
+
+                <View style={styles.nutrientInput}>
+                  <Text style={styles.nutrientLabel}>Мазнини (г)</Text>
+                  <TextInput
+                    style={styles.nutrientTextInput}
+                    defaultValue="0"
+                    onChangeText={(text) => {
+                      formData.current.nutriments.fat = parseFloat(text) || 0;
+                    }}
+                    keyboardType="numeric"
+                    placeholder="0"
+                    placeholderTextColor="#666666"
+                  />
+                </View>
+              </View>
+            </ScrollView>
+
+            <TouchableOpacity
+              style={styles.addButton}
+              onPress={() => onSubmit(formData.current)}
+            >
+              <Ionicons name="add-circle-outline" size={24} color="#FFFFFF" />
+              <Text style={styles.addButtonText}>Добави продукт</Text>
+            </TouchableOpacity>
+          </View>
+        </BlurView>
+      </Modal>
+    );
+  };
+
+  const EatModal = () => (
+    <Modal
+      visible={isEatModalVisible}
+      transparent
+      onRequestClose={() => {
+        setIsEatModalVisible(false);
+        setSelectedItem(null);
+        setPortionSize(1);
+      }}
+    >
+      <BlurView intensity={80} style={styles.modalOverlay}>
+        <View style={styles.modalContent}>
+          <View style={styles.modalHeader}>
+            <Text style={styles.modalTitle}>Отчети хранене</Text>
+            <TouchableOpacity 
+              onPress={() => {
+                setIsEatModalVisible(false);
+                setSelectedItem(null);
+                setPortionSize(1);
+              }}
+              style={styles.modalCloseButton}
+            >
+              <Ionicons name="close" size={24} color="#FFFFFF" />
+            </TouchableOpacity>
+          </View>
+
+          {selectedItem && (
+            <View style={styles.eatModalContent}>
+              <Text style={styles.itemName}>{selectedItem.name}</Text>
+              
+              <View style={styles.portionContainer}>
+                <Text style={styles.inputLabel}>Количество</Text>
+                <View style={styles.quantityContainer}>
+                  <TouchableOpacity 
+                    style={styles.quantityButton}
+                    onPress={() => setPortionSize(Math.max(0.5, portionSize - 0.5))}
+                  >
+                    <Ionicons name="remove" size={20} color="#FFFFFF" />
+                  </TouchableOpacity>
+                  
+                  <Text style={styles.quantityText}>
+                    {portionSize} {selectedItem.unit}
+                  </Text>
+                  
+                  <TouchableOpacity 
+                    style={styles.quantityButton}
+                    onPress={() => setPortionSize(Math.min(selectedItem.quantity, portionSize + 0.5))}
+                  >
+                    <Ionicons name="add" size={20} color="#FFFFFF" />
+                  </TouchableOpacity>
+                </View>
+              </View>
+
+              {selectedItem.nutriments && (
+                <View style={styles.nutrientsContainer}>
+                  <View style={styles.nutrientBubble}>
+                    <Text style={styles.nutrientLabel}>Калории</Text>
+                    <Text style={styles.nutrientValue}>
+                      {Math.round(selectedItem.nutriments.calories * (portionSize / selectedItem.quantity))}
+                    </Text>
+                  </View>
+
+                  <View style={styles.nutrientBubble}>
+                    <Text style={styles.nutrientLabel}>Протеини</Text>
+                    <Text style={styles.nutrientValue}>
+                      {Math.round(selectedItem.nutriments.protein * (portionSize / selectedItem.quantity))}г
+                    </Text>
+                  </View>
+
+                  <View style={styles.nutrientBubble}>
+                    <Text style={styles.nutrientLabel}>Въглехидрати</Text>
+                    <Text style={styles.nutrientValue}>
+                      {Math.round(selectedItem.nutriments.carbs * (portionSize / selectedItem.quantity))}г
+                    </Text>
+                  </View>
+
+                  <View style={styles.nutrientBubble}>
+                    <Text style={styles.nutrientLabel}>Мазнини</Text>
+                    <Text style={styles.nutrientValue}>
+                      {Math.round(selectedItem.nutriments.fat * (portionSize / selectedItem.quantity))}г
+                    </Text>
+                  </View>
+                </View>
+              )}
+
+              <TouchableOpacity
+                style={styles.addButton}
+                onPress={() => {
+                  handleEatItem(selectedItem, portionSize);
+                  setIsEatModalVisible(false);
+                  setSelectedItem(null);
+                  setPortionSize(1);
+                }}
+              >
+                <Ionicons name="restaurant-outline" size={24} color="#FFFFFF" />
+                <Text style={styles.addButtonText}>Отчети хранене</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+        </View>
+      </BlurView>
+    </Modal>
+  );
+
+  const EditModal = () => {
+    const [editForm, setEditForm] = useState<AddItemFormData>({
+      name: editingItem?.name || '',
+      quantity: editingItem?.quantity || 1,
+      unit: editingItem?.unit || 'бр',
+      nutriments: editingItem?.nutriments || {
+        calories: 0,
+        protein: 0,
+        carbs: 0,
+        fat: 0
+      }
+    });
+
+    useEffect(() => {
+      if (editingItem) {
+        setEditForm({
+          name: editingItem.name,
+          quantity: editingItem.quantity,
+          unit: editingItem.unit,
+          nutriments: editingItem.nutriments || {
+            calories: 0,
+            protein: 0,
+            carbs: 0,
+            fat: 0
+          }
+        });
+      }
+    }, [editingItem]);
+
+    return (
+      <Modal
+        visible={isEditModalVisible}
+        transparent
+        onRequestClose={() => {
+          setIsEditModalVisible(false);
+          setEditingItem(null);
+        }}
+      >
+        <BlurView intensity={80} style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Редактиране на продукт</Text>
+              <TouchableOpacity 
+                onPress={() => {
+                  setIsEditModalVisible(false);
+                  setEditingItem(null);
+                }}
+                style={styles.modalCloseButton}
+              >
+                <Ionicons name="close" size={24} color="#FFFFFF" />
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView style={styles.modalScroll}>
+              <View style={styles.inputGroup}>
+                <Text style={styles.inputLabel}>Име на продукта</Text>
+                <TextInput
+                  style={styles.textInput}
+                  value={editForm.name}
+                  onChangeText={(text) => setEditForm({...editForm, name: text})}
+                  placeholder="Въведете име..."
+                  placeholderTextColor="#666666"
+                />
+              </View>
+
+              <View style={styles.rowInputs}>
+                <View style={[styles.inputGroup, { flex: 2, marginRight: 8 }]}>
+                  <Text style={styles.inputLabel}>Количество</Text>
+                  <TextInput
+                    style={styles.textInput}
+                    value={editForm.quantity.toString()}
+                    onChangeText={(text) => {
+                      const num = parseFloat(text) || 0;
+                      setEditForm({...editForm, quantity: num});
+                    }}
+                    keyboardType="numeric"
+                    placeholder="1"
+                    placeholderTextColor="#666666"
+                  />
+                </View>
+
+                <View style={[styles.inputGroup, { flex: 3 }]}>
+                  <Text style={styles.inputLabel}>Мерна единица</Text>
+                  <View style={styles.unitSelector}>
+                    {['бр', 'г', 'кг', 'мл', 'л'].map((unit) => (
+                      <TouchableOpacity
+                        key={unit}
+                        style={[
+                          styles.unitButton,
+                          editForm.unit === unit && styles.unitButtonActive
+                        ]}
+                        onPress={() => setEditForm({...editForm, unit})}
+                      >
+                        <Text style={[
+                          styles.unitButtonText,
+                          editForm.unit === unit && styles.unitButtonTextActive
+                        ]}>
+                          {unit}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                </View>
+              </View>
+
+              <Text style={styles.sectionTitle}>Хранителна информация</Text>
+              <View style={styles.nutrientsGrid}>
+                <View style={styles.nutrientInput}>
+                  <Text style={styles.nutrientLabel}>Калории</Text>
+                  <TextInput
+                    style={styles.nutrientTextInput}
+                    value={editForm.nutriments.calories.toString()}
+                    onChangeText={(text) => setEditForm({...editForm, nutriments: {...editForm.nutriments, calories: parseFloat(text) || 0}})}
+                    keyboardType="numeric"
+                    placeholder="0"
+                    placeholderTextColor="#666666"
+                  />
+                </View>
+
+                <View style={styles.nutrientInput}>
+                  <Text style={styles.nutrientLabel}>Протеини (г)</Text>
+                  <TextInput
+                    style={styles.nutrientTextInput}
+                    value={editForm.nutriments.protein.toString()}
+                    onChangeText={(text) => setEditForm({...editForm, nutriments: {...editForm.nutriments, protein: parseFloat(text) || 0}})}
+                    keyboardType="numeric"
+                    placeholder="0"
+                    placeholderTextColor="#666666"
+                  />
+                </View>
+
+                <View style={styles.nutrientInput}>
+                  <Text style={styles.nutrientLabel}>Въглехидрати (г)</Text>
+                  <TextInput
+                    style={styles.nutrientTextInput}
+                    value={editForm.nutriments.carbs.toString()}
+                    onChangeText={(text) => setEditForm({...editForm, nutriments: {...editForm.nutriments, carbs: parseFloat(text) || 0}})}
+                    keyboardType="numeric"
+                    placeholder="0"
+                    placeholderTextColor="#666666"
+                  />
+                </View>
+
+                <View style={styles.nutrientInput}>
+                  <Text style={styles.nutrientLabel}>Мазнини (г)</Text>
+                  <TextInput
+                    style={styles.nutrientTextInput}
+                    value={editForm.nutriments.fat.toString()}
+                    onChangeText={(text) => setEditForm({...editForm, nutriments: {...editForm.nutriments, fat: parseFloat(text) || 0}})}
+                    keyboardType="numeric"
+                    placeholder="0"
+                    placeholderTextColor="#666666"
+                  />
+                </View>
+              </View>
+
+              <TouchableOpacity
+                style={[styles.addButton, isSubmitting && styles.addButtonDisabled]}
+                disabled={isSubmitting || !editForm.name.trim()}
+                onPress={() => {
+                  if (editingItem) {
+                    handleEditItem(editForm, editingItem.id);
+                  }
+                }}
+              >
+                <Ionicons name="save-outline" size={24} color="#FFFFFF" />
+                <Text style={styles.addButtonText}>Запази промените</Text>
+              </TouchableOpacity>
+            </ScrollView>
+          </View>
+        </BlurView>
+      </Modal>
+    );
+  };
 
   return (
     <StyledView style={styles.container}>
@@ -278,6 +884,22 @@ const InventoryScreen = () => {
           showsVerticalScrollIndicator={false}
         />
       )}
+
+      <TouchableOpacity
+        style={styles.fab}
+        onPress={() => setIsAddModalVisible(true)}
+      >
+        <Ionicons name="add" size={30} color="#FFFFFF" />
+      </TouchableOpacity>
+
+      <AddItemModal
+        visible={isAddModalVisible}
+        onClose={() => setIsAddModalVisible(false)}
+        onSubmit={handleAddItem}
+      />
+
+      <EatModal />
+      <EditModal />
     </StyledView>
   );
 };
@@ -326,93 +948,81 @@ const styles = StyleSheet.create({
   },
   itemCard: {
     backgroundColor: colors.background.card,
-    borderRadius: 16,
-    padding: 12,
+    borderRadius: 12,
+    padding: 10,
     marginBottom: 8,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 6,
-    elevation: 8,
     borderWidth: 1,
     borderColor: colors.border.light,
   },
-  itemHeader: {
+  itemContent: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 8,
+  },
+  itemMainInfo: {
+    flex: 1,
+    marginRight: 12,
   },
   itemName: {
     fontSize: 16,
     fontWeight: '600',
     color: colors.text.primary,
-    flex: 1,
+    marginBottom: 4,
   },
-  deleteButton: {
-    padding: 8,
-    borderRadius: 12,
-    backgroundColor: 'rgba(244, 67, 54, 0.2)', // Error color with opacity
-  },
-  itemDetails: {
-    gap: 8,
-  },
-  quantityContainer: {
+  nutrientsRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
+    flexWrap: 'wrap',
+  },
+  nutrientText: {
+    fontSize: 12,
+    color: colors.text.secondary,
+  },
+  nutrientDivider: {
+    fontSize: 12,
+    color: colors.text.hint,
+    marginHorizontal: 4,
+  },
+  itemControls: {
+    alignItems: 'flex-end',
+    gap: 8,
+  },
+  quantityControls: {
+    flexDirection: 'row',
+    alignItems: 'center',
     backgroundColor: colors.background.input,
-    borderRadius: 10,
-    padding: 6,
+    borderRadius: 8,
+    padding: 4,
     borderWidth: 1,
     borderColor: colors.border.light,
   },
   quantityButton: {
     backgroundColor: colors.primary,
-    borderRadius: 8,
-    padding: 6,
-    width: 32,
-    height: 32,
+    borderRadius: 6,
+    padding: 4,
+    width: 24,
+    height: 24,
     justifyContent: 'center',
     alignItems: 'center',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.2)',
   },
   quantityText: {
     color: colors.text.primary,
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '500',
-    marginHorizontal: 12,
-    minWidth: 50,
+    marginHorizontal: 8,
+    minWidth: 40,
     textAlign: 'center',
   },
-  nutrientsContainer: {
+  actionButtons: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    gap: 6,
+  },
+  actionButton: {
+    padding: 6,
+    borderRadius: 8,
     backgroundColor: colors.background.input,
-    borderRadius: 10,
-    padding: 8,
     borderWidth: 1,
     borderColor: colors.border.light,
-  },
-  nutrientBubble: {
-    alignItems: 'center',
-    backgroundColor: 'rgba(33, 150, 243, 0.15)', // Secondary color with opacity
-    borderRadius: 8,
-    padding: 6,
-    minWidth: 65,
-    borderWidth: 1,
-    borderColor: 'rgba(33, 150, 243, 0.3)', // Secondary color border
-  },
-  nutrientLabel: {
-    color: colors.text.secondary,
-    fontSize: 11,
-    marginBottom: 2,
-  },
-  nutrientValue: {
-    color: colors.text.primary,
-    fontSize: 13,
-    fontWeight: '600',
   },
   emptyContainer: {
     flex: 1,
@@ -431,6 +1041,192 @@ const styles = StyleSheet.create({
     marginTop: 8,
     textAlign: 'center',
     paddingHorizontal: 32,
+  },
+  modalOverlay: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+  },
+  modalContent: {
+    width: '90%',
+    maxHeight: '80%',
+    backgroundColor: colors.background.card,
+    borderRadius: 24,
+    padding: 20,
+    borderWidth: 1,
+    borderColor: colors.border.light,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: colors.text.primary,
+  },
+  modalCloseButton: {
+    padding: 8,
+  },
+  modalScroll: {
+    maxHeight: '80%',
+  },
+  inputGroup: {
+    marginBottom: 16,
+  },
+  inputLabel: {
+    color: colors.text.secondary,
+    marginBottom: 8,
+    fontSize: 14,
+  },
+  textInput: {
+    backgroundColor: colors.background.input,
+    borderRadius: 12,
+    padding: 12,
+    color: colors.text.primary,
+    borderWidth: 1,
+    borderColor: colors.border.light,
+    fontSize: 16,
+  },
+  rowInputs: {
+    flexDirection: 'row',
+    marginBottom: 16,
+  },
+  unitSelector: {
+    flexDirection: 'row',
+    backgroundColor: colors.background.input,
+    borderRadius: 12,
+    padding: 4,
+    borderWidth: 1,
+    borderColor: colors.border.light,
+  },
+  unitButton: {
+    flex: 1,
+    padding: 8,
+    alignItems: 'center',
+    borderRadius: 8,
+  },
+  unitButtonActive: {
+    backgroundColor: colors.primary,
+  },
+  unitButtonText: {
+    color: colors.text.secondary,
+    fontSize: 14,
+  },
+  unitButtonTextActive: {
+    color: colors.text.primary,
+    fontWeight: 'bold',
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: colors.text.primary,
+    marginBottom: 16,
+  },
+  nutrientsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+  },
+  nutrientInput: {
+    width: '48%',
+    marginBottom: 16,
+  },
+  nutrientTextInput: {
+    backgroundColor: colors.background.input,
+    borderRadius: 12,
+    padding: 12,
+    color: colors.text.primary,
+    borderWidth: 1,
+    borderColor: colors.border.light,
+    fontSize: 16,
+  },
+  addButton: {
+    backgroundColor: colors.primary,
+    borderRadius: 16,
+    padding: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
+  },
+  addButtonDisabled: {
+    backgroundColor: 'rgba(76, 175, 80, 0.5)',
+  },
+  addButtonText: {
+    color: colors.text.primary,
+    fontSize: 16,
+    fontWeight: 'bold',
+    marginLeft: 8,
+  },
+  fab: {
+    position: 'absolute',
+    bottom: 24,
+    right: 24,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: colors.primary,
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 6,
+    elevation: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
+  },
+  quantityContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.background.input,
+    borderRadius: 12,
+    padding: 8,
+    borderWidth: 1,
+    borderColor: colors.border.light,
+  },
+  nutrientsContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    backgroundColor: colors.background.input,
+    borderRadius: 12,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: colors.border.light,
+  },
+  nutrientBubble: {
+    flex: 1,
+    minWidth: '48%',
+    alignItems: 'center',
+    backgroundColor: 'rgba(33, 150, 243, 0.15)',
+    borderRadius: 8,
+    padding: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(33, 150, 243, 0.3)',
+  },
+  nutrientLabel: {
+    color: colors.text.secondary,
+    fontSize: 12,
+    marginBottom: 4,
+  },
+  nutrientValue: {
+    color: colors.text.primary,
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  portionContainer: {
+    marginVertical: 16,
+  },
+  eatModalContent: {
+    gap: 16,
   },
 });
 

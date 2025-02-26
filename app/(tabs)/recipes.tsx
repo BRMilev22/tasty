@@ -14,6 +14,16 @@ interface Recipe {
   description: string;
   fullRecipe: string[];
   rating: number;
+  ingredients?: {
+    name: string;
+    amount: string;
+  }[];
+  nutritionalInfo?: {
+    calories: number;
+    protein: number;
+    carbs: number;
+    fat: number;
+  };
 }
 
 const RecipesScreen = () => {
@@ -47,7 +57,11 @@ const RecipesScreen = () => {
       if (!userId) return;
 
       const inventorySnapshot = await getDocs(collection(db, `users/${userId}/inventory`));
-      const inventory = inventorySnapshot.docs.map((doc) => doc.data().name);
+      const inventory = inventorySnapshot.docs.map(doc => ({
+        name: doc.data().name,
+        quantity: doc.data().quantity || 1,
+        unit: doc.data().unit || 'бр'
+      }));
 
       if (inventory.length === 0) {
         Alert.alert('Няма съставки', 'Инвентарът Ви е празен.');
@@ -60,10 +74,10 @@ const RecipesScreen = () => {
         await addDoc(collection(db, `users/${userId}/recipes`), recipe);
       }
 
-      Alert.alert('Рецептите са генерирани!', 'Добавени са нови рецепти на база на Вашия инвентар.');
+      Alert.alert('Успех', 'Рецептата е генерирана успешно!');
     } catch (error) {
       console.error('Error generating recipes:', error);
-      Alert.alert('Грешка', 'Рецептите не бяха създадени.');
+      Alert.alert('Грешка', 'Възникна проблем при генерирането на рецептата.');
     } finally {
       setLoading(false);
     }
@@ -89,6 +103,67 @@ const RecipesScreen = () => {
       Alert.alert('Грешка', 'Рецептата не бе изтрита.');
     }
   };
+
+  const RecipeModal = ({ recipe, onClose }: { recipe: Recipe; onClose: () => void }) => (
+    <View style={styles.modalOverlay}>
+      <View style={styles.modalContent}>
+        <ScrollView style={styles.modalScroll}>
+          <Text style={styles.modalTitle}>{recipe.title}</Text>
+          <Text style={styles.modalDescription}>{recipe.description}</Text>
+          <Text style={styles.recipeRating}>Оценка: {'⭐'.repeat(recipe.rating)}</Text>
+
+          {recipe.nutritionalInfo && (
+            <View style={styles.nutritionContainer}>
+              <Text style={styles.sectionTitle}>Хранителна информация</Text>
+              <View style={styles.nutritionGrid}>
+                <View style={styles.nutrientBubble}>
+                  <Text style={styles.nutrientLabel}>Калории</Text>
+                  <Text style={styles.nutrientValue}>{recipe.nutritionalInfo.calories} kcal</Text>
+                </View>
+                <View style={styles.nutrientBubble}>
+                  <Text style={styles.nutrientLabel}>Протеини</Text>
+                  <Text style={styles.nutrientValue}>{recipe.nutritionalInfo.protein}g</Text>
+                </View>
+                <View style={styles.nutrientBubble}>
+                  <Text style={styles.nutrientLabel}>Въглехидрати</Text>
+                  <Text style={styles.nutrientValue}>{recipe.nutritionalInfo.carbs}g</Text>
+                </View>
+                <View style={styles.nutrientBubble}>
+                  <Text style={styles.nutrientLabel}>Мазнини</Text>
+                  <Text style={styles.nutrientValue}>{recipe.nutritionalInfo.fat}g</Text>
+                </View>
+              </View>
+            </View>
+          )}
+
+          {recipe.ingredients && (
+            <View style={styles.ingredientsContainer}>
+              <Text style={styles.sectionTitle}>Съставки</Text>
+              {recipe.ingredients.map((ingredient, index) => (
+                <Text key={index} style={styles.ingredientText}>
+                  • {ingredient.name} - {ingredient.amount}
+                </Text>
+              ))}
+            </View>
+          )}
+
+          <View style={styles.stepsContainer}>
+            <Text style={styles.sectionTitle}>Начин на приготвяне</Text>
+            {recipe.fullRecipe.map((step, index) => (
+              <Text key={index} style={styles.stepText}>
+                {(index + 1) + '. ' + step.replace(/^\d+\.\s*/, '').replace(/^Стъпка \d+:\s*/, '')}
+              </Text>
+            ))}
+          </View>
+        </ScrollView>
+
+        <TouchableOpacity style={styles.closeButton} onPress={onClose}>
+          <Ionicons name="close-circle-outline" size={20} color="#e74c3c" />
+          <Text style={styles.closeButtonText}>Затворете</Text>
+        </TouchableOpacity>
+      </View>
+    </View>
+  );
 
   const renderRecipeItem = ({ item }: { item: Recipe }) => (
     <View style={styles.recipeCard}>
@@ -147,79 +222,11 @@ const RecipesScreen = () => {
         />
       )}
 
-      <Modal visible={!!selectedRecipe} animationType="slide" transparent>
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <ScrollView style={styles.modalScroll}>
-              {selectedRecipe && (
-                <>
-                  <Text style={styles.modalTitle}>
-                    {selectedRecipe.title.replace(/"/g, '').replace(/,$/, '').trim()}
-                  </Text>
-                  <Text style={styles.modalDescription}>
-                    {selectedRecipe.description.replace(/"/g, '').replace(/,$/, '').trim()}
-                  </Text>
-                  <Text style={styles.recipeRating}>Оценка: {'⭐'.repeat(selectedRecipe.rating)}</Text>
-                  
-                  <Text style={styles.instructions}>
-                    {(() => {
-                      try {
-                        const recipeText = selectedRecipe?.fullRecipe;
-                        
-                        if (!recipeText) {
-                          return 'Няма налична рецепта.';
-                        }
-
-                        if (Array.isArray(recipeText)) {
-                          return recipeText
-                            .map(step => step
-                              .replace(/^"/, '')
-                              .replace(/"$/, '')
-                              .replace(/^Стъпка \d+: /, '')
-                              .replace(/^description": "/, '')
-                              .replace(/^fullRecipe": \[/, '')
-                              .replace(/^],$/, '')
-                              .replace(/,$/, '')
-                              .replace(/rating":\d+/, '')
-                              .replace(/rating":/, '')
-                              .replace(/},?$/, '')
-                              .replace(/"/g, '')
-                              .replace(/\d+$/, '')
-                              .trim()
-                            )
-                            .filter(step => 
-                              step.length > 0 && 
-                              step !== '[' && 
-                              step !== ']' && 
-                              !step.match(/^",$/) && 
-                              !step.match(/^description":/) && 
-                              !step.match(/^fullRecipe":/) &&
-                              !step.match(/^rating":/)
-                            )
-                            .join('\n\n');
-                        }
-                        
-                        return 'Неподдържан формат на рецептата.';
-                      } catch (error) {
-                        console.error('Error formatting recipe:', error);
-                        return 'Грешка при форматирането на рецептата.';
-                      }
-                    })()}
-                  </Text>
-                </>
-              )}
-            </ScrollView>
-
-            <TouchableOpacity 
-              style={styles.closeButton} 
-              onPress={closeModal}
-            >
-              <Ionicons name="close-circle-outline" size={20} color="#e74c3c" />
-              <Text style={styles.closeButtonText}>Затворете</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </Modal>
+      {selectedRecipe && (
+        <Modal visible={true} animationType="slide" transparent>
+          <RecipeModal recipe={selectedRecipe} onClose={closeModal} />
+        </Modal>
+      )}
     </View>
   );
 };
@@ -411,6 +418,40 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 14,
     fontWeight: '600',
+  },
+  nutritionContainer: {
+    marginVertical: 16,
+    padding: 16,
+    backgroundColor: 'rgba(40, 40, 40, 0.6)',
+    borderRadius: 12,
+  },
+  nutritionGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#FFFFFF',
+    marginBottom: 12,
+  },
+  ingredientsContainer: {
+    marginVertical: 16,
+  },
+  ingredientText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    marginBottom: 8,
+  },
+  stepsContainer: {
+    marginVertical: 16,
+  },
+  stepText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    marginBottom: 12,
+    lineHeight: 24,
   },
 });
 
