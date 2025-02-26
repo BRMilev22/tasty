@@ -2,7 +2,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Meal } from '../data/predefinedMeals';
 
 // Update to use your actual local IP address
-const API_URL = 'http://127.0.0.1:3000';
+const API_URL = 'http://localhost:3000';
 const FAVORITES_STORAGE_KEY = 'favorite_meals';
 
 interface DBMeal {

@@ -478,7 +478,7 @@ const ManualInputForm = ({ onSave }: { onSave: (meal: { name: string; calories: 
   const [fats, setFats] = useState('');
 
   const handleSave = () => {
-    if (!name.trim()) {
+    if (!name.trim() || name.length == 0) {
       showMessage({
         message: 'Грешка',
         description: 'Моля, въведете име на ястието',

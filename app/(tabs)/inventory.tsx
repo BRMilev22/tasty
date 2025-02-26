@@ -656,176 +656,105 @@ const InventoryScreen = () => {
   );
 
   const EditModal = () => {
-    const [editForm, setEditForm] = useState<AddItemFormData>({
-      name: editingItem?.name || '',
-      quantity: editingItem?.quantity || 1,
-      unit: editingItem?.unit || 'бр',
-      nutriments: editingItem?.nutriments || {
-        calories: 0,
-        protein: 0,
-        carbs: 0,
-        fat: 0
-      }
-    });
+    if (!editingItem) return null;
 
-    useEffect(() => {
-      if (editingItem) {
-        setEditForm({
-          name: editingItem.name,
-          quantity: editingItem.quantity,
-          unit: editingItem.unit,
-          nutriments: editingItem.nutriments || {
-            calories: 0,
-            protein: 0,
-            carbs: 0,
-            fat: 0
-          }
+    const [name, setName] = useState(editingItem.name);
+    const [quantity, setQuantity] = useState(editingItem.quantity.toString());
+    const [unit, setUnit] = useState(editingItem.unit);
+    const [calories, setCalories] = useState(editingItem.nutriments?.calories?.toString() || '');
+    const [protein, setProtein] = useState(editingItem.nutriments?.protein?.toString() || '');
+    const [carbs, setCarbs] = useState(editingItem.nutriments?.carbs?.toString() || '');
+    const [fat, setFat] = useState(editingItem.nutriments?.fat?.toString() || '');
+
+    const handleSave = async () => {
+      if (!user) return;
+
+      try {
+        await updateDoc(doc(db, 'users', user.uid, 'inventory', editingItem.id), {
+          name,
+          quantity: parseInt(quantity),
+          unit,
+          nutriments: {
+            calories: parseFloat(calories),
+            protein: parseFloat(protein),
+            carbs: parseFloat(carbs),
+            fat: parseFloat(fat),
+          },
         });
+        setIsEditModalVisible(false);
+        setEditingItem(null);
+        Alert.alert('Success', 'Item updated successfully!');
+      } catch (error) {
+        console.error('Error updating item:', error);
+        Alert.alert('Error', 'There was a problem updating the item.');
       }
-    }, [editingItem]);
+    };
 
     return (
-      <Modal
-        visible={isEditModalVisible}
-        transparent
-        onRequestClose={() => {
-          setIsEditModalVisible(false);
-          setEditingItem(null);
-        }}
-      >
-        <BlurView intensity={80} style={styles.modalOverlay}>
+      <Modal visible={isEditModalVisible} transparent={true}>
+        <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Редактиране на продукт</Text>
-              <TouchableOpacity 
-                onPress={() => {
-                  setIsEditModalVisible(false);
-                  setEditingItem(null);
-                }}
-                style={styles.modalCloseButton}
-              >
-                <Ionicons name="close" size={24} color="#FFFFFF" />
-              </TouchableOpacity>
-            </View>
+            <Text style={styles.modalTitle}>Редактирайте продукт</Text>
 
-            <ScrollView style={styles.modalScroll}>
-              <View style={styles.inputGroup}>
-                <Text style={styles.inputLabel}>Име на продукта</Text>
-                <TextInput
-                  style={styles.textInput}
-                  value={editForm.name}
-                  onChangeText={(text) => setEditForm({...editForm, name: text})}
-                  placeholder="Въведете име..."
-                  placeholderTextColor="#666666"
-                />
-              </View>
+            <Text style={styles.sectionHeader}>Обща информация</Text>
+            <TextInput
+              style={styles.textInput}
+              value={name}
+              onChangeText={setName}
+              placeholder="Име на продукта"
+            />
+            <TextInput
+              style={styles.textInput}
+              value={quantity}
+              onChangeText={setQuantity}
+              placeholder="Количество"
+              keyboardType="numeric"
+            />
+            <TextInput
+              style={styles.textInput}
+              value={unit}
+              onChangeText={setUnit}
+              placeholder="Мерна единица"
+            />
 
-              <View style={styles.rowInputs}>
-                <View style={[styles.inputGroup, { flex: 2, marginRight: 8 }]}>
-                  <Text style={styles.inputLabel}>Количество</Text>
-                  <TextInput
-                    style={styles.textInput}
-                    value={editForm.quantity.toString()}
-                    onChangeText={(text) => {
-                      const num = parseFloat(text) || 0;
-                      setEditForm({...editForm, quantity: num});
-                    }}
-                    keyboardType="numeric"
-                    placeholder="1"
-                    placeholderTextColor="#666666"
-                  />
-                </View>
+            <Text style={styles.sectionHeader}>Хранителна информация</Text>
+            <TextInput
+              style={styles.textInput}
+              value={calories}
+              onChangeText={setCalories}
+              placeholder="Калории"
+              keyboardType="numeric"
+            />
+            <TextInput
+              style={styles.textInput}
+              value={protein}
+              onChangeText={setProtein}
+              placeholder="Протеини"
+              keyboardType="numeric"
+            />
+            <TextInput
+              style={styles.textInput}
+              value={carbs}
+              onChangeText={setCarbs}
+              placeholder="Въглехидрати"
+              keyboardType="numeric"
+            />
+            <TextInput
+              style={styles.textInput}
+              value={fat}
+              onChangeText={setFat}
+              placeholder="Мазнини"
+              keyboardType="numeric"
+            />
 
-                <View style={[styles.inputGroup, { flex: 3 }]}>
-                  <Text style={styles.inputLabel}>Мерна единица</Text>
-                  <View style={styles.unitSelector}>
-                    {['бр', 'г', 'кг', 'мл', 'л'].map((unit) => (
-                      <TouchableOpacity
-                        key={unit}
-                        style={[
-                          styles.unitButton,
-                          editForm.unit === unit && styles.unitButtonActive
-                        ]}
-                        onPress={() => setEditForm({...editForm, unit})}
-                      >
-                        <Text style={[
-                          styles.unitButtonText,
-                          editForm.unit === unit && styles.unitButtonTextActive
-                        ]}>
-                          {unit}
-                        </Text>
-                      </TouchableOpacity>
-                    ))}
-                  </View>
-                </View>
-              </View>
-
-              <Text style={styles.sectionTitle}>Хранителна информация</Text>
-              <View style={styles.nutrientsGrid}>
-                <View style={styles.nutrientInput}>
-                  <Text style={styles.nutrientLabel}>Калории</Text>
-                  <TextInput
-                    style={styles.nutrientTextInput}
-                    value={editForm.nutriments.calories.toString()}
-                    onChangeText={(text) => setEditForm({...editForm, nutriments: {...editForm.nutriments, calories: parseFloat(text) || 0}})}
-                    keyboardType="numeric"
-                    placeholder="0"
-                    placeholderTextColor="#666666"
-                  />
-                </View>
-
-                <View style={styles.nutrientInput}>
-                  <Text style={styles.nutrientLabel}>Протеини (г)</Text>
-                  <TextInput
-                    style={styles.nutrientTextInput}
-                    value={editForm.nutriments.protein.toString()}
-                    onChangeText={(text) => setEditForm({...editForm, nutriments: {...editForm.nutriments, protein: parseFloat(text) || 0}})}
-                    keyboardType="numeric"
-                    placeholder="0"
-                    placeholderTextColor="#666666"
-                  />
-                </View>
-
-                <View style={styles.nutrientInput}>
-                  <Text style={styles.nutrientLabel}>Въглехидрати (г)</Text>
-                  <TextInput
-                    style={styles.nutrientTextInput}
-                    value={editForm.nutriments.carbs.toString()}
-                    onChangeText={(text) => setEditForm({...editForm, nutriments: {...editForm.nutriments, carbs: parseFloat(text) || 0}})}
-                    keyboardType="numeric"
-                    placeholder="0"
-                    placeholderTextColor="#666666"
-                  />
-                </View>
-
-                <View style={styles.nutrientInput}>
-                  <Text style={styles.nutrientLabel}>Мазнини (г)</Text>
-                  <TextInput
-                    style={styles.nutrientTextInput}
-                    value={editForm.nutriments.fat.toString()}
-                    onChangeText={(text) => setEditForm({...editForm, nutriments: {...editForm.nutriments, fat: parseFloat(text) || 0}})}
-                    keyboardType="numeric"
-                    placeholder="0"
-                    placeholderTextColor="#666666"
-                  />
-                </View>
-              </View>
-
-              <TouchableOpacity
-                style={[styles.addButton, isSubmitting && styles.addButtonDisabled]}
-                disabled={isSubmitting || !editForm.name.trim()}
-                onPress={() => {
-                  if (editingItem) {
-                    handleEditItem(editForm, editingItem.id);
-                  }
-                }}
-              >
-                <Ionicons name="save-outline" size={24} color="#FFFFFF" />
-                <Text style={styles.addButtonText}>Запази промените</Text>
-              </TouchableOpacity>
-            </ScrollView>
+            <TouchableOpacity style={styles.saveButton} onPress={handleSave}>
+              <Text style={styles.saveButtonText}>Запази</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.cancelButton} onPress={() => setIsEditModalVisible(false)}>
+              <Text style={styles.cancelButtonText}>Отказ</Text>
+            </TouchableOpacity>
           </View>
-        </BlurView>
+        </View>
       </Modal>
     );
   };
@@ -1064,9 +993,11 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   modalTitle: {
-    fontSize: 20,
+    fontSize: 24,
     fontWeight: 'bold',
     color: colors.text.primary,
+    marginBottom: 16,
+    textAlign: 'center',
   },
   modalCloseButton: {
     padding: 8,
@@ -1090,6 +1021,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.border.light,
     fontSize: 16,
+    marginBottom: 12,
   },
   rowInputs: {
     flexDirection: 'row',
@@ -1227,6 +1159,47 @@ const styles = StyleSheet.create({
   },
   eatModalContent: {
     gap: 16,
+  },
+  saveButton: {
+    backgroundColor: colors.primary,
+    borderRadius: 16,
+    padding: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
+  },
+  saveButtonText: {
+    color: colors.text.primary,
+    fontSize: 16,
+    fontWeight: 'bold',
+    marginLeft: 8,
+  },
+  cancelButton: {
+    backgroundColor: colors.error,
+    borderRadius: 16,
+    padding: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
+  },
+  cancelButtonText: {
+    color: colors.text.primary,
+    fontSize: 16,
+    fontWeight: 'bold',
+    marginLeft: 8,
+  },
+  sectionHeader: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: colors.text.primary,
+    marginTop: 16,
+    marginBottom: 8,
   },
 });
 

@@ -763,18 +763,6 @@ const EditProfileScreen = () => {
                             />
                         </View>
                     </View>
-                    <View style={styles.inputContainer}>
-                        <Ionicons name="mail-outline" size={20} color="#999999" />
-                        <TextInput
-                            style={styles.input}
-                            placeholder="Имейл"
-                            value={email}
-                            onChangeText={setEmail}
-                            placeholderTextColor="#999999"
-                            keyboardType="email-address"
-                            autoCapitalize="none"
-                        />
-                    </View>
                 </View>
 
                 {/* Security Card */}

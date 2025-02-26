@@ -2042,15 +2042,15 @@ const DashboardScreen: React.FC<DashboardProps> = ({ onLogout }) => {
     if (!user) return;
 
     Alert.alert(
-      "Delete Meal",
-      "Are you sure you want to delete this meal?",
+      "Изтрийте хранене",
+      "Сигурни ли сте, че желаете да изтриете това хранене за деня?",
       [
         {
-          text: "Cancel",
+          text: "Отказ",
           style: "cancel"
         },
         {
-          text: "Delete",
+          text: "Изтрий",
           style: "destructive",
           onPress: async () => {
             try {

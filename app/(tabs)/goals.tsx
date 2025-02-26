@@ -189,24 +189,24 @@ const GoalsScreen = () => {
         </StyledView>
 
         <StyledView style={styles.goalContent}>
-          {/* Goal Text and Progress */}
-          <StyledView style={styles.goalHeader}>
-            <StyledText style={[styles.goalText, item.completed && styles.completedGoalText]}>
-              {item.text}
-            </StyledText>
+          {/* Goal Text */}
+          <StyledText style={[styles.goalText, item.completed && styles.completedGoalText]}>
+            {item.text}
+          </StyledText>
+
+          {/* Progress Bar and Text */}
+          <StyledView style={styles.progressContainer}>
+            <StyledView style={styles.progressBarContainer}>
+              <StyledView 
+                style={[
+                  styles.progressBar, 
+                  { width: `${item.progress}%` }
+                ]} 
+              />
+            </StyledView>
             <StyledText style={styles.progressText}>
               {item.progress}%
             </StyledText>
-          </StyledView>
-
-          {/* Progress Bar */}
-          <StyledView style={styles.progressBarContainer}>
-            <StyledView 
-              style={[
-                styles.progressBar, 
-                { width: `${item.progress}%` }
-              ]} 
-            />
           </StyledView>
 
           {/* Target Date if exists */}
@@ -375,15 +375,6 @@ const GoalsScreen = () => {
                 </StyledTouchableOpacity>
               ))}
             </StyledView>
-
-            {/* Goal Text Input */}
-            <StyledTextInput
-              style={styles.modalInput}
-              value={newGoal}
-              onChangeText={setNewGoal}
-              placeholder="Enter your goal"
-              placeholderTextColor="#AAAAAA"
-            />
 
             {/* Progress Slider */}
             <StyledView style={styles.progressInput}>
@@ -626,12 +617,6 @@ const styles = StyleSheet.create({
   selectedCategory: {
     backgroundColor: 'rgba(76, 175, 80, 0.8)',
   },
-  modalInput: {
-    flex: 1,
-    color: '#FFFFFF',
-    fontSize: 16,
-    marginLeft: 12,
-  },
   progressInput: {
     marginBottom: 24,
   },
@@ -688,33 +673,37 @@ const styles = StyleSheet.create({
   },
   goalContent: {
     flex: 1,
+    marginRight: 12,
   },
-  goalHeader: {
+  progressContainer: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
+    justifyContent: 'space-between',
+    marginTop: 4,
     marginBottom: 8,
   },
-  progressText: {
-    color: '#4CAF50',
-    fontSize: 14,
-    fontWeight: 'bold',
-  },
   progressBarContainer: {
+    flex: 1,
     height: 4,
     backgroundColor: 'rgba(255, 255, 255, 0.1)',
     borderRadius: 2,
     overflow: 'hidden',
-    marginBottom: 8,
+    marginRight: 8,
   },
   progressBar: {
     height: '100%',
     backgroundColor: '#4CAF50',
     borderRadius: 2,
   },
+  progressText: {
+    color: '#4CAF50',
+    fontSize: 14,
+    fontWeight: 'bold',
+  },
   dateText: {
     color: '#AAAAAA',
     fontSize: 12,
+    marginTop: 4,
   },
   actionsContainer: {
     flexDirection: 'row',
