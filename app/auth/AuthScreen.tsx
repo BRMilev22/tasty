@@ -27,11 +27,20 @@ interface AuthScreenProps {
 const theme = {
     colors: {
         primary: '#4CAF50',
-        background: '#000000',
-        surface: '#1A1A1A',
-        text: '#FFFFFF',
-        textSecondary: '#999999',
-        accent: '#4CAF50',
+        background: {
+            dark: '#000000',
+            card: 'rgba(30, 30, 30, 0.95)',
+            input: 'rgba(40, 40, 40, 0.8)',
+        },
+        text: {
+            primary: '#FFFFFF',
+            secondary: '#AAAAAA',
+            hint: '#666666',
+        },
+        border: {
+            light: 'rgba(255, 255, 255, 0.1)',
+            accent: 'rgba(76, 175, 80, 0.3)',
+        }
     }
 };
 
@@ -259,24 +268,33 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ onLogin }) => {
             style={{ flex: 1 }}
         >
             <StyledImageBackground
-                source={{ uri: 'https://i.imgur.com/8F9ZGpX.png' }}
-                style={styles.backgroundImage}
-                blurRadius={5}
+                style={[styles.backgroundImage, { backgroundColor: theme.colors.background.dark }]}
             >
                 <ScrollView 
                     contentContainerStyle={styles.scrollViewContent}
                     keyboardShouldPersistTaps="handled"
                 >
                     <View style={styles.container}>
-                        <Logo/>
+                        <View style={styles.header}>
+                            <Logo />
+                            <Text style={styles.headerTitle}>
+                                {isLoginMode ? 'Добре дошли обратно!' : step === 1 ? 'Създайте профил' : 'Информация за профила'}
+                            </Text>
+                            <Text style={styles.headerSubtitle}>
+                                {isLoginMode 
+                                    ? 'Впишете се, за да продължите към вашия профил' 
+                                    : 'Попълнете информацията по-долу, за да създадете профил'}
+                            </Text>
+                        </View>
 
                         <Animated.View style={[styles.formContainer, { opacity }]}>
                             <View style={styles.formBox}>
-                                <Text style={styles.title}>
-                                    {isLoginMode ? 'Впишете се' : step === 1 ? 'Създайте профил' : 'Информация за профила'}
-                                </Text>
-                                
-                                {error ? <Text style={styles.errorText}>{error}</Text> : null}
+                                {error && (
+                                    <View style={styles.errorContainer}>
+                                        <Ionicons name="alert-circle" size={24} color="#F44336" />
+                                        <Text style={styles.errorText}>{error}</Text>
+                                    </View>
+                                )}
 
                                 {isLoginMode ? (
                                     <>
@@ -432,7 +450,7 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ onLogin }) => {
                                     style={styles.switchModeButton}
                                 >
                                     <Text style={styles.switchModeText}>
-                                        {isLoginMode ? 'Създайте профил' : 'Вече имате профил? Впишете се!'}
+                                        {isLoginMode ? 'Нямате профил? Създайте сега!' : 'Вече имате профил? Впишете се!'}
                                     </Text>
                                 </TouchableOpacity>
                             </View>
@@ -448,73 +466,99 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ onLogin }) => {
 const styles = StyleSheet.create({
     backgroundImage: {
         flex: 1,
+        backgroundColor: theme.colors.background.dark,
     },
     container: {
         flex: 1,
-        backgroundColor: 'rgba(0,0,0,0.5)',
-        justifyContent: 'center',
+        backgroundColor: 'rgba(0,0,0,0.75)',
+    },
+    header: {
+        paddingTop: 60,
+        paddingHorizontal: 20,
+        alignItems: 'center',
+    },
+    headerTitle: {
+        fontSize: 32,
+        fontWeight: 'bold',
+        color: theme.colors.text.primary,
+        marginTop: 20,
+        marginBottom: 8,
+        textAlign: 'center',
+    },
+    headerSubtitle: {
+        fontSize: 16,
+        color: theme.colors.text.secondary,
+        textAlign: 'center',
+        marginBottom: 32,
+        paddingHorizontal: 20,
     },
     formContainer: {
-        justifyContent: 'center',
-        alignItems: 'center',
         paddingHorizontal: 20,
         paddingBottom: 20,
-        marginTop: Platform.OS === 'ios' ? 100 : 50,
     },
     formBox: {
-        width: '100%',
-        backgroundColor: theme.colors.surface,
-        borderRadius: 15,
-        padding: 20,
+        backgroundColor: theme.colors.background.card,
+        borderRadius: 24,
+        padding: 24,
+        borderWidth: 1,
+        borderColor: theme.colors.border.light,
         shadowColor: '#000',
-        shadowOffset: {
-            width: 0,
-            height: 2,
-        },
-        shadowOpacity: 0.25,
-        shadowRadius: 3.84,
-        elevation: 5,
+        shadowOffset: { width: 0, height: 8 },
+        shadowOpacity: 0.44,
+        shadowRadius: 10.32,
+        elevation: 16,
     },
-    title: {
-        fontSize: 24,
-        fontWeight: 'bold',
-        color: theme.colors.text,
-        marginBottom: 20,
-        textAlign: 'center',
-    },
-    errorText: {
-        color: '#e74c3c',
-        marginBottom: 10,
-        textAlign: 'center',
-    },
-    inputWrapper: {
+    errorContainer: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: theme.colors.background,
-        borderRadius: 10,
-        padding: 15,
-        marginBottom: 15,
+        backgroundColor: 'rgba(244, 67, 54, 0.1)',
+        padding: 16,
+        borderRadius: 12,
+        marginBottom: 16,
+    },
+    errorText: {
+        flex: 1,
+        color: '#F44336',
+        marginLeft: 12,
+        fontSize: 14,
+    },
+    inputWrapper: {
+        backgroundColor: theme.colors.background.input,
+        borderRadius: 16,
+        padding: 16,
+        marginBottom: 16,
+        borderWidth: 1,
+        borderColor: theme.colors.border.light,
+        flexDirection: 'row',
+        alignItems: 'center',
     },
     input: {
         flex: 1,
-        color: theme.colors.text,
+        color: theme.colors.text.primary,
         fontSize: 16,
-        marginLeft: 15,
+        marginLeft: 12,
     },
     dateText: {
-        color: theme.colors.text,
+        color: theme.colors.text.primary,
         fontSize: 16,
-        marginLeft: 15,
+        marginLeft: 12,
     },
     actionButton: {
         backgroundColor: theme.colors.primary,
-        borderRadius: 10,
-        padding: 15,
+        borderRadius: 16,
+        padding: 16,
         alignItems: 'center',
-        marginTop: 10,
+        marginTop: 24,
+        borderWidth: 1,
+        borderColor: 'rgba(255, 255, 255, 0.2)',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.3,
+        shadowRadius: 6,
+        elevation: 8,
     },
     actionButtonText: {
-        color: theme.colors.text,
+        color: theme.colors.text.primary,
         fontSize: 18,
         fontWeight: 'bold',
     },
@@ -525,16 +569,17 @@ const styles = StyleSheet.create({
         padding: 10,
     },
     switchModeButton: {
-        marginTop: 20,
+        marginTop: 24,
+        paddingVertical: 8,
         alignItems: 'center',
     },
     switchModeText: {
-        color: theme.colors.textSecondary,
+        color: theme.colors.text.secondary,
         fontSize: 16,
+        textDecorationLine: 'underline',
     },
     scrollViewContent: {
         flexGrow: 1,
-        justifyContent: 'center',
     },
 });
 

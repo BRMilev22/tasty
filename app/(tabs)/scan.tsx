@@ -383,7 +383,7 @@ const ScanScreen = () => {
   const navigation = useNavigation<NavigationProp>();
 
   // Add your LogMeal API key
-  const LOGMEAL_API_KEY = '1b625018f71fb1bb6be4a666f68f4cdf44db9cad';
+  const LOGMEAL_API_KEY = 'a4136eaf6d3af0c86d4c90d93431bdf5d7a44c9a';
 
   // Visibility logic
   const showProductDetails = scanned && barcode && !isFoodMode && !isReceiptMode;
@@ -468,7 +468,7 @@ const ScanScreen = () => {
     }
   };
 
-  // Update the handleAddToInventory function to handle undefined imageId
+  // Update the handleAddToInventory function
   const handleAddToInventory = async () => {
     if (!user) return;
     try {
@@ -476,37 +476,35 @@ const ScanScreen = () => {
       const itemDocRef = doc(db, 'users', user.uid, 'inventory', foodId);
       
       // Get the food name and nutritional info
-      let foodName = productTitle;
+      let foodName = productTitle || 'Неразпознат продукт';
       let nutriments = {
-        calories: 0,
-        protein: 0,
-        carbs: 0,
-        fat: 0
+        calories: nutritionalInfo?.energy || 0,
+        protein: nutritionalInfo?.proteins || 0,
+        carbs: nutritionalInfo?.carbohydrates || 0,
+        fat: nutritionalInfo?.fat || 0
       };
 
-      if (isFoodMode && foodRecognitionResult?.recognition_results && foodRecognitionResult.recognition_results.length > 0) {
-        const englishName = foodRecognitionResult.recognition_results[0]?.name || 'Unknown food';
+      // If in food mode and we have recognition results, use those
+      if (isFoodMode && foodRecognitionResult?.recognition_results?.[0]) {
+        const englishName = foodRecognitionResult.recognition_results[0].name;
         foodName = translateToBulgarian(englishName);
       }
 
-      // Use the nutritional info from state if available
-      if (nutritionalInfo) {
-        nutriments = {
-          calories: nutritionalInfo.energy || 0,
-          protein: nutritionalInfo.proteins || 0,
-          carbs: nutritionalInfo.carbohydrates || 0,
-          fat: nutritionalInfo.fat || 0
-        };
+      // Skip adding if the product is unrecognized
+      if (foodName === 'Неразпознат продукт') {
+        Alert.alert('Грешка', 'Не може да се добави неразпознат продукт.');
+        return;
       }
 
-      // Add to inventory with properly structured nutriment data
+      // Add to inventory with properly structured data
       await setDoc(itemDocRef, {
         name: foodName,
         quantity: 1,
         unit: 'бр',
         foodId: foodId,
         createdAt: new Date(),
-        nutriments: nutriments
+        nutriments: nutriments,
+        barcode: barcode || null // Store barcode if available
       });
 
       Alert.alert('Успешно', 'Продуктът е добавен в инвентара.');
@@ -517,49 +515,42 @@ const ScanScreen = () => {
     }
   };
 
+  // Update the handleEatNow function
   const handleEatNow = async () => {
     if (!user) return;
     try {
       // Get the food name and nutritional info
-      let foodName = productTitle;
+      let foodName = productTitle || 'Неразпознат продукт';
       let nutriments = {
-        calories: 0,
-        protein: 0,
-        carbs: 0,
-        fat: 0
+        calories: nutritionalInfo?.energy || 0,
+        protein: nutritionalInfo?.proteins || 0,
+        carbs: nutritionalInfo?.carbohydrates || 0,
+        fat: nutritionalInfo?.fat || 0
       };
 
-      // If we're in food mode and have recognition results, use those
-      if (isFoodMode && foodRecognitionResult?.recognition_results && foodRecognitionResult.recognition_results.length > 0) {
-        const englishName = foodRecognitionResult.recognition_results[0]?.name || 'Unknown food';
+      // If in food mode and we have recognition results, use those
+      if (isFoodMode && foodRecognitionResult?.recognition_results?.[0]) {
+        const englishName = foodRecognitionResult.recognition_results[0].name;
         foodName = translateToBulgarian(englishName);
       }
 
-      // Skip logging if the product is unrecognized or has an error
-      if (foodName === 'Неразпознат продукт' || foodName === 'Грешка при търсене на продукта') {
+      // Skip logging if the product is unrecognized
+      if (foodName === 'Неразпознат продукт') {
         Alert.alert('Грешка', 'Не може да се добави неразпознат продукт.');
         return;
       }
 
-      // Use the nutritional info from state if available
-      if (nutritionalInfo) {
-        nutriments = {
-          calories: nutritionalInfo.energy || 0,
-          protein: nutritionalInfo.proteins || 0,
-          carbs: nutritionalInfo.carbohydrates || 0,
-          fat: nutritionalInfo.fat || 0
-        };
-      }
-
-      // Log the meal with proper data
+      // Create the meal log entry
       const mealLog = {
         name: foodName,
         quantity: 1,
         unit: 'бр',
         nutriments: nutriments,
-        timestamp: new Date()
+        timestamp: new Date(),
+        barcode: barcode || null // Store barcode if available
       };
 
+      // Add to meals collection
       await addDoc(collection(db, 'users', user.uid, 'meals'), mealLog);
 
       Alert.alert('Успешно', 'Храната е добавена към дневника');
