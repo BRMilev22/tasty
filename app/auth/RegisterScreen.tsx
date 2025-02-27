@@ -45,7 +45,7 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
             useNativeDriver: true,
         }).start(() => {
             setDidRegister(true);
-            navigation.navigate("(tabs)/dashboard");
+            navigation.navigate("goalsSelect");
         });
     };
 
