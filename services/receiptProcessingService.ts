@@ -101,7 +101,7 @@ ${receiptText}
 
     console.log('\nSending prompt to BG-GPT:', prompt);
 
-    const response = await fetch('http://172.20.10.3:11434/api/generate', {
+    const response = await fetch('http://192.168.0.104:11434/api/generate', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({

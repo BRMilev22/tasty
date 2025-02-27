@@ -1,10 +1,10 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { View, Text, TouchableOpacity, Alert, StyleSheet, ScrollView } from 'react-native';
+import { View, Text, TouchableOpacity, Alert, StyleSheet, ScrollView, ActivityIndicator, Animated } from 'react-native';
 import { Camera, CameraView } from 'expo-camera';
 import type { CameraCapturedPicture } from 'expo-camera';
 import { doc, setDoc, getDoc, collection, addDoc } from 'firebase/firestore';
 import { db } from '../../firebaseConfig';
-import { getAuth } from 'firebase/auth';
+import { getAuth, onAuthStateChanged } from 'firebase/auth';
 import { styled } from 'nativewind';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import * as ImageManipulator from 'expo-image-manipulator';
@@ -347,12 +347,12 @@ const simplifyFoodName = (foodName: string): string => {
   return lowerCaseName;
 };
 
-// Define the navigation param list type
+// Update the navigation param list type
 type RootStackParamList = {
   dashboard: undefined;
   scan: undefined;
   planMeal: undefined;
-  // Add other screens as needed
+  login: undefined;  // Add login screen to the type
 };
 
 // Use the typed navigation
@@ -390,6 +390,24 @@ const ScanScreen = () => {
   const showFoodDetails = isFoodMode && foodRecognitionResult && !isReceiptMode;
   const showReceiptDetails = isReceiptMode && isShowingReceiptDetails && receiptItems.length > 0;
 
+  // Add auth state monitoring
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      console.log('Auth state changed:', user ? 'User logged in' : 'No user');
+      setIsAuthenticated(!!user);
+      if (!user) {
+        // Navigate to login screen
+        navigation.navigate('login');
+      }
+    });
+
+    return () => unsubscribe();
+  }, [navigation]);
+
   // Request camera permissions when the component mounts
   useEffect(() => {
     (async () => {
@@ -397,6 +415,28 @@ const ScanScreen = () => {
       setHasPermission(status === 'granted');
     })();
   }, []);
+
+  // Add fade animation effect
+  useEffect(() => {
+    if (isProcessingReceipt) {
+      Animated.loop(
+        Animated.sequence([
+          Animated.timing(fadeAnim, {
+            toValue: 1,
+            duration: 1000,
+            useNativeDriver: true,
+          }),
+          Animated.timing(fadeAnim, {
+            toValue: 0.3,
+            duration: 1000,
+            useNativeDriver: true,
+          }),
+        ])
+      ).start();
+    } else {
+      fadeAnim.setValue(0);
+    }
+  }, [isProcessingReceipt]);
 
   // Function to handle barcode scanning
   const handleBarcodeScanned = async ({ data }: { data: string }) => {
@@ -470,24 +510,62 @@ const ScanScreen = () => {
 
   // Update the handleAddToInventory function
   const handleAddToInventory = async () => {
-    if (!user) return;
+    console.log('Current auth state:', auth.currentUser);
+    if (!auth.currentUser) {
+      Alert.alert(
+        'Необходим е вход',
+        'Моля, влезте в профила си, за да добавите продукт.',
+        [
+          {
+            text: 'Вход',
+            onPress: () => navigation.navigate('login')
+          },
+          {
+            text: 'Отказ',
+            style: 'cancel'
+          }
+        ]
+      );
+      return;
+    }
+
     try {
       const foodId = `food_${Date.now()}`;
-      const itemDocRef = doc(db, 'users', user.uid, 'inventory', foodId);
+      const itemDocRef = doc(db, 'users', auth.currentUser.uid, 'inventory', foodId);
       
-      // Get the food name and nutritional info
-      let foodName = productTitle || 'Неразпознат продукт';
+      // Get the food name and nutritional info based on mode
+      let foodName = 'Неразпознат продукт';
       let nutriments = {
-        calories: nutritionalInfo?.energy || 0,
-        protein: nutritionalInfo?.proteins || 0,
-        carbs: nutritionalInfo?.carbohydrates || 0,
-        fat: nutritionalInfo?.fat || 0
+        calories: 0,
+        protein: 0,
+        carbs: 0,
+        fat: 0
       };
 
-      // If in food mode and we have recognition results, use those
+      // If in food mode and we have recognition results
       if (isFoodMode && foodRecognitionResult?.recognition_results?.[0]) {
         const englishName = foodRecognitionResult.recognition_results[0].name;
         foodName = translateToBulgarian(englishName);
+        if (nutritionalInfo) {
+          nutriments = {
+            calories: nutritionalInfo.energy || 0,
+            protein: nutritionalInfo.proteins || 0,
+            carbs: nutritionalInfo.carbohydrates || 0,
+            fat: nutritionalInfo.fat || 0
+          };
+        }
+      } 
+      // If in barcode mode
+      else if (!isFoodMode && !isReceiptMode && productTitle) {
+        foodName = productTitle;
+        if (nutritionalInfo) {
+          nutriments = {
+            calories: nutritionalInfo.energy || 0,
+            protein: nutritionalInfo.proteins || 0,
+            carbs: nutritionalInfo.carbohydrates || 0,
+            fat: nutritionalInfo.fat || 0
+          };
+        }
       }
 
       // Skip adding if the product is unrecognized
@@ -517,21 +595,59 @@ const ScanScreen = () => {
 
   // Update the handleEatNow function
   const handleEatNow = async () => {
-    if (!user) return;
+    console.log('Current auth state:', auth.currentUser);
+    if (!auth.currentUser) {
+      Alert.alert(
+        'Необходим е вход',
+        'Моля, влезте в профила си, за да добавите храна.',
+        [
+          {
+            text: 'Вход',
+            onPress: () => navigation.navigate('login')
+          },
+          {
+            text: 'Отказ',
+            style: 'cancel'
+          }
+        ]
+      );
+      return;
+    }
+
     try {
-      // Get the food name and nutritional info
-      let foodName = productTitle || 'Неразпознат продукт';
+      // Get the food name and nutritional info based on mode
+      let foodName = 'Неразпознат продукт';
       let nutriments = {
-        calories: nutritionalInfo?.energy || 0,
-        protein: nutritionalInfo?.proteins || 0,
-        carbs: nutritionalInfo?.carbohydrates || 0,
-        fat: nutritionalInfo?.fat || 0
+        calories: 0,
+        protein: 0,
+        carbs: 0,
+        fat: 0
       };
 
-      // If in food mode and we have recognition results, use those
+      // If in food mode and we have recognition results
       if (isFoodMode && foodRecognitionResult?.recognition_results?.[0]) {
         const englishName = foodRecognitionResult.recognition_results[0].name;
         foodName = translateToBulgarian(englishName);
+        if (nutritionalInfo) {
+          nutriments = {
+            calories: nutritionalInfo.energy || 0,
+            protein: nutritionalInfo.proteins || 0,
+            carbs: nutritionalInfo.carbohydrates || 0,
+            fat: nutritionalInfo.fat || 0
+          };
+        }
+      } 
+      // If in barcode mode
+      else if (!isFoodMode && !isReceiptMode && productTitle) {
+        foodName = productTitle;
+        if (nutritionalInfo) {
+          nutriments = {
+            calories: nutritionalInfo.energy || 0,
+            protein: nutritionalInfo.proteins || 0,
+            carbs: nutritionalInfo.carbohydrates || 0,
+            fat: nutritionalInfo.fat || 0
+          };
+        }
       }
 
       // Skip logging if the product is unrecognized
@@ -551,7 +667,7 @@ const ScanScreen = () => {
       };
 
       // Add to meals collection
-      await addDoc(collection(db, 'users', user.uid, 'meals'), mealLog);
+      await addDoc(collection(db, 'users', auth.currentUser.uid, 'meals'), mealLog);
 
       Alert.alert('Успешно', 'Храната е добавена към дневника');
       handleScanAgain();
@@ -822,10 +938,10 @@ const ScanScreen = () => {
 
   // Add a function to add receipt item to inventory
   const handleAddReceiptItemToInventory = async (item: any) => {
-    if (!user) return;
+    if (!auth.currentUser) return;
     try {
       const foodId = `food_${Date.now()}`;
-      const itemDocRef = doc(db, 'users', user.uid, 'inventory', foodId);
+      const itemDocRef = doc(db, 'users', auth.currentUser.uid, 'inventory', foodId);
       
       await setDoc(itemDocRef, {
         name: item.name,
@@ -858,7 +974,7 @@ const ScanScreen = () => {
 
   // Add a function to add all receipt items to inventory
   const handleAddAllReceiptItems = async () => {
-    if (!user || receiptItems.length === 0) return;
+    if (!auth.currentUser || receiptItems.length === 0) return;
     
     try {
       // Show loading indicator or message
@@ -867,7 +983,7 @@ const ScanScreen = () => {
       // Add each item to inventory
       for (const item of receiptItems) {
         const foodId = `food_${Date.now()}_${Math.random().toString(36).substring(7)}`;
-        const itemDocRef = doc(db, 'users', user.uid, 'inventory', foodId);
+        const itemDocRef = doc(db, 'users', auth.currentUser.uid, 'inventory', foodId);
         
         await setDoc(itemDocRef, {
           name: item.name,
@@ -1017,11 +1133,20 @@ const ScanScreen = () => {
         </StyledTouchableOpacity>
       )}
 
-      {/* Loading indicator for receipt processing */}
+      {/* Update the loading indicator */}
       {isProcessingReceipt && (
-        <StyledView className="absolute inset-0 bg-black bg-opacity-70 items-center justify-center">
-          <StyledText className="text-white text-lg mb-4">Обработка на касовата бележка...</StyledText>
-          {/* You could add a spinner here */}
+        <StyledView className="absolute inset-0 bg-black bg-opacity-90 items-center justify-center">
+          <StyledView className="bg-[#1C1C1E] p-6 rounded-3xl items-center" style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color="#4CAF50" style={styles.spinner} />
+            <Animated.View style={{ opacity: fadeAnim }}>
+              <StyledText className="text-white text-lg font-bold mt-4 text-center">
+                Обработка на касовата бележка
+              </StyledText>
+              <StyledText className="text-gray-400 text-sm mt-2 text-center">
+                Моля, изчакайте момент...
+              </StyledText>
+            </Animated.View>
+          </StyledView>
         </StyledView>
       )}
 
@@ -1475,6 +1600,21 @@ const styles = StyleSheet.create({
     borderRadius: 18,
     borderWidth: 1,
     borderColor: 'rgba(76, 175, 80, 0.6)',
+  },
+  loadingContainer: {
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.44,
+    shadowRadius: 10.32,
+    elevation: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+    width: '80%',
+    maxWidth: 300,
+  },
+  
+  spinner: {
+    transform: [{ scale: 1.2 }],
   },
 });
 
