@@ -237,7 +237,7 @@ ${cookingIngredients.map(item => `- ${item.name} (${item.quantity} ${item.unit})
 1. стъпка 1
 2. стъпка 2`;
 
-    const response = await fetch(`http://IP_ADDRESS:11434/api/generate`, {
+    const response = await fetch(`http://172.20.10.3:11434/api/generate`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({

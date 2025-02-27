@@ -1,7 +1,7 @@
-import React, { useEffect, useState } from 'react';
-import { View, Text, TouchableOpacity, Alert, StyleSheet } from 'react-native';
+import React, { useEffect, useState, useRef } from 'react';
+import { View, Text, TouchableOpacity, Alert, StyleSheet, ScrollView } from 'react-native';
 import { Camera, CameraView } from 'expo-camera';
-import type { CameraCapturedPicture } from 'expo-camera';  // Import as type
+import type { CameraCapturedPicture } from 'expo-camera';
 import { doc, setDoc, getDoc, collection, addDoc } from 'firebase/firestore';
 import { db } from '../../firebaseConfig';
 import { getAuth } from 'firebase/auth';
@@ -12,6 +12,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { useNavigation } from '@react-navigation/native';
 import { format } from 'date-fns';
 import type { StackNavigationProp } from '@react-navigation/stack';
+import { processReceiptItems } from '../../services/receiptProcessingService';
 
 const auth = getAuth();
 const user = auth.currentUser;
@@ -28,6 +29,13 @@ interface PhotoType extends CameraCapturedPicture {
 interface FoodRecognitionResult {
   image_id: string;
   recognition_results: any[];
+}
+
+interface ReceiptItem {
+  name: string;
+  quantity: number;
+  price: number;
+  unit: string;
 }
 
 // Add a translation function for food items
@@ -351,31 +359,36 @@ type RootStackParamList = {
 type NavigationProp = StackNavigationProp<RootStackParamList>;
 
 const ScanScreen = () => {
+  // Camera and scanning states
   const [hasPermission, setHasPermission] = useState<boolean | null>(null);
   const [scanned, setScanned] = useState(false);
-  const [barcode, setBarcode] = useState<string | null>(null);
-  const [productTitle, setProductTitle] = useState<string | null>(null);
-  const [nutritionalInfo, setNutritionalInfo] = useState<any>(null); // To store nutritional info
-  const [isConfirming, setIsConfirming] = useState(false);
   const [isFoodMode, setIsFoodMode] = useState(false);
+  const [isReceiptMode, setIsReceiptMode] = useState(false);
+  
+  // Receipt processing states
+  const [receiptItems, setReceiptItems] = useState<ReceiptItem[]>([]);
+  const [isProcessingReceipt, setIsProcessingReceipt] = useState(false);
+  const [isShowingReceiptDetails, setIsShowingReceiptDetails] = useState(false);
+  
+  // Food recognition states
   const [foodRecognitionResult, setFoodRecognitionResult] = useState<FoodRecognitionResult | null>(null);
+  const [nutritionalInfo, setNutritionalInfo] = useState<any>(null);
+  
+  // Product details states
+  const [productTitle, setProductTitle] = useState('');
+  const [barcode, setBarcode] = useState('');
 
-  const auth = getAuth();
-  const user = auth.currentUser;
+  // Refs and navigation
+  const cameraRef = useRef(null);
+  const navigation = useNavigation<NavigationProp>();
 
   // Add your LogMeal API key
-  //const LOGMEAL_API_KEY = '29c0703873dadf9f8b5adaa8004a04f1e8211843';
   const LOGMEAL_API_KEY = '1b625018f71fb1bb6be4a666f68f4cdf44db9cad';
 
-  // Update camera ref type to use Camera
-  const cameraRef = React.useRef(null);
-
-  // Update the product details visibility logic
-  const showProductDetails = scanned && barcode && !isFoodMode;
-  const showFoodDetails = isFoodMode && foodRecognitionResult;
-
-  // Get the navigation object with the correct type
-  const navigation = useNavigation<NavigationProp>();
+  // Visibility logic
+  const showProductDetails = scanned && barcode && !isFoodMode && !isReceiptMode;
+  const showFoodDetails = isFoodMode && foodRecognitionResult && !isReceiptMode;
+  const showReceiptDetails = isReceiptMode && isShowingReceiptDetails && receiptItems.length > 0;
 
   // Request camera permissions when the component mounts
   useEffect(() => {
@@ -402,37 +415,56 @@ const ScanScreen = () => {
 
         // Extracting nutritional information if available
         const productNutritionalInfo = {
-          energy: openFoodFactsData.product.nutriments?.['energy-kcal'] || 'Не е налично',
-          fat: openFoodFactsData.product.nutriments?.fat || 'Не е налично',
-          //fatValue: openFoodFactsData.product.nutriments?.fat_value || 'Не е налично',
-          carbohydrates: openFoodFactsData.product.nutriments?.carbohydrates || 'Не е налично',
-          proteins: openFoodFactsData.product.nutriments?.proteins || 'Не е налично',
-          //proteinsValue: openFoodFactsData.product.nutriments?.proteins_value || 'Не е налично',
+          energy: openFoodFactsData.product.nutriments?.['energy-kcal'] || 0,
+          fat: openFoodFactsData.product.nutriments?.fat || 0,
+          carbohydrates: openFoodFactsData.product.nutriments?.carbohydrates || 0,
+          proteins: openFoodFactsData.product.nutriments?.proteins || 0,
         };
-        setNutritionalInfo(productNutritionalInfo); // Store the nutritional information
+        setNutritionalInfo(productNutritionalInfo);
       } else {
         // If not found, fall back to the current logic
         const titleResponse = await fetch(
           `https://barcode.bg/barcode/BG/%D0%98%D0%BD%D1%84%D0%BE%D1%80%D0%BC%D0%B0%D1%86%D0%B8%D1%8F-%D0%B7%D0%B0-%D0%B1%D0%B0%D1%80%D0%BA%D0%BE%D0%B4.htm?barcode=${data}`
         );
         if (titleResponse.status === 404) {
-          setProductTitle('Името на продукта не бе намерено');
-          setNutritionalInfo(null); // Clear nutritional info if not found
+          setProductTitle('Неразпознат продукт');
+          // Set default nutritional info for unknown products
+          setNutritionalInfo({
+            energy: 0,
+            fat: 0,
+            carbohydrates: 0,
+            proteins: 0,
+          });
         } else {
-          const htmlContent = await titleResponse.text();
-          const titleMatch = htmlContent.match(/<title>(.*?)<\/title>/);
-          if (titleMatch && titleMatch[1]) {
-            setProductTitle(titleMatch[1]);
-            setNutritionalInfo(null); // No nutritional info available in fallback
-          } else {
-            setProductTitle('Името на продукта не бе намерено');
-            setNutritionalInfo(null); // Clear nutritional info if not found
+          const titleText = await titleResponse.text();
+          // Extract the actual product name from the response
+          const titleMatch = titleText.match(/<title>(.*?)<\/title>/);
+          let productName = titleMatch ? titleMatch[1].replace(' - Баркод.bg', '').trim() : 'Неразпознат продукт';
+          
+          // If the title is still the default one, set it to unknown product
+          if (productName === 'Информация за баркод') {
+            productName = 'Неразпознат продукт';
           }
+          
+          setProductTitle(productName);
+          // Set default nutritional info for products without data
+          setNutritionalInfo({
+            energy: 0,
+            fat: 0,
+            carbohydrates: 0,
+            proteins: 0,
+          });
         }
       }
     } catch (error) {
-      console.error('Error fetching product data:', error);
-      //Alert.alert('Грешка', 'Данните за продукта не бяха извлечени.');
+      console.error('Error fetching product information:', error);
+      setProductTitle('Грешка при търсене на продукта');
+      setNutritionalInfo({
+        energy: 0,
+        fat: 0,
+        carbohydrates: 0,
+        proteins: 0,
+      });
     }
   };
 
@@ -444,7 +476,7 @@ const ScanScreen = () => {
       const itemDocRef = doc(db, 'users', user.uid, 'inventory', foodId);
       
       // Get the food name and nutritional info
-      let foodName = 'Неразпозната храна';
+      let foodName = productTitle;
       let nutriments = {
         calories: 0,
         protein: 0,
@@ -452,31 +484,19 @@ const ScanScreen = () => {
         fat: 0
       };
 
-      if (isFoodMode && foodRecognitionResult?.recognition_results?.length > 0) {
-        const englishName = foodRecognitionResult.recognition_results[0].name || 'Unknown food';
+      if (isFoodMode && foodRecognitionResult?.recognition_results && foodRecognitionResult.recognition_results.length > 0) {
+        const englishName = foodRecognitionResult.recognition_results[0]?.name || 'Unknown food';
         foodName = translateToBulgarian(englishName);
-        
-        // Use the nutritional info from state
-        if (nutritionalInfo) {
-          nutriments = {
-            calories: nutritionalInfo.energy || 0,
-            protein: nutritionalInfo.proteins || 0,
-            carbs: nutritionalInfo.carbohydrates || 0,
-            fat: nutritionalInfo.fat || 0
-          };
-        }
-      } else if (!isFoodMode && barcode && productTitle) {
-        foodName = productTitle.replace(/ - Баркод: \d+$/, '') || 'Непознат продукт';
-        
-        // Use the nutritional info from state
-        if (nutritionalInfo) {
-          nutriments = {
-            calories: nutritionalInfo.energy || 0,
-            protein: nutritionalInfo.proteins || 0,
-            carbs: nutritionalInfo.carbohydrates || 0,
-            fat: nutritionalInfo.fat || 0
-          };
-        }
+      }
+
+      // Use the nutritional info from state if available
+      if (nutritionalInfo) {
+        nutriments = {
+          calories: nutritionalInfo.energy || 0,
+          protein: nutritionalInfo.proteins || 0,
+          carbs: nutritionalInfo.carbohydrates || 0,
+          fat: nutritionalInfo.fat || 0
+        };
       }
 
       // Add to inventory with properly structured nutriment data
@@ -486,7 +506,7 @@ const ScanScreen = () => {
         unit: 'бр',
         foodId: foodId,
         createdAt: new Date(),
-        nutriments: nutriments // Make sure nutriments is properly structured
+        nutriments: nutriments
       });
 
       Alert.alert('Успешно', 'Продуктът е добавен в инвентара.');
@@ -497,13 +517,66 @@ const ScanScreen = () => {
     }
   };
 
+  const handleEatNow = async () => {
+    if (!user) return;
+    try {
+      // Get the food name and nutritional info
+      let foodName = productTitle;
+      let nutriments = {
+        calories: 0,
+        protein: 0,
+        carbs: 0,
+        fat: 0
+      };
+
+      // If we're in food mode and have recognition results, use those
+      if (isFoodMode && foodRecognitionResult?.recognition_results && foodRecognitionResult.recognition_results.length > 0) {
+        const englishName = foodRecognitionResult.recognition_results[0]?.name || 'Unknown food';
+        foodName = translateToBulgarian(englishName);
+      }
+
+      // Skip logging if the product is unrecognized or has an error
+      if (foodName === 'Неразпознат продукт' || foodName === 'Грешка при търсене на продукта') {
+        Alert.alert('Грешка', 'Не може да се добави неразпознат продукт.');
+        return;
+      }
+
+      // Use the nutritional info from state if available
+      if (nutritionalInfo) {
+        nutriments = {
+          calories: nutritionalInfo.energy || 0,
+          protein: nutritionalInfo.proteins || 0,
+          carbs: nutritionalInfo.carbohydrates || 0,
+          fat: nutritionalInfo.fat || 0
+        };
+      }
+
+      // Log the meal with proper data
+      const mealLog = {
+        name: foodName,
+        quantity: 1,
+        unit: 'бр',
+        nutriments: nutriments,
+        timestamp: new Date()
+      };
+
+      await addDoc(collection(db, 'users', user.uid, 'meals'), mealLog);
+
+      Alert.alert('Успешно', 'Храната е добавена към дневника');
+      handleScanAgain();
+    } catch (error) {
+      console.error('Error logging meal:', error);
+      Alert.alert('Грешка', 'Възникна проблем при добавянето на храната.');
+    }
+  };
+
   const handleScanAgain = () => {
     setScanned(false);
-    setBarcode(null);
-    setProductTitle(null);
+    setBarcode('');
+    setProductTitle('');
     setNutritionalInfo(null);
     setFoodRecognitionResult(null);
-    setIsConfirming(false);
+    setIsShowingReceiptDetails(false);
   };
 
   // Function to handle food recognition
@@ -609,9 +682,80 @@ const ScanScreen = () => {
     setNutritionalInfo(nutritionData);
   };
 
-  // Modify the camera capture function to use ImagePicker
+  // Update the handleReceiptScanning function to use the new state
+  const handleReceiptScanning = async (photo: CameraCapturedPicture) => {
+    try {
+      setIsProcessingReceipt(true);
+      
+      // Resize and compress the image
+      const manipulatedImage = await ImageManipulator.manipulateAsync(
+        photo.uri,
+        [{ resize: { width: 1080 } }],
+        { compress: 0.7, format: ImageManipulator.SaveFormat.JPEG }
+      );
+
+      // Create form data for the API request
+      const formData = new FormData();
+      formData.append('extractLineItems', 'true');
+      formData.append('extractTime', 'false');
+      formData.append('refresh', 'false');
+      formData.append('incognito', 'false');
+      
+      // Append the image file
+      formData.append('file', {
+        uri: manipulatedImage.uri,
+        type: 'image/jpeg',
+        name: 'receipt.jpg',
+      } as any);
+
+      // Make API request to Taggun
+      const response = await fetch('https://api.taggun.io/api/receipt/v1/verbose/file', {
+        method: 'POST',
+        headers: {
+          accept: 'application/json',
+          apikey: 'bb171440f48e11ef8629fb2558d8ff71'
+        },
+        body: formData
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to process receipt');
+      }
+
+      const taggunData = await response.json();
+      
+      // Process the receipt data using our new service
+      const processedReceipt = await processReceiptItems(taggunData);
+      
+      // Update state with processed items
+      setReceiptItems([
+        ...processedReceipt.foodItems.map(item => ({
+          name: item.name,
+          quantity: item.quantity || 1,
+          price: item.price || 0,
+          unit: item.unit || 'бр.'
+        })),
+        ...processedReceipt.beverages.map(item => ({
+          name: item.name,
+          quantity: item.quantity || 1,
+          price: item.price || 0,
+          unit: item.unit || 'бр.'
+        }))
+      ]);
+      
+      setIsShowingReceiptDetails(true);
+      setScanned(true);
+      setIsProcessingReceipt(false);
+    } catch (error) {
+      console.error('Error processing receipt:', error);
+      Alert.alert('Грешка', 'Възникна проблем при обработката на касовата бележка.');
+      setIsProcessingReceipt(false);
+    }
+  };
+
+  // Update the handleCameraCapture function to handle the correct photo type
   const handleCameraCapture = async () => {
-    if (isFoodMode) {
+    if (isFoodMode || isReceiptMode) {
       try {
         // Request camera permissions first
         const { status } = await ImagePicker.requestCameraPermissionsAsync();
@@ -629,15 +773,18 @@ const ScanScreen = () => {
         });
 
         if (!result.canceled && result.assets && result.assets.length > 0) {
-          const photo = {
+          const photo: CameraCapturedPicture = {
             uri: result.assets[0].uri,
             width: result.assets[0].width || 1080,
             height: result.assets[0].height || 1920,
-            exif: null,
-            base64: null
+            base64: undefined,
           };
           
-          await handleFoodRecognition(photo);
+          if (isFoodMode) {
+            await handleFoodRecognition(photo);
+          } else if (isReceiptMode) {
+            await handleReceiptScanning(photo);
+          }
         }
       } catch (error) {
         console.error('Error taking picture:', error);
@@ -646,13 +793,26 @@ const ScanScreen = () => {
     }
   };
 
-  // Add toggle button for switching between barcode and food mode
+  // Update toggle button for switching between modes
   const toggleMode = () => {
-    setIsFoodMode(!isFoodMode);
+    if (isFoodMode) {
+      setIsFoodMode(false);
+      setIsReceiptMode(true);
+    } else if (isReceiptMode) {
+      setIsReceiptMode(false);
+      setIsFoodMode(false);
+    } else {
+      setIsFoodMode(true);
+      setIsReceiptMode(false);
+    }
+    
+    // Reset scan state
     setScanned(false);
-    setBarcode(null);
+    setBarcode('');
     setFoodRecognitionResult(null);
+    setReceiptItems([]);
     setNutritionalInfo(null);
+    setIsShowingReceiptDetails(false);
   };
 
   // Update the handleManualFoodEntry function
@@ -669,141 +829,96 @@ const ScanScreen = () => {
     navigation.goBack();
   };
 
-  // Add a function to log food as eaten
-  const handleLogAsEaten = async () => {
-    if (user) {
-      try {
-        let foodName = 'Неразпозната храна';
-        let englishFoodName = 'Unknown food';
-        let macros = {
+  // Add a function to add receipt item to inventory
+  const handleAddReceiptItemToInventory = async (item: any) => {
+    if (!user) return;
+    try {
+      const foodId = `food_${Date.now()}`;
+      const itemDocRef = doc(db, 'users', user.uid, 'inventory', foodId);
+      
+      await setDoc(itemDocRef, {
+        name: item.name,
+        quantity: 1,
+        unit: 'бр',
+        foodId: foodId,
+        createdAt: new Date(),
+        nutriments: {
           calories: 0,
           protein: 0,
           carbs: 0,
           fat: 0
-        };
-        
-        // Get food name and macros from recognition results
-        if (isFoodMode && foodRecognitionResult?.recognition_results?.length > 0) {
-          englishFoodName = foodRecognitionResult.recognition_results[0].name || 'Unknown food';
-          const translatedName = translateToBulgarian(englishFoodName);
-          
-          // If the food name is too generic, enhance it with a more specific description
-          if (['месо', 'зеленчук', 'плод', 'яйце', 'хляб', 'ориз', 'паста', 'риба', 'салата', 'супа', 'десерт'].includes(translatedName.toLowerCase())) {
-            foodName = enhanceFoodDescription(translatedName);
-          } else {
-            foodName = translatedName;
-          }
-          
-          if (nutritionalInfo) {
-            macros = {
-              calories: nutritionalInfo.energy || 0,
-              protein: nutritionalInfo.proteins || 0,
-              carbs: nutritionalInfo.carbohydrates || 0,
-              fat: nutritionalInfo.fat || 0
-            };
-          } else {
-            // Get nutrition data from the API using the English food name for better results
-            const nutritionData = await fetchNutritionalData(englishFoodName);
-            macros = {
-              calories: nutritionData.energy || 0,
-              protein: nutritionData.proteins || 0,
-              carbs: nutritionData.carbohydrates || 0,
-              fat: nutritionData.fat || 0
-            };
-            
-            // Update the UI with the fetched nutrition data
-            setNutritionalInfo(nutritionData);
-          }
-        } else if (!isFoodMode && barcode && productTitle) {
-          foodName = productTitle.replace(/ - Баркод: \d+$/, '') || 'Непознат продукт';
-          englishFoodName = foodName; // Use the product title for API lookup
-          
-          if (nutritionalInfo) {
-            macros = {
-              calories: nutritionalInfo.energy || 0,
-              protein: nutritionalInfo.proteins || 0,
-              carbs: nutritionalInfo.carbohydrates || 0,
-              fat: nutritionalInfo.fat || 0
-            };
-          } else {
-            // Get nutrition data from the API
-            const nutritionData = await fetchNutritionalData(englishFoodName);
-            macros = {
-              calories: nutritionData.energy || 0,
-              protein: nutritionData.proteins || 0,
-              carbs: nutritionData.carbohydrates || 0,
-              fat: nutritionData.fat || 0
-            };
-            
-            // Update the UI with the fetched nutrition data
-            setNutritionalInfo(nutritionData);
-          }
         }
-        
-        // Determine meal type based on time of day
-        const currentHour = new Date().getHours();
-        let mealType = 'snack';
-        
-        if (currentHour >= 5 && currentHour < 11) {
-          mealType = 'breakfast';
-        } else if (currentHour >= 11 && currentHour < 15) {
-          mealType = 'lunch';
-        } else if (currentHour >= 17 && currentHour < 22) {
-          mealType = 'dinner';
-        }
-        
-        // Add to meals collection - match the structure expected by the dashboard
-        const mealData = {
-          name: foodName,
-          calories: macros.calories,
-          protein: macros.protein,
-          carbs: macros.carbs,
-          fats: macros.fat,
-          type: mealType, // Use 'type' instead of 'mealType' to match dashboard
-          timestamp: new Date(),
-          userId: user.uid
-        };
-        
-        // Add to Firestore
-        const mealRef = await addDoc(collection(db, 'users', user.uid, 'meals'), mealData);
-        console.log('Meal added with ID:', mealRef.id);
-        
-        // Show success message with translated meal type
-        const mealTypeTranslated = 
-          mealType === 'breakfast' ? 'закуска' : 
-          mealType === 'lunch' ? 'обяд' : 
-          mealType === 'dinner' ? 'вечеря' : 'закуска';
-        
-        Alert.alert(
-          'Успешно добавяне',
-          `${foodName} беше добавена като ${mealTypeTranslated}.`,
-          [{ text: 'OK' }]
-        );
-        
-        handleScanAgain(); // Reset the scan state after adding
-        
-      } catch (error) {
-        console.error('Error logging food as eaten:', error);
-        Alert.alert('Грешка', 'Възникна проблем при добавянето на храната.');
+      });
+
+      Alert.alert('Успешно', `${item.name} е добавен в инвентара.`);
+      
+      // Remove the item from the list
+      setReceiptItems(receiptItems.filter(i => i !== item));
+      
+      // If no more items, reset scan
+      if (receiptItems.length <= 1) {
+        handleScanAgain();
       }
-    } else {
-      Alert.alert('Грешка', 'Трябва да сте влезли в профила си, за да добавите храна.');
+    } catch (error) {
+      console.error('Error adding to inventory:', error);
+      Alert.alert('Грешка', 'Възникна проблем при добавянето в инвентара.');
     }
   };
 
-  // Update the food selection handler to refresh nutritional data
-  const handleFoodSelection = async (result: any) => {
-    // Create a new result with only this food item
-    const selectedResult = {
-      ...foodRecognitionResult,
-      recognition_results: [result]
-    };
-    setFoodRecognitionResult(selectedResult);
+  // Add a function to add all receipt items to inventory
+  const handleAddAllReceiptItems = async () => {
+    if (!user || receiptItems.length === 0) return;
     
-    // Update nutritional info based on the selected food
-    const englishName = result.name || 'Unknown food';
-    const nutritionData = await fetchNutritionalData(englishName);
-    setNutritionalInfo(nutritionData);
+    try {
+      // Show loading indicator or message
+      Alert.alert('Добавяне', 'Добавяне на всички продукти в инвентара...');
+      
+      // Add each item to inventory
+      for (const item of receiptItems) {
+        const foodId = `food_${Date.now()}_${Math.random().toString(36).substring(7)}`;
+        const itemDocRef = doc(db, 'users', user.uid, 'inventory', foodId);
+        
+        await setDoc(itemDocRef, {
+          name: item.name,
+          quantity: 1,
+          unit: 'бр',
+          foodId: foodId,
+          createdAt: new Date(),
+          nutriments: {
+            calories: 0,
+            protein: 0,
+            carbs: 0,
+            fat: 0
+          }
+        });
+      }
+
+      Alert.alert('Успешно', 'Всички продукти са добавени в инвентара.');
+      handleScanAgain();
+    } catch (error) {
+      console.error('Error adding all items to inventory:', error);
+      Alert.alert('Грешка', 'Възникна проблем при добавянето на продуктите в инвентара.');
+    }
+  };
+
+  const handleFoodSelection = (selectedFood: any) => {
+    if (!foodRecognitionResult) return;
+    
+    // Update the recognition results to put the selected food first
+    const updatedResults = [...foodRecognitionResult.recognition_results];
+    const selectedIndex = updatedResults.findIndex(food => food.id === selectedFood.id);
+    if (selectedIndex > -1) {
+      const [selected] = updatedResults.splice(selectedIndex, 1);
+      updatedResults.unshift(selected);
+    }
+    
+    setFoodRecognitionResult({
+      ...foodRecognitionResult,
+      recognition_results: updatedResults
+    });
+    
+    // Update nutritional info for the selected food
+    createEstimatedNutrition(selectedFood.name);
   };
 
   if (hasPermission === null) {
@@ -819,37 +934,89 @@ const ScanScreen = () => {
       <CameraView 
         ref={cameraRef}
         style={styles.camera}
-        onBarcodeScanned={!isFoodMode && !scanned ? handleBarcodeScanned : undefined}
-        type="back"
+        onBarcodeScanned={!isFoodMode && !isReceiptMode && !scanned ? handleBarcodeScanned : undefined}
+        facing="back"
       />
 
-      {/* Back Button */}
-      <StyledTouchableOpacity 
-        onPress={handleGoBack}
-        className="absolute top-12 left-4 z-10"
-        style={styles.iconButton}
+      {/* Mode Switcher */}
+      <StyledView 
+        className="absolute top-12 w-[80%] z-10 flex-row justify-center"
+        style={styles.modeSwitcher}
       >
-        <Ionicons name="arrow-back" size={24} color="#FFFFFF" />
-      </StyledTouchableOpacity>
+        <StyledTouchableOpacity 
+          onPress={() => {
+            setIsFoodMode(false);
+            setIsReceiptMode(false);
+            handleScanAgain();
+          }}
+          style={[
+            styles.modeButton,
+            !isFoodMode && !isReceiptMode && styles.modeButtonActive,
+            { borderTopLeftRadius: 20, borderBottomLeftRadius: 20 }
+          ]}
+        >
+          <Ionicons 
+            name="barcode-outline" 
+            size={24} 
+            color={!isFoodMode && !isReceiptMode ? "#FFFFFF" : "#888888"} 
+          />
+          <StyledText 
+            className={`text-xs mt-1 ${!isFoodMode && !isReceiptMode ? 'text-white' : 'text-gray-400'}`}
+          >
+            Баркод
+          </StyledText>
+        </StyledTouchableOpacity>
 
-      {/* Mode Toggle Button */}
-      <StyledTouchableOpacity 
-        onPress={toggleMode}
-        className="absolute top-12 right-4 z-10"
-        style={styles.iconButton}
-      >
-        <Ionicons 
-          name={isFoodMode ? "barcode-outline" : "restaurant-outline"} 
-          size={24} 
-          color="#FFFFFF" 
-        />
-        <StyledText className="text-white text-xs mt-1">
-          {isFoodMode ? "Баркод" : "Храна"}
-        </StyledText>
-      </StyledTouchableOpacity>
+        <StyledTouchableOpacity 
+          onPress={() => {
+            setIsFoodMode(true);
+            setIsReceiptMode(false);
+            handleScanAgain();
+          }}
+          style={[
+            styles.modeButton,
+            isFoodMode && styles.modeButtonActive,
+          ]}
+        >
+          <Ionicons 
+            name="restaurant-outline" 
+            size={24} 
+            color={isFoodMode ? "#FFFFFF" : "#888888"} 
+          />
+          <StyledText 
+            className={`text-xs mt-1 ${isFoodMode ? 'text-white' : 'text-gray-400'}`}
+          >
+            Храна
+          </StyledText>
+        </StyledTouchableOpacity>
 
-      {/* Camera Button for Food Mode */}
-      {isFoodMode && !scanned && (
+        <StyledTouchableOpacity 
+          onPress={() => {
+            setIsFoodMode(false);
+            setIsReceiptMode(true);
+            handleScanAgain();
+          }}
+          style={[
+            styles.modeButton,
+            isReceiptMode && styles.modeButtonActive,
+            { borderTopRightRadius: 20, borderBottomRightRadius: 20 }
+          ]}
+        >
+          <Ionicons 
+            name="receipt-outline" 
+            size={24} 
+            color={isReceiptMode ? "#FFFFFF" : "#888888"} 
+          />
+          <StyledText 
+            className={`text-xs mt-1 ${isReceiptMode ? 'text-white' : 'text-gray-400'}`}
+          >
+            Касова
+          </StyledText>
+        </StyledTouchableOpacity>
+      </StyledView>
+
+      {/* Camera Button for Food and Receipt Mode */}
+      {(isFoodMode || isReceiptMode) && !scanned && (
         <StyledTouchableOpacity 
           onPress={handleCameraCapture}
           className="absolute bottom-36"
@@ -857,6 +1024,14 @@ const ScanScreen = () => {
         >
           <Ionicons name="camera-outline" size={36} color="white" />
         </StyledTouchableOpacity>
+      )}
+
+      {/* Loading indicator for receipt processing */}
+      {isProcessingReceipt && (
+        <StyledView className="absolute inset-0 bg-black bg-opacity-70 items-center justify-center">
+          <StyledText className="text-white text-lg mb-4">Обработка на касовата бележка...</StyledText>
+          {/* You could add a spinner here */}
+        </StyledView>
       )}
 
       {/* Product Details Container - Only show for barcode mode */}
@@ -900,7 +1075,7 @@ const ScanScreen = () => {
             </StyledTouchableOpacity>
             
             <StyledTouchableOpacity 
-              onPress={handleLogAsEaten}
+              onPress={handleEatNow}
               style={styles.secondaryButton}
             >
               <Ionicons name="restaurant-outline" size={20} color="white" />
@@ -1015,7 +1190,7 @@ const ScanScreen = () => {
             </StyledTouchableOpacity>
             
             <StyledTouchableOpacity 
-              onPress={handleLogAsEaten}
+              onPress={handleEatNow}
               style={styles.secondaryButton}
             >
               <Ionicons name="restaurant-outline" size={18} color="white" />
@@ -1029,6 +1204,63 @@ const ScanScreen = () => {
               <Ionicons name="close-outline" size={18} color="white" />
               <StyledText className="text-white font-bold ml-1 text-sm">Откажи</StyledText>
             </StyledTouchableOpacity>
+          </StyledView>
+        </StyledView>
+      )}
+
+      {/* Receipt Scanning Results - Only show for receipt mode */}
+      {showReceiptDetails && (
+        <StyledView className="absolute bottom-0 w-full" style={styles.receiptContainer}>
+          <StyledView className="px-4 py-3 bg-[#1C1C1E] rounded-t-3xl">
+            <StyledText className="text-xl font-bold text-white text-center mb-2">
+              Сканирана касова бележка
+            </StyledText>
+            <StyledText className="text-gray-400 text-center mb-3">
+              Открити {receiptItems.length} продукта
+            </StyledText>
+            
+            {/* Scrollable list container */}
+            <StyledView style={styles.scrollContainer}>
+              <ScrollView style={styles.itemsList}>
+                {receiptItems.map((item, index) => (
+                  <StyledView key={index} style={styles.receiptItem}>
+                    <StyledView style={{flex: 1}}>
+                      <StyledText className="text-white font-bold">{item.name}</StyledText>
+                      <StyledText className="text-gray-400 text-xs">
+                        Цена: {item.price} лв
+                      </StyledText>
+                    </StyledView>
+                    <StyledTouchableOpacity 
+                      onPress={() => handleAddReceiptItemToInventory(item)}
+                      style={styles.addItemButton}
+                    >
+                      <Ionicons name="add-circle-outline" size={24} color="#4CAF50" />
+                    </StyledTouchableOpacity>
+                  </StyledView>
+                ))}
+              </ScrollView>
+            </StyledView>
+
+            {/* Buttons container */}
+            <StyledView className="flex-row justify-between mt-3 pb-6 px-2">
+              <StyledTouchableOpacity 
+                onPress={handleAddAllReceiptItems} 
+                style={styles.primaryButton}
+                className="flex-1 mr-2"
+              >
+                <Ionicons name="archive-outline" size={18} color="white" />
+                <StyledText className="text-white font-bold ml-1 text-sm">Добави всички</StyledText>
+              </StyledTouchableOpacity>
+              
+              <StyledTouchableOpacity 
+                onPress={handleScanAgain}
+                style={styles.cancelButton}
+                className="flex-1 ml-2"
+              >
+                <Ionicons name="close-outline" size={18} color="white" />
+                <StyledText className="text-white font-bold ml-1 text-sm">Откажи</StyledText>
+              </StyledTouchableOpacity>
+            </StyledView>
           </StyledView>
         </StyledView>
       )}
@@ -1110,9 +1342,7 @@ const styles = StyleSheet.create({
   primaryButton: {
     backgroundColor: 'rgba(76, 175, 80, 0.8)',
     borderRadius: 16,
-    padding: 10,
-    flex: 1,
-    marginRight: 6,
+    padding: 12,
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
@@ -1127,9 +1357,7 @@ const styles = StyleSheet.create({
   secondaryButton: {
     backgroundColor: 'rgba(33, 150, 243, 0.8)',
     borderRadius: 16,
-    padding: 10,
-    flex: 1,
-    marginHorizontal: 6,
+    padding: 12,
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
@@ -1144,9 +1372,7 @@ const styles = StyleSheet.create({
   cancelButton: {
     backgroundColor: 'rgba(80, 80, 80, 0.8)',
     borderRadius: 16,
-    padding: 10,
-    flex: 1,
-    marginLeft: 6,
+    padding: 12,
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
@@ -1198,6 +1424,66 @@ const styles = StyleSheet.create({
     marginTop: 12,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  receiptContainer: {
+    backgroundColor: 'rgba(0, 0, 0, 0.9)',
+    maxHeight: '80%',
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    overflow: 'hidden',
+  },
+  
+  scrollContainer: {
+    maxHeight: 400,
+  },
+  
+  itemsList: {
+    paddingHorizontal: 2,
+  },
+  
+  receiptItem: {
+    backgroundColor: 'rgba(50, 50, 50, 0.7)',
+    borderRadius: 16,
+    padding: 12,
+    marginBottom: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 3,
+    elevation: 3,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  
+  addItemButton: {
+    padding: 6,
+  },
+  modeSwitcher: {
+    backgroundColor: 'rgba(30, 30, 30, 0.95)',
+    borderRadius: 20,
+    padding: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 6,
+    elevation: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  modeButton: {
+    flex: 1,
+    paddingVertical: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  modeButtonActive: {
+    backgroundColor: 'rgba(76, 175, 80, 0.3)',
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: 'rgba(76, 175, 80, 0.6)',
   },
 });
 

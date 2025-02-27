@@ -15,7 +15,7 @@ import {
 } from 'react-native';
 import { styled } from 'nativewind';
 import { getAuth } from 'firebase/auth';
-import { getFirestore, collection, query, where, onSnapshot, deleteDoc, doc, updateDoc, addDoc } from 'firebase/firestore';
+import { getFirestore, collection, query, where, onSnapshot, deleteDoc, doc, updateDoc, addDoc, writeBatch } from 'firebase/firestore';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { BlurView } from 'expo-blur';
 import { Link } from 'expo-router';
@@ -275,6 +275,35 @@ const InventoryScreen = () => {
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  const handleClearInventory = () => {
+    Alert.alert(
+      'Изчистване на инвентара',
+      'Сигурни ли сте, че искате да изтриете всички продукти?',
+      [
+        { text: 'Отказ', style: 'cancel' },
+        {
+          text: 'Изтрий всичко',
+          style: 'destructive',
+          onPress: async () => {
+            if (!user) return;
+            try {
+              const batch = writeBatch(db);
+              inventory.forEach((item) => {
+                const itemRef = doc(db, 'users', user.uid, 'inventory', item.id);
+                batch.delete(itemRef);
+              });
+              await batch.commit();
+              Alert.alert('Успех', 'Инвентарът е изчистен успешно!');
+            } catch (error) {
+              console.error('Error clearing inventory:', error);
+              Alert.alert('Грешка', 'Възникна проблем при изчистването на инвентара.');
+            }
+          }
+        }
+      ]
+    );
   };
 
   const renderItem = ({ item }: { item: InventoryItem }) => (
@@ -762,7 +791,15 @@ const InventoryScreen = () => {
   return (
     <StyledView style={styles.container}>
       <StyledView style={styles.header}>
-        <StyledText style={styles.headerTitle}>Вашият инвентар</StyledText>
+        <StyledView style={styles.headerTop}>
+          <StyledText style={styles.headerTitle}>Вашият инвентар</StyledText>
+          <TouchableOpacity
+            style={styles.clearButton}
+            onPress={handleClearInventory}
+          >
+            <Ionicons name="trash-outline" size={24} color={colors.error} />
+          </TouchableOpacity>
+        </StyledView>
         <StyledText style={styles.headerSubtitle}>
           Управлявайте вашите продукти и хранителни запаси
         </StyledText>
@@ -842,6 +879,11 @@ const styles = StyleSheet.create({
   header: {
     marginTop: 44,
     marginBottom: 24,
+  },
+  headerTop: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
   },
   headerTitle: {
     fontSize: 28,
@@ -1098,7 +1140,7 @@ const styles = StyleSheet.create({
   },
   fab: {
     position: 'absolute',
-    bottom: 24,
+    bottom: 80,
     right: 24,
     width: 56,
     height: 56,
