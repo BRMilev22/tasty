@@ -177,6 +177,37 @@ app.get('/recipes/category/:category', async (req, res) => {
   }
 });
 
+// Update the ingredients endpoint to match your database schema
+app.get('/ingredients', async (req, res) => {
+  try {
+    // First, let's see the actual column names
+    const [columns] = await pool.query(`
+      SHOW COLUMNS FROM ingredientsBulgarian;
+    `);
+    console.log('Database columns:', columns);
+
+    const [rows] = await pool.query<RowDataPacket[]>(`
+      SELECT id, name, english_name, image_url, image_small_url, image_medium_url,
+             calories_100g, 
+             protein_100g, 
+             carbs_100g, 
+             fat_100g 
+      FROM ingredientsBulgarian
+      ORDER BY name
+    `);
+    
+    // Log the first row to see what data we're getting
+    if (rows.length > 0) {
+      console.log('Sample ingredient data:', JSON.stringify(rows[0], null, 2));
+    }
+    
+    res.json(rows);
+  } catch (error) {
+    console.error('Error fetching ingredients:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`Server running at http://localhost:${PORT}`);
@@ -185,4 +216,5 @@ app.listen(PORT, () => {
   console.log('  GET /recipes/random');
   console.log('  GET /recipes/:id');
   console.log('  GET /recipes/category/:category');
+  console.log('  GET /ingredients');
 }); 
