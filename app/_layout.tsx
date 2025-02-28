@@ -17,6 +17,7 @@ import PlanMealScreen from './(tabs)/planMeal';
 import { ExternalLink } from '@/components/ExternalLink';
 import TrackWeightScreen from './(tabs)/trackWeight';
 import MealDetailScreen from './(tabs)/mealDetail';
+import RecipeDetailScreen from './(tabs)/RecipeDetailScreen'; // Import the new RecipeDetailScreen
 const Stack = createNativeStackNavigator();
 
 const _layout = () => {
@@ -108,6 +109,11 @@ const _layout = () => {
   <Stack.Screen
     name="mealDetail"
     component={MealDetailScreen}
+    options={{ headerShown: false }}
+  />
+  <Stack.Screen
+    name="RecipeDetailScreen"
+    component={RecipeDetailScreen}
     options={{ headerShown: false }}
   />
 </Stack.Navigator>

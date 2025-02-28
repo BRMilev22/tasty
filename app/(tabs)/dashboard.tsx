@@ -1463,7 +1463,7 @@ const DashboardScreen: React.FC<DashboardProps> = ({ onLogout }) => {
             return [{
               name: singleSnacks[0].name,
               calories: singleSnacks[0].calories,
-              servingSize: '1 пор',
+              servingSize: '1 порция',
               image: singleSnacks[0].image,
               protein: singleSnacks[0].protein,
               carbs: singleSnacks[0].carbs,
@@ -1505,7 +1505,7 @@ const DashboardScreen: React.FC<DashboardProps> = ({ onLogout }) => {
             return validCombinations[0].map(meal => ({
               name: meal.name,
               calories: meal.calories,
-              servingSize: '1 пор',
+              servingSize: '1 порция',
               image: meal.image,
               protein: meal.protein,
               carbs: meal.carbs,
@@ -1545,7 +1545,7 @@ const DashboardScreen: React.FC<DashboardProps> = ({ onLogout }) => {
         return [{
           name: closestMeal.name,
           calories: closestMeal.calories,
-          servingSize: '1 пор',
+          servingSize: '1 порция',
           image: closestMeal.image,
           protein: closestMeal.protein,
           carbs: closestMeal.carbs,

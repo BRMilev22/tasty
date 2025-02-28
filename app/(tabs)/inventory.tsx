@@ -588,7 +588,7 @@ const InventoryScreen = () => {
 
   const fetchIngredients = async () => {
     try {
-      const response = await fetch('http://192.168.0.104:3000/ingredients');
+      const response = await fetch('http://172.20.10.3:3000/ingredients');
       const data = await response.json();
       if (Array.isArray(data)) {
         setIngredients(data);

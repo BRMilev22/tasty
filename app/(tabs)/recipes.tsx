@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, FlatList, TouchableOpacity, Alert, Modal, Pressable, ScrollView, StyleSheet } from 'react-native';
+import { View, Text, FlatList, TouchableOpacity, Alert, Modal, Pressable, ScrollView, StyleSheet, Image } from 'react-native';
 import { collection, onSnapshot, addDoc, getDocs, doc, deleteDoc } from 'firebase/firestore';
 import { db } from '../../firebaseConfig';
 import { getAuth } from 'firebase/auth';
 import { fetchRecipesFromBgGPT } from '../../services/recipeService';
 import Ionicons from 'react-native-vector-icons/Ionicons';
+import { useNavigation } from '@react-navigation/native';
 
 const auth = getAuth();
 
@@ -24,12 +25,14 @@ interface Recipe {
     carbs: number;
     fat: number;
   };
+  image: string;
 }
 
 const RecipesScreen = () => {
   const [recipes, setRecipes] = useState<Recipe[]>([]);
   const [loading, setLoading] = useState(false);
   const [selectedRecipe, setSelectedRecipe] = useState<Recipe | null>(null);
+  const navigation = useNavigation();
 
   useEffect(() => {
     const userId = auth.currentUser?.uid;
@@ -180,7 +183,7 @@ const RecipesScreen = () => {
 
       <TouchableOpacity 
         style={styles.viewButton} 
-        onPress={() => handleRecipeClick(item)}
+        onPress={() => navigation.navigate('RecipeDetailScreen', { recipe: item })}
       >
         <Ionicons name="book-outline" size={20} color="white" />
         <Text style={styles.buttonText}>Вижте рецептата</Text>
@@ -273,7 +276,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   list: {
-    flex: 1,
+    paddingBottom: 20,
   },
   recipeCard: {
     backgroundColor: 'rgba(30, 30, 30, 0.95)',
