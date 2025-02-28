@@ -527,6 +527,7 @@ const styles = StyleSheet.create({
         borderRadius: 16,
         padding: 16,
         marginBottom: 16,
+        marginTop: 16,
         borderWidth: 1,
         borderColor: theme.colors.border.light,
         flexDirection: 'row',
@@ -564,9 +565,11 @@ const styles = StyleSheet.create({
     },
     backButton: {
         position: 'absolute',
-        top: 20,
-        left: 20,
-        padding: 10,
+        top: 0,
+        left: 24,
+        padding: 8,
+        zIndex: 10,
+        borderRadius: 8,
     },
     switchModeButton: {
         marginTop: 24,

@@ -1135,8 +1135,8 @@ const ScanScreen = () => {
 
       {/* Update the loading indicator */}
       {isProcessingReceipt && (
-        <StyledView className="absolute inset-0 bg-black bg-opacity-90 items-center justify-center">
-          <StyledView className="bg-[#1C1C1E] p-6 rounded-3xl items-center" style={styles.loadingContainer}>
+        <StyledView className="absolute inset-0 items-center justify-center">
+          <StyledView className="bg-[#1C1C1E]/80 backdrop-blur-md p-6 rounded-3xl items-center" style={styles.loadingContainer}>
             <ActivityIndicator size="large" color="#4CAF50" style={styles.spinner} />
             <Animated.View style={{ opacity: fadeAnim }}>
               <StyledText className="text-white text-lg font-bold mt-4 text-center">
