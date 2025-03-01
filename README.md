@@ -97,22 +97,43 @@
 ### 📸 Снимки на приложението в действие
 <br>
 
-|                         Табло за управление                           |
-| :-------------------------------------------------------------------: | 
-| <img src="https://github.com/user-attachments/assets/11a741d8-68be-4741-8464-0e5033aa4d9b" width="180" height="400">|
+<table align="center">
+  <tr>
+    <th>Табло за управление</th>
+  </tr>
+  <tr>
+    <td align="center">
+      <img src="https://github.com/user-attachments/assets/11a741d8-68be-4741-8464-0e5033aa4d9b" width="180" height="400">
+    </td>
+  </tr>
 
-|                Меню за управление на предложено ястие                 |
-| :-------------------------------------------------------------------: | 
-| <img src="https://github.com/user-attachments/assets/31fcb6cf-6438-4a0a-8aed-5042301b9523" width="180" height="400">|
+  <tr>
+    <th>Меню за управление на предложено ястие</th>
+  </tr>
+  <tr>
+    <td align="center">
+      <img src="https://github.com/user-attachments/assets/31fcb6cf-6438-4a0a-8aed-5042301b9523" width="180" height="400">
+    </td>
+  </tr>
 
-|                   Сканиране на баркод на напитка                      |
-| :-------------------------------------------------------------------: | 
-| <img src="https://github.com/user-attachments/assets/e62f9900-b33d-4bb9-98dc-583cdc762110" width="180" height="400">|
+  <tr>
+    <th>Сканиране на баркод на напитка</th>
+  </tr>
+  <tr>
+    <td align="center">
+      <img src="https://github.com/user-attachments/assets/e62f9900-b33d-4bb9-98dc-583cdc762110" width="180" height="400">
+    </td>
+  </tr>
 
-|                       Потребителски инвентар                          |
-| :-------------------------------------------------------------------: | 
-| <img src="https://github.com/user-attachments/assets/abe73559-b2f9-4f34-9477-ec292d99483a" width="180" height="400">|
-
+  <tr>
+    <th>Потребителски инвентар</th>
+  </tr>
+  <tr>
+    <td align="center">
+      <img src="https://github.com/user-attachments/assets/abe73559-b2f9-4f34-9477-ec292d99483a" width="180" height="400">
+    </td>
+  </tr>
+</table>
 
 ## 📜 Документация
 
