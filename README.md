@@ -203,6 +203,7 @@ TASTY/
 │   └── images/
 ├── constants/                   # Constants and configuration files
 │   └── Colors.ts
+├── docs/
 ├── ios/
 ├── moblie-app-landing-template/
 ├── node_modules/      
