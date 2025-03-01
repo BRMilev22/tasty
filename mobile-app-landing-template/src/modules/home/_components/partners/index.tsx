@@ -23,17 +23,24 @@ function Partners() {
           className="mt-4 w-full grid gap-8 grid-cols-[repeat(auto-fit,minmax(100px,1fr))] justify-items-center md:gap-8"
         >
           {partners.logos.map((logo, index) => (
-            <motion.img
+            <motion.a
               key={index}
-              src={logo}
-              alt="partner logo"
+              href="https://codingburgas.bg/"
+              target="_blank"
+              rel="noopener noreferrer"
               variants={{
                 hidden: { y: "-80%", opacity: 0 },
                 visible: { y: "0%", opacity: 1 },
               }}
               transition={{ delay: 0.25 + index * 0.25 }}
               className="w-20 h-20"
-            />
+            >
+              <img
+                src={logo}
+                alt="PGKPI Burgas logo"
+                className="w-full h-full"
+              />
+            </motion.a>
           ))}
         </motion.div>
       </div>

@@ -126,7 +126,7 @@ function Footer() {
             transition={{ delay: 1 }}
             className="mt-0.5 md:ml-4 md:whitespace-nowrap"
           >
-            Всички права запазени © {new Date().getFullYear()}
+            "Тейсти" | © {new Date().getFullYear()} Всички права запазени.
           </motion.p>
         </aside>
       </motion.div>

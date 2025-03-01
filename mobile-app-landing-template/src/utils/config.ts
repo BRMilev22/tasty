@@ -48,7 +48,7 @@ const templateConfig: TemplateConfig = {
     },
     links: [
       { href: "/#features", title: "Функционалности" },
-      { href: "/#how-it-works", title: "Как работи" },
+      { href: "/#how-it-works", title: "Как работи?" },
       { href: "/#pricing", title: "Цени" },
       { href: "/#faq", title: "Често задавани въпроси" },
     ],
@@ -60,7 +60,7 @@ const templateConfig: TemplateConfig = {
     hideGooglePlay: true,
     links: [
       { href: "/#features", title: "Функционалности" },
-      { href: "/#how-it-works", title: "Как работи" },
+      { href: "/#how-it-works", title: "Как работи?" },
       { href: "/#pricing", title: "Цени" },
       { href: "/#faq", title: "Често задавани въпроси" },
     ],
@@ -117,7 +117,7 @@ const templateConfig: TemplateConfig = {
     },
     howItWorks: {
       id: "how-it-works",
-      title: "Как работи",
+      title: "Как работи?",
       subtitle: "Лесен процес в няколко стъпки",
       steps: [
         {
@@ -158,7 +158,7 @@ const templateConfig: TemplateConfig = {
         },
         {
           title: "Сканиране на баркод",
-          subtitle: "Сканирай баркода на храните, за да ги добавиш лесно.",
+          subtitle: "Сканирай баркода на храните, за да ги добавиш бързо и лесно.",
           icon: "/3D/camera-front-color.webp"
         },
         {
