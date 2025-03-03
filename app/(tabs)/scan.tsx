@@ -181,8 +181,8 @@ const fetchNutritionalData = async (foodName: string) => {
     console.log(`Original food name: ${foodName}, Simplified: ${simplifiedName}`);
     
     // Use the Edamam Nutrition API
-    const appId = 'a49d3916';
-    const appKey = 'fac9a7d31556543174aabcd5772ca58a';
+    const appId = process.env.EXPO_PUBLIC_EDAMAM_APP_ID;
+    const appKey = process.env.EXPO_PUBLIC_EDAMAM_APP_KEY;
     
     console.log(`Fetching nutrition data for: ${simplifiedName}`);
     
@@ -383,7 +383,7 @@ const ScanScreen = () => {
   const navigation = useNavigation<NavigationProp>();
 
   // Add your LogMeal API key
-  const LOGMEAL_API_KEY = 'a4136eaf6d3af0c86d4c90d93431bdf5d7a44c9a';
+  const LOGMEAL_API_KEY = process.env.EXPO_PUBLIC_LOGMEAL_API_KEY;
 
   // Visibility logic
   const showProductDetails = scanned && barcode && !isFoodMode && !isReceiptMode;
@@ -820,7 +820,7 @@ const ScanScreen = () => {
         method: 'POST',
         headers: {
           accept: 'application/json',
-          apikey: 'bb171440f48e11ef8629fb2558d8ff71'
+          apikey: `${process.env.EXPO_PUBLIC_TAGGUN_API_KEY}`
         },
         body: formData
       });

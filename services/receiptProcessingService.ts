@@ -101,7 +101,7 @@ ${receiptText}
 
     console.log('\nSending prompt to BG-GPT:', prompt);
 
-    const response = await fetch('http://192.168.0.104:11434/api/generate', {
+    const response = await fetch(`http://${process.env.EXPO_PUBLIC_IPADDRESS_AI}:11434/api/generate`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -157,4 +157,4 @@ ${receiptText}
     console.error('Error processing receipt:', error);
     throw error;
   }
-}; 
+};
