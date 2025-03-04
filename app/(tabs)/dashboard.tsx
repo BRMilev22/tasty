@@ -1673,7 +1673,6 @@ const DashboardScreen: React.FC<DashboardProps> = ({ onLogout }) => {
     icon, 
     title, 
     subtitle, 
-    calories, // We'll keep this prop for now to avoid breaking other code
     recommended, 
     todaysMeals,
     suggestedMeals 
@@ -1681,9 +1680,26 @@ const DashboardScreen: React.FC<DashboardProps> = ({ onLogout }) => {
     const [showSuggestions, setShowSuggestions] = useState(false);
     const navigation = useNavigation<NavigationProp<RootStackParamList>>();
 
-    const handleAddPress = () => {
-      navigation.navigate('addMeal', { mealType: title });
+    // Update to get all meals for category
+    const getMealsForCategory = (meals: MealData[], category: string) => {
+      return meals.filter(meal => {
+        const mealCategory = meal.type?.toLowerCase() || meal.mealType?.toLowerCase();
+        const searchCategory = category.toLowerCase();
+        
+        // Map Bulgarian titles to English categories
+        const categoryMap: { [key: string]: string } = {
+          'закуска': 'breakfast',
+          'обяд': 'lunch',
+          'вечеря': 'dinner',
+          'снаксове': 'snacks'
+        };
+        
+        return mealCategory === searchCategory || 
+               mealCategory === categoryMap[searchCategory];
+      });
     };
+
+    const categoryMeals = getMealsForCategory(todaysMeals, title);
 
     const toggleSuggestions = () => {
       setShowSuggestions(!showSuggestions);
@@ -1692,23 +1708,50 @@ const DashboardScreen: React.FC<DashboardProps> = ({ onLogout }) => {
     return (
       <View style={styles.mealTimeSection}>
         <TouchableOpacity 
-          style={styles.mealTimeButton}
+          style={[
+            styles.mealTimeButton,
+            showSuggestions && styles.mealTimeButtonExpanded
+          ]}
           onPress={toggleSuggestions}
         >
           <View style={styles.mealTimeContent}>
             <View style={styles.mealTimeLeft}>
-              <Text style={styles.mealIcon}>{icon}</Text>
+              <View style={styles.mealIconContainer}>
+                <Text style={styles.mealIcon}>{icon}</Text>
+              </View>
               <View style={styles.mealTimeTexts}>
                 <Text style={styles.mealTimeTitle}>{title}</Text>
-                {subtitle && <Text style={styles.mealTimeSubtitle}>{subtitle}</Text>}
-                {recommended && <Text style={styles.mealTimeRecommended}>{recommended}</Text>}
+                {categoryMeals.length > 0 ? (
+                  <View>
+                    {categoryMeals.map((meal, index) => (
+                      <Text key={meal.id} style={[
+                        styles.mealTimeSubtitle,
+                        index > 0 && styles.additionalMeal
+                      ]}>
+                        {meal.name}
+                      </Text>
+                    ))}
+                  </View>
+                ) : (
+                  <Text style={styles.mealTimeNoMeal}>Няма добавено хранене</Text>
+                )}
+                {recommended && (
+                  <Text style={styles.mealTimeRecommended}>
+                    <Ionicons name="flame-outline" size={12} color="#4CAF50" /> {recommended}
+                  </Text>
+                )}
               </View>
             </View>
-            <View style={styles.mealTimeRight}>
-              {/* Removed the calories text here */}
-              <TouchableOpacity style={styles.addButton} onPress={handleAddPress}>
-                <Ionicons name="add-circle" size={28} color="#4CAF50" />
-              </TouchableOpacity>
+            <View style={styles.expandIconContainer}>
+              <Ionicons 
+                name={showSuggestions ? "chevron-up" : "chevron-down"} 
+                size={24} 
+                color="#666666"
+                style={[
+                  styles.expandIcon,
+                  showSuggestions && styles.expandIconRotated
+                ]} 
+              />
             </View>
           </View>
         </TouchableOpacity>
@@ -2546,11 +2589,22 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   mealTimeButton: {
-    backgroundColor: theme.colors.surface,
-    marginHorizontal: 15,
-    marginVertical: 5,
-    borderRadius: 15,
-    padding: 20,
+    backgroundColor: '#1A1A1A',
+    borderRadius: 16,
+    paddingVertical: 15,
+    paddingHorizontal: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 3,
+    borderWidth: 1,
+    borderColor: '#333333',
+  },
+  mealTimeButtonExpanded: {
+    borderBottomLeftRadius: 0,
+    borderBottomRightRadius: 0,
+    borderBottomColor: '#333333',
   },
   mealTimeContent: {
     flexDirection: 'row',
@@ -2562,61 +2616,220 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     flex: 1,
   },
+  mealIconContainer: {
+    width: 45,
+    height: 45,
+    borderRadius: 12,
+    backgroundColor: '#2A2A2A',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 15,
+  },
   mealIcon: {
     fontSize: 24,
-    marginRight: 10,
   },
   mealTimeTexts: {
     flex: 1,
   },
   mealTimeTitle: {
-    color: theme.colors.text,
+    color: '#FFFFFF',
     fontSize: 18,
-    fontWeight: '600',
+    fontWeight: 'bold',
+    marginBottom: 4,
   },
   mealTimeSubtitle: {
-    color: theme.colors.textSecondary,
+    color: '#4CAF50',
     fontSize: 14,
+    marginBottom: 2,
+  },
+  mealTimeNoMeal: {
+    color: '#666666',
+    fontSize: 14,
+    marginBottom: 2,
+    fontStyle: 'italic',
   },
   mealTimeRecommended: {
-    color: theme.colors.textSecondary,
-    fontSize: 14,
-  },
-  mealTimeRight: {
+    color: '#666666',
+    fontSize: 12,
     flexDirection: 'row',
     alignItems: 'center',
   },
-  mealTimeCalories: {
+  expandIconContainer: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#2A2A2A',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  expandIcon: {
+    opacity: 0.7,
+  },
+  expandIconRotated: {
+    transform: [{ rotate: '180deg' }],
+  },
+  suggestedMealsContainer: {
+    backgroundColor: '#1A1A1A',
+    borderBottomLeftRadius: 16,
+    borderBottomRightRadius: 16,
+    paddingTop: 5,
+    paddingBottom: 15,
+    paddingHorizontal: 20,
+    borderWidth: 1,
+    borderTopWidth: 0,
+    borderColor: '#333333',
+  },
+  suggestedMealItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginVertical: 8,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    backgroundColor: '#2A2A2A',
+    borderRadius: 12,
+  },
+  bulletPoint: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#4CAF50',
+    marginRight: 12,
+    position: 'absolute',
+    left: -20,
+  },
+  suggestedMealContent: {
+    flex: 1,
+  },
+  suggestedMealName: {
     fontSize: 14,
-    color: '#7f8c8d',
+    color: '#FFFFFF',
+    fontWeight: '500',
   },
-  moreButton: {
-    padding: 5,
+  suggestedMealDetails: {
+    fontSize: 12,
+    color: '#999999',
+    marginTop: 2,
   },
-  addButton: {
-    padding: 10,
+  suggestedMealImage: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: '#333',
+    marginRight: 12,
+    resizeMode: 'cover' // Add this to ensure the image fills the container
   },
-  mealOptions: {
+  dateHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  regenerateButton: {
+    padding: 8,
+    borderRadius: 20,
+    backgroundColor: 'rgba(26, 26, 26, 0.8)',
+    marginLeft: 10,
+  },
+  suggestedMealItemEaten: {
+    opacity: 0.7,
+  },
+  
+  suggestedMealImageEaten: {
+    opacity: 0.6,
+  },
+  
+  suggestedMealNameEaten: {
+    textDecorationLine: 'line-through',
+    color: '#4CAF50',
+  },
+  
+  suggestedMealNameRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  
+  eatenIcon: {
+    marginRight: 4,
+  },
+  alertOverlay: {
     position: 'absolute',
     top: 0,
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
     justifyContent: 'center',
     alignItems: 'center',
+    zIndex: 1000,
   },
-  mealOptionButton: {
-    padding: 10,
-    borderWidth: 1,
-    borderColor: '#b0bec5',
-    borderRadius: 8,
+  alertContainer: {
+    backgroundColor: '#1A1A1A',
+    borderRadius: 15,
+    padding: 20,
+    width: '85%',
+    maxWidth: 400,
+  },
+  alertTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#FFFFFF',
     marginBottom: 10,
   },
-  mealOptionText: {
+  alertMessage: {
+    fontSize: 16,
+    color: '#CCCCCC',
+    marginBottom: 20,
+  },
+  alertButtons: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  alertButton: {
+    flex: 1,
+    padding: 12,
+    borderRadius: 8,
+    marginHorizontal: 5,
+    alignItems: 'center',
+  },
+  alertButtonPrimary: {
+    backgroundColor: '#4CAF50',
+  },
+  alertButtonText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  alertButtonTextSecondary: {
+    color: '#4CAF50',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  alertCloseButton: {
+    position: 'absolute',
+    top: 10,
+    right: 10,
+    padding: 5,
+  },
+  devModeButton: {
+    backgroundColor: '#1A1A1A',
+    padding: 10,
+    borderRadius: 8,
+    marginVertical: 10,
+    alignSelf: 'center',
+  },
+  devModeText: {
+    color: '#FFFFFF',
     fontSize: 14,
-    color: '#2c3e50',
-    fontWeight: 'bold',
+  },
+  notificationToggleButton: {
+    backgroundColor: '#1A1A1A',
+    padding: 10,
+    borderRadius: 8,
+    marginVertical: 10,
+    alignSelf: 'center',
+  },
+  notificationToggleText: {
+    color: '#FFFFFF',
+    fontSize: 14,
   },
   waterTrackerContainer: {
     padding: 10,
@@ -2840,6 +3053,7 @@ const styles = StyleSheet.create({
     fontStyle: 'italic',
   },
   mealTimeSection: {
+    marginHorizontal: 15,
     marginBottom: 15,
   },
   suggestedMealsContainer: {
@@ -2994,6 +3208,10 @@ const styles = StyleSheet.create({
   notificationToggleText: {
     color: '#FFFFFF',
     fontSize: 14,
+  },
+  additionalMeal: {
+    marginTop: 4,
+    opacity: 0.8,
   },
 });
 

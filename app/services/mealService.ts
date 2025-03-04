@@ -40,27 +40,49 @@ const categoryCalories: { [key: string]: { calories: number; protein: number; ca
 const mapCategory = (category: string): string => {
   // Map database categories to app categories
   const categoryMap: { [key: string]: string } = {
+    // Breakfast items
     'Вегетариански': 'закуска',
+    'Закуска': 'закуска',
+    'Закуски': 'закуска',
+    'Тестени изделия': 'закуска',
+    'Печива': 'закуска',
+    'Баници': 'закуска',
+    'Сандвичи': 'закуска',
+    
+    // Snacks and desserts
     'Десерт': 'снакс',
+    'Десерти': 'снакс',
+    'Снакс': 'снакс',
+    'Снаксове': 'снакс',
+    'Напитки': 'снакс',
+    'Сладкиши': 'снакс',
+    
+    // Lunch/Dinner items
     'Основно': 'обяд',
-    'Салата': 'закуска',
+    'Основни ястия': 'обяд',
     'Супа': 'обяд',
-    'Предястие': 'закуска',
+    'Супи': 'обяд',
     'Тестени': 'обяд',
     'Морски дарове': 'обяд',
     'Свинско': 'обяд',
     'Пилешко': 'обяд',
     'Телешко': 'обяд',
-    'Закуска': 'закуска',
-    'Снакс': 'снакс',
     'Риба': 'обяд',
-    'Ястие': 'обяд'
+    'Ястие': 'обяд',
+    'Зимнина': 'обяд',
+    'Солени торти': 'обяд',
+    
+    // Salads can be for any meal
+    'Салата': 'закуска',
+    'Салати': 'закуска',
+    'Предястие': 'закуска'
   };
 
   // Log the category for debugging
-  console.log('Mapping category:', category, 'to:', categoryMap[category] || 'обяд');
+  const mappedCategory = categoryMap[category] || 'обяд';
+  console.log('Mapping category:', category, 'to:', mappedCategory);
   
-  return categoryMap[category] || 'обяд';
+  return mappedCategory;
 };
 
 export const fetchRandomMeals = async (number: number = 50): Promise<Meal[]> => {
