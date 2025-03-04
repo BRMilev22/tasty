@@ -13,6 +13,13 @@ interface Ingredient {
   image: string;
 }
 
+interface MealDetails {
+  preparation_time: number;
+  cooking_time: number;
+  total_time: number;
+  servings: number;
+}
+
 const translations = {
   block: 'Блокирай',
   like: 'Харесай',
@@ -21,14 +28,16 @@ const translations = {
   more: 'Още',
   prepTime: 'минути подготовка',
   cookTime: 'минути готвене',
+  totalTime: 'общо време',
+  servingsCount: 'порции',
   amountToEat: 'Количество за хапване',
   serving: 'порция',
   calories: 'Калории',
   ingredients: 'Съставки',
-  ingredientsFor: 'за количество за хапване от',
+  ingredientsFor: 'за количество',
   servings: 'порции',
   directions: 'Начин на приготвяне',
-  directionsFor: 'за оригинална рецепта от 1 порция',
+  directionsFor: 'за рецепта от',
   addSuccess: 'Ястието беше добавено успешно',
   addError: 'Грешка при добавяне на ястието',
   carbs: 'Въглехидрати',
@@ -39,8 +48,11 @@ const translations = {
 const MealDetailScreen = () => {
   const route = useRoute();
   const navigation = useNavigation();
-  const { meal } = route.params as { meal: any };
-  const [servings, setServings] = useState(1);
+  const { meal: initialMeal } = route.params as { meal: any };
+  
+  // Инициализираме servings със стойността от рецептата
+  const [meal, setMeal] = useState(initialMeal);
+  const [servings, setServings] = useState(initialMeal.servings || 1);
   const [loading, setLoading] = useState(true);
   const [ingredients, setIngredients] = useState<Ingredient[]>([]);
   const [instructions, setInstructions] = useState<string[]>([]);
@@ -50,42 +62,46 @@ const MealDetailScreen = () => {
   useEffect(() => {
     const fetchMealDetails = async () => {
       try {
-        const response = await fetch(
-          `https://www.themealdb.com/api/json/v1/1/search.php?s=${encodeURIComponent(meal.name)}`
-        );
+        setLoading(true);
+        
+        // Fetch complete meal data from our API using the meal name
+        const response = await fetch(`http://localhost:3000/recipes/name/${encodeURIComponent(initialMeal.name)}`);
         const data = await response.json();
         
-        if (data.meals && data.meals[0]) {
-          const mealDetails = data.meals[0];
-          
-          // Extract ingredients and measures
-          const ingredientsList: Ingredient[] = [];
-          for (let i = 1; i <= 20; i++) {
-            const ingredient = mealDetails[`strIngredient${i}`];
-            const measure = mealDetails[`strMeasure${i}`];
-            
-            if (ingredient && measure) {
-              ingredientsList.push({
-                name: ingredient,
-                measure: measure,
-                image: `https://www.themealdb.com/images/ingredients/${encodeURIComponent(ingredient)}-Small.png`
-              });
-            }
-          }
-          setIngredients(ingredientsList);
-          
-          // Just set the instructions as a single string
-          setInstructions([mealDetails.strInstructions]);
+        if (data.meal) {
+          console.log('Complete meal data:', data.meal);
+          setMeal({
+            ...initialMeal,
+            preparation_time: data.meal.preparation_time,
+            cooking_time: data.meal.cooking_time,
+            total_time: data.meal.total_time,
+            servings: data.meal.servings
+          });
         }
+
+        // Extract ingredients and measures
+        const ingredientsList: Ingredient[] = [];
+        if (initialMeal.ingredients) {
+          initialMeal.ingredients.forEach((ing: any) => {
+            ingredientsList.push({
+              name: ing.name,
+              measure: ing.measure,
+              image: `https://www.themealdb.com/images/ingredients/${encodeURIComponent(ing.name)}-Small.png`
+            });
+          });
+        }
+        setIngredients(ingredientsList);
+        
+        setInstructions([initialMeal.instructions]);
       } catch (error) {
-        console.error('Error fetching meal details:', error);
+        console.error('Error processing meal details:', error);
       } finally {
         setLoading(false);
       }
     };
 
     fetchMealDetails();
-  }, [meal.name]);
+  }, [initialMeal]);
 
   const handleAddMeal = async () => {
     try {
@@ -148,6 +164,10 @@ const MealDetailScreen = () => {
     ];
   };
 
+  // Актуализираме текста за порциите
+  const servingsText = `${translations.ingredientsFor} ${meal.servings} ${translations.servings}`;
+  const directionsText = `${translations.directionsFor} ${meal.servings} ${translations.servings}`;
+
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
@@ -189,14 +209,57 @@ const MealDetailScreen = () => {
         </TouchableOpacity>
       </View>
 
-      <View style={styles.timeInfo}>
-        <View style={styles.timeItem}>
-          <Ionicons name="time-outline" size={24} color="#ffffff" />
-          <Text style={styles.timeText}>5 {translations.prepTime}</Text>
+      <View style={styles.timeInfoContainer}>
+        <View style={styles.timeRow}>
+          <View style={styles.timeBox}>
+            <View style={styles.timeIconContainer}>
+              <Ionicons name="time-outline" size={18} color="#4CAF50" />
+            </View>
+            <View style={styles.timeTextContainer}>
+              <Text style={styles.timeValue}>
+                {typeof meal.preparation_time === 'number' ? meal.preparation_time : 0}
+              </Text>
+              <Text style={styles.timeLabel}>{translations.prepTime}</Text>
+            </View>
+          </View>
+          
+          <View style={styles.timeBox}>
+            <View style={styles.timeIconContainer}>
+              <Ionicons name="flame-outline" size={18} color="#FF6B6B" />
+            </View>
+            <View style={styles.timeTextContainer}>
+              <Text style={styles.timeValue}>
+                {typeof meal.cooking_time === 'number' ? meal.cooking_time : 0}
+              </Text>
+              <Text style={styles.timeLabel}>{translations.cookTime}</Text>
+            </View>
+          </View>
         </View>
-        <View style={styles.timeItem}>
-          <Ionicons name="flame-outline" size={24} color="#ffffff" />
-          <Text style={styles.timeText}>15 {translations.cookTime}</Text>
+        
+        <View style={styles.timeRow}>
+          <View style={styles.timeBox}>
+            <View style={styles.timeIconContainer}>
+              <Ionicons name="hourglass-outline" size={18} color="#FFD700" />
+            </View>
+            <View style={styles.timeTextContainer}>
+              <Text style={styles.timeValue}>
+                {typeof meal.total_time === 'number' ? meal.total_time : 0}
+              </Text>
+              <Text style={styles.timeLabel}>{translations.totalTime}</Text>
+            </View>
+          </View>
+          
+          <View style={styles.timeBox}>
+            <View style={styles.timeIconContainer}>
+              <Ionicons name="people-outline" size={18} color="#4ECDC4" />
+            </View>
+            <View style={styles.timeTextContainer}>
+              <Text style={styles.timeValue}>
+                {typeof meal.servings === 'number' ? meal.servings : 0}
+              </Text>
+              <Text style={styles.timeLabel}>{translations.servingsCount}</Text>
+            </View>
+          </View>
         </View>
       </View>
 
@@ -243,9 +306,7 @@ const MealDetailScreen = () => {
 
       <View style={styles.ingredientsSection}>
         <Text style={styles.sectionTitle}>{translations.ingredients}</Text>
-        <Text style={styles.sectionSubtitle}>
-          {translations.ingredientsFor} {servings} {servings === 1 ? translations.serving : translations.servings}
-        </Text>
+        <Text style={styles.subTitle}>{servingsText}</Text>
         {meal.ingredients && meal.ingredients.map((ingredient: any, index: number) => (
           <View key={index} style={styles.ingredientItem}>
             <Text style={styles.ingredientName}>{ingredient.name}</Text>
@@ -256,7 +317,7 @@ const MealDetailScreen = () => {
 
       <View style={styles.directionsSection}>
         <Text style={styles.sectionTitle}>{translations.directions}</Text>
-        <Text style={styles.sectionSubtitle}>{translations.directionsFor}</Text>
+        <Text style={styles.subTitle}>{directionsText}</Text>
         <Text style={styles.instructions}>{meal.instructions}</Text>
       </View>
     </ScrollView>
@@ -302,20 +363,44 @@ const styles = StyleSheet.create({
     marginTop: 5,
     fontSize: 12,
   },
-  timeInfo: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    padding: 15,
-    borderBottomWidth: 1,
-    borderBottomColor: '#333',
+  timeInfoContainer: {
+    marginVertical: 15,
+    marginHorizontal: 15,
+    backgroundColor: '#1A1A1A',
+    borderRadius: 12,
+    padding: 10,
   },
-  timeItem: {
+  timeRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 8,
+  },
+  timeBox: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
+    backgroundColor: '#2A2A2A',
+    borderRadius: 8,
+    padding: 8,
+    marginHorizontal: 4,
   },
-  timeText: {
-    color: '#ffffff',
-    marginLeft: 8,
+  timeIconContainer: {
+    backgroundColor: '#333333',
+    padding: 6,
+    borderRadius: 8,
+    marginRight: 8,
+  },
+  timeTextContainer: {
+    flex: 1,
+  },
+  timeValue: {
+    color: '#4CAF50',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  timeLabel: {
+    color: '#888888',
+    fontSize: 11,
   },
   servingSection: {
     padding: 20,
@@ -374,8 +459,9 @@ const styles = StyleSheet.create({
   ingredientsSection: {
     padding: 20,
   },
-  sectionSubtitle: {
-    color: '#999',
+  subTitle: {
+    color: '#888888',
+    fontSize: 14,
     marginBottom: 15,
   },
   ingredientItem: {

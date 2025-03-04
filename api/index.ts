@@ -71,6 +71,10 @@ interface MealRow extends RowDataPacket {
   protein: number;
   fat: number;
   kcal: number;
+  preparation_time: string;
+  cooking_time: string;
+  total_time: string;
+  servings: string;
   [key: string]: any; // For dynamic ingredient and measure fields
 }
 
@@ -96,6 +100,10 @@ app.get('/recipes/random', async (req, res) => {
         protein,
         fat,
         kcal,
+        preparation_time,
+        cooking_time,
+        total_time,
+        servings,
         ingredient1, measure1,
         ingredient2, measure2,
         ingredient3, measure3,
@@ -121,21 +129,65 @@ app.get('/recipes/random', async (req, res) => {
       LIMIT 50
     `);
 
-    // Log the first meal to verify data
+    // Add debug logging to see raw data
     if (rows.length > 0) {
-      console.log('Sample meal data:', {
+      console.log('Raw database row:', {
         name: rows[0].name,
-        carbs: rows[0].carbs,
-        protein: rows[0].protein,
-        fat: rows[0].fat,
-        kcal: rows[0].kcal,
-        ingredient1: rows[0].ingredient1,
-        measure1: rows[0].measure1,
-        instructions: rows[0].instructions?.substring(0, 100) + '...'
+        preparation_time: rows[0].preparation_time,
+        cooking_time: rows[0].cooking_time,
+        total_time: rows[0].total_time,
+        servings: rows[0].servings
       });
     }
 
-    res.json({ meals: rows });
+    const transformedRows = rows.map(row => {
+      // Parse time values from strings, removing "мин." and converting to numbers
+      const prep_time = row.preparation_time ? parseInt(row.preparation_time.replace('мин.', '').trim()) : 0;
+      const cook_time = row.cooking_time ? parseInt(row.cooking_time.replace('мин.', '').trim()) : 0;
+      const total = row.total_time ? parseInt(row.total_time.replace('мин.', '').trim()) : 0;
+      const servs = row.servings ? parseInt(row.servings.toString()) : 0;
+
+      const transformed = {
+        id: row.id,
+        name: row.name,
+        category: row.category,
+        area: row.area,
+        instructions: row.instructions,
+        image: row.thumbnail,
+        youtube_link: row.youtube_link,
+        source: row.source,
+        carbs: row.carbs,
+        protein: row.protein,
+        fat: row.fat,
+        calories: row.kcal,
+        preparation_time: prep_time,
+        cooking_time: cook_time,
+        total_time: total,
+        servings: servs,
+        ingredients: Array.from({ length: 20 }, (_, i) => {
+          const num = i + 1;
+          const ingredient = row[`ingredient${num}`];
+          const measure = row[`measure${num}`];
+          if (ingredient && measure) {
+            return { name: ingredient, measure: measure };
+          }
+          return null;
+        }).filter(Boolean)
+      };
+
+      // Debug log for transformed data
+      console.log('Transformed meal:', {
+        name: transformed.name,
+        preparation_time: transformed.preparation_time,
+        cooking_time: transformed.cooking_time,
+        total_time: transformed.total_time,
+        servings: transformed.servings
+      });
+
+      return transformed;
+    });
+
+    res.json({ meals: transformedRows });
   } catch (error) {
     console.error('Database error:', error);
     res.status(500).json({ error: 'Internal server error' });
@@ -145,15 +197,55 @@ app.get('/recipes/random', async (req, res) => {
 // Get meal by ID
 app.get('/recipes/:id', async (req, res) => {
   try {
-    const [rows] = await pool.query<MealRow[]>(
-      'SELECT * FROM recipesBulgarian WHERE id = ?',
-      [req.params.id]
-    );
+    const [rows] = await pool.query<MealRow[]>(`
+      SELECT 
+        id,
+        name,
+        category,
+        area,
+        instructions,
+        thumbnail,
+        youtube_link,
+        source,
+        carbs,
+        protein,
+        fat,
+        kcal,
+        preparation_time,
+        cooking_time,
+        total_time,
+        servings,
+        ingredient1, measure1,
+        ingredient2, measure2,
+        ingredient3, measure3,
+        ingredient4, measure4,
+        ingredient5, measure5,
+        ingredient6, measure6,
+        ingredient7, measure7,
+        ingredient8, measure8,
+        ingredient9, measure9,
+        ingredient10, measure10,
+        ingredient11, measure11,
+        ingredient12, measure12,
+        ingredient13, measure13,
+        ingredient14, measure14,
+        ingredient15, measure15,
+        ingredient16, measure16,
+        ingredient17, measure17,
+        ingredient18, measure18,
+        ingredient19, measure19,
+        ingredient20, measure20
+      FROM recipesBulgarian 
+      WHERE id = ?
+    `, [req.params.id]);
     
     if (!rows || rows.length === 0) {
       res.status(404).json({ error: 'Meal not found' });
       return;
     }
+
+    // Add this console log to see what data we're sending
+    console.log('Sending meal data:', rows[0]);
 
     res.json({ meal: rows[0] });
   } catch (error) {
@@ -208,6 +300,74 @@ app.get('/ingredients', async (req, res) => {
   }
 });
 
+// Add this route after your other routes
+app.get('/recipes/details/:id', async (req, res) => {
+  try {
+    const [rows] = await pool.query<MealRow[]>(`
+      SELECT 
+        preparation_time,
+        cooking_time,
+        total_time,
+        servings
+      FROM recipesBulgarian 
+      WHERE id = ?
+    `, [req.params.id]);
+
+    if (!rows || rows.length === 0) {
+      res.status(404).json({ error: 'Meal details not found' });
+      return;
+    }
+
+    res.json({ 
+      details: {
+        preparation_time: rows[0].preparation_time,
+        cooking_time: rows[0].cooking_time,
+        total_time: rows[0].total_time,
+        servings: rows[0].servings
+      } 
+    });
+  } catch (error) {
+    console.error('Error fetching meal details:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Add a new endpoint to get meal by name
+app.get('/recipes/name/:name', async (req, res) => {
+  try {
+    const [rows] = await pool.query<MealRow[]>(
+      'SELECT * FROM recipesBulgarian WHERE name = ?',
+      [req.params.name]
+    );
+    
+    if (!rows || rows.length === 0) {
+      res.status(404).json({ error: 'Meal not found' });
+      return;
+    }
+
+    const row = rows[0];
+    // Parse time values from strings, removing "мин." and converting to numbers
+    const prep_time = row.preparation_time ? parseInt(row.preparation_time.replace('мин.', '').trim()) : 0;
+    const cook_time = row.cooking_time ? parseInt(row.cooking_time.replace('мин.', '').trim()) : 0;
+    const total = row.total_time ? parseInt(row.total_time.replace('мин.', '').trim()) : 0;
+    const servs = row.servings ? parseInt(row.servings.toString()) : 0;
+
+    const transformed = {
+      id: row.id,
+      name: row.name,
+      preparation_time: prep_time,
+      cooking_time: cook_time,
+      total_time: total,
+      servings: servs
+    };
+
+    res.json({ meal: transformed });
+  } catch (error) {
+    console.error('Error fetching meal by name:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`Server running at http://localhost:${PORT}`);
@@ -217,4 +377,6 @@ app.listen(PORT, () => {
   console.log('  GET /recipes/:id');
   console.log('  GET /recipes/category/:category');
   console.log('  GET /ingredients');
+  console.log('  GET /recipes/details/:id');
+  console.log('  GET /recipes/name/:name');
 }); 
