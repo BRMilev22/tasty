@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { ScrollView, View, ActivityIndicator, Image, StyleSheet, Alert, Animated, Dimensions, SafeAreaView } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import Ionicons from 'react-native-vector-icons/Ionicons';
@@ -25,6 +25,7 @@ import { fetchRandomMeals } from '../services/mealService';
 import EditProfileScreen from '../editProfile';
 import SavedMealsScreen from './savedMeals';
 import Toast from 'react-native-toast-message';
+import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 
 const auth = getAuth();
 const db = getFirestore();
@@ -177,6 +178,7 @@ interface MealRecommendations {
   lunch: { min: number; max: number };
   dinner: { min: number; max: number };
   snacks: { min: number; max: number };
+  [key: string]: { min: number; max: number }; // Add index signature
 }
 
 interface WaterData {
@@ -199,10 +201,10 @@ type RootStackParamList = {
   dashboard: undefined;
   addMeal: { mealType?: string };
   editProfile: undefined;
-  planMeal: { meal?: PlannedMeal };
+  planMeal: { meal?: PlannedMeal; directLog?: boolean };
   trackWeight: undefined;
   goalsSelect: undefined;
-  mealDetail: { meal: SuggestedMeal };
+  mealDetail: { meal: SuggestedMeal; mealType?: string; eaten?: boolean };
 };
 
 const calculateAge = (dateOfBirth: any): number => {
@@ -440,7 +442,10 @@ const SkippedMealNotificationToggle = ({
   setIsNotificationEnabled: (value: boolean) => void;
 }) => (
   <TouchableOpacity
-    style={styles.notificationToggleButton}
+    style={[
+      styles.notificationToggleButton,
+      isNotificationEnabled ? styles.notificationToggleEnabled : styles.notificationToggleDisabled
+    ]}
     onPress={() => {
       setIsNotificationEnabled(!isNotificationEnabled);
       showMessage({
@@ -452,9 +457,17 @@ const SkippedMealNotificationToggle = ({
       });
     }}
   >
-    <Text style={styles.notificationToggleText}>
-      {isNotificationEnabled ? '🔴 Изключи напомняния' : '⚪ Включи напомняния'}
-    </Text>
+    <View style={styles.notificationToggleContent}>
+      <MaterialIcons 
+        name={isNotificationEnabled ? "notifications-active" : "notifications-off"} 
+        size={24} 
+        color={isNotificationEnabled ? "#FFFFFF" : "#4CAF50"} 
+        style={styles.notificationIcon}
+      />
+      <Text style={styles.notificationToggleText}>
+        {isNotificationEnabled ? 'Изключи напомняния' : 'Включи напомняния'}
+      </Text>
+    </View>
   </TouchableOpacity>
 );
 
@@ -473,12 +486,12 @@ const DashboardScreen: React.FC<DashboardProps> = ({ onLogout }) => {
     fats: 0,
     targetCalories: 2000,
     targetProtein: 150,
-    targetCarbs: 250,
-    targetFats: 70,
+    targetCarbs: 200,
+    targetFats: 70
   });
-  const [todaysMeals, setTodaysMeals] = useState<any[]>([]);
+  const [todaysMeals, setTodaysMeals] = useState<MealData[]>([]);
   const [currentDate, setCurrentDate] = useState(new Date());
-  const [userData, setUserData] = useState<any>(null);
+  const [userData, setUserData] = useState<UserData>({});
   const [weightHistory, setWeightHistory] = useState<WeightRecord[]>([]);
   const [plannedMeals, setPlannedMeals] = useState<PlannedMeal[]>([]);
   const [achievements, setAchievements] = useState<Achievement[]>([]);
@@ -489,7 +502,7 @@ const DashboardScreen: React.FC<DashboardProps> = ({ onLogout }) => {
     dinner: { min: 0, max: 0 },
     snacks: { min: 0, max: 0 },
   });
-  const [waterIntake, setWaterIntake] = useState(0);
+  const [waterIntake, setWaterIntake] = useState<WaterData[]>([]);
   const [breakfastSuggestions, setBreakfastSuggestions] = useState<SuggestedMeal[]>([]);
   const [lunchSuggestions, setLunchSuggestions] = useState<SuggestedMeal[]>([]);
   const [dinnerSuggestions, setDinnerSuggestions] = useState<SuggestedMeal[]>([]);
@@ -501,6 +514,7 @@ const DashboardScreen: React.FC<DashboardProps> = ({ onLogout }) => {
   const [checkedMeals, setCheckedMeals] = useState<Set<string>>(new Set());
   const [isDevelopmentMode, setIsDevelopmentMode] = useState(false);
   const [isNotificationEnabled, setIsNotificationEnabled] = useState(true);
+  const [loadingSuggestions, setLoadingSuggestions] = useState(false);
   
   // Function to save skipped meals to AsyncStorage
   const saveSkippedMeal = async (mealType: string) => {
@@ -811,9 +825,14 @@ const DashboardScreen: React.FC<DashboardProps> = ({ onLogout }) => {
     const unsubscribe = onSnapshot(q, (snapshot) => {
       if (!snapshot.empty) {
         const waterData = snapshot.docs[0].data();
-        setWaterIntake(waterData.amount || 0);
+        // Update with array of WaterData instead of just a number
+        setWaterIntake([{ 
+          amount: waterData.amount || 0, 
+          timestamp: waterData.timestamp.toDate() 
+        }]);
       } else {
-        setWaterIntake(0);
+        // Initialize with empty array
+        setWaterIntake([]);
       }
     });
 
@@ -824,56 +843,150 @@ const DashboardScreen: React.FC<DashboardProps> = ({ onLogout }) => {
     const fetchAndStoreSuggestions = async () => {
       try {
         if (!user) return;
-
-        // Use currentDate instead of today
+        
+        setLoadingSuggestions(true);
+        
+        // Format the date as YYYY-MM-DD for storage key
         const dateKey = currentDate.toISOString().split('T')[0];
-
-        // Check if we already have suggestions stored for the selected date
+        
+        // Reference to the user's meal suggestions document
         const suggestionsRef = doc(db, 'users', user.uid, 'mealSuggestions', dateKey);
+        
+        // Check if we already have suggestions for this date
         const suggestionsDoc = await getDoc(suggestionsRef);
-
+        
         if (suggestionsDoc.exists()) {
-          // Use stored suggestions for the selected date
-          const stored = suggestionsDoc.data() as StoredMealSuggestions;
-          setStoredSuggestions(stored);
-          setBreakfastSuggestions(stored.breakfast);
-          setLunchSuggestions(stored.lunch);
-          setDinnerSuggestions(stored.dinner);
-          setSnackSuggestions(stored.snacks);
+          // Use existing suggestions
+          const data = suggestionsDoc.data() as StoredMealSuggestions;
+          setStoredSuggestions(data);
+          setBreakfastSuggestions(data.breakfast || []);
+          setLunchSuggestions(data.lunch || []);
+          setDinnerSuggestions(data.dinner || []);
+          setSnackSuggestions(data.snacks || []);
         } else {
-          // Generate new suggestions for the selected date
-          const breakfast = await generateMealSuggestions('breakfast', nutritionStats.targetCalories);
-          const lunch = await generateMealSuggestions('lunch', nutritionStats.targetCalories);
-          const dinner = await generateMealSuggestions('dinner', nutritionStats.targetCalories);
-          const snacks = await generateMealSuggestions('snacks', nutritionStats.targetCalories);
-
-          // Store the suggestions with the selected date
-          const newSuggestions: StoredMealSuggestions = {
-            date: dateKey,
-            breakfast,
-            lunch,
-            dinner,
-            snacks
-          };
-
-          // Only store suggestions for today or future dates
-          const today = new Date();
-          today.setHours(0, 0, 0, 0);
-          const selectedDate = new Date(currentDate);
-          selectedDate.setHours(0, 0, 0, 0);
-
-          if (selectedDate >= today) {
-            await setDoc(suggestionsRef, newSuggestions);
+          // Try to get suggestions from AsyncStorage first (offline fallback)
+          const storedSuggestionsJson = await AsyncStorage.getItem('mealSuggestions');
+          if (storedSuggestionsJson) {
+            const storedData = JSON.parse(storedSuggestionsJson) as StoredMealSuggestions;
+            // Only use stored suggestions if they're for the same date
+            if (storedData.date === dateKey) {
+              setStoredSuggestions(storedData);
+              setBreakfastSuggestions(storedData.breakfast || []);
+              setLunchSuggestions(storedData.lunch || []);
+              setDinnerSuggestions(storedData.dinner || []);
+              setSnackSuggestions(storedData.snacks || []);
+              
+              // Also save to Firestore for future reference
+              await setDoc(suggestionsRef, storedData);
+              setLoadingSuggestions(false);
+              return;
+            }
           }
           
-          setStoredSuggestions(newSuggestions);
-          setBreakfastSuggestions(breakfast);
-          setLunchSuggestions(lunch);
-          setDinnerSuggestions(dinner);
-          setSnackSuggestions(snacks);
+          // Generate new suggestions for the selected date
+          try {
+            const breakfast = await generateMealSuggestions('breakfast', nutritionStats.targetCalories);
+            const lunch = await generateMealSuggestions('lunch', nutritionStats.targetCalories);
+            const dinner = await generateMealSuggestions('dinner', nutritionStats.targetCalories);
+            const snacks = await generateMealSuggestions('snacks', nutritionStats.targetCalories);
+
+            // Store the suggestions with the selected date
+            const newSuggestions: StoredMealSuggestions = {
+              date: dateKey,
+              breakfast,
+              lunch,
+              dinner,
+              snacks
+            };
+
+            // Only store suggestions for today or future dates
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            const selectedDate = new Date(currentDate);
+            selectedDate.setHours(0, 0, 0, 0);
+
+            if (selectedDate >= today) {
+              await setDoc(suggestionsRef, newSuggestions);
+              // Also save to AsyncStorage for offline access
+              await AsyncStorage.setItem('mealSuggestions', JSON.stringify(newSuggestions));
+            }
+            
+            setStoredSuggestions(newSuggestions);
+            setBreakfastSuggestions(breakfast);
+            setLunchSuggestions(lunch);
+            setDinnerSuggestions(dinner);
+            setSnackSuggestions(snacks);
+          } catch (error) {
+            console.error('Error generating meal suggestions:', error);
+            
+            // Show a user-friendly error message
+            Toast.show({
+              type: 'error',
+              text1: 'Грешка при зареждане на ястия',
+              text2: 'Използваме запазени ястия вместо това',
+              position: 'top',
+              visibilityTime: 3000,
+              autoHide: true,
+              topOffset: 50
+            });
+            
+            // Use fallback meals
+            const breakfast = getFallbackMeals('breakfast', mealRecommendations.breakfast);
+            const lunch = getFallbackMeals('lunch', mealRecommendations.lunch);
+            const dinner = getFallbackMeals('dinner', mealRecommendations.dinner);
+            const snacks = getFallbackMeals('snacks', mealRecommendations.snacks);
+            
+            const fallbackSuggestions: StoredMealSuggestions = {
+              date: dateKey,
+              breakfast,
+              lunch,
+              dinner,
+              snacks
+            };
+            
+            setStoredSuggestions(fallbackSuggestions);
+            setBreakfastSuggestions(breakfast);
+            setLunchSuggestions(lunch);
+            setDinnerSuggestions(dinner);
+            setSnackSuggestions(snacks);
+          }
         }
       } catch (error) {
         console.error('Error fetching/storing meal suggestions:', error);
+        
+        // Show error to user
+        Toast.show({
+          type: 'error',
+          text1: 'Грешка при зареждане',
+          text2: 'Не можахме да заредим препоръчаните ястия',
+          position: 'top',
+          visibilityTime: 3000,
+          autoHide: true,
+          topOffset: 50
+        });
+        
+        // Use fallback meals
+        const dateKey = currentDate.toISOString().split('T')[0];
+        const breakfast = getFallbackMeals('breakfast', mealRecommendations.breakfast);
+        const lunch = getFallbackMeals('lunch', mealRecommendations.lunch);
+        const dinner = getFallbackMeals('dinner', mealRecommendations.dinner);
+        const snacks = getFallbackMeals('snacks', mealRecommendations.snacks);
+        
+        const fallbackSuggestions: StoredMealSuggestions = {
+          date: dateKey,
+          breakfast,
+          lunch,
+          dinner,
+          snacks
+        };
+        
+        setStoredSuggestions(fallbackSuggestions);
+        setBreakfastSuggestions(breakfast);
+        setLunchSuggestions(lunch);
+        setDinnerSuggestions(dinner);
+        setSnackSuggestions(snacks);
+      } finally {
+        setLoadingSuggestions(false);
       }
     };
 
@@ -908,8 +1021,8 @@ const DashboardScreen: React.FC<DashboardProps> = ({ onLogout }) => {
   // Add these handlers for the missed meal alert
   const handleLogMissedMeal = () => {
     if (missedMealType) {
-      // Navigate to planMeal without params
-      navigation.navigate('planMeal');
+      // Navigate to planMeal with empty params object
+      navigation.navigate('planMeal', {});
       setCheckedMeals(prev => new Set([...prev, missedMealType]));
       setShowMissedMealAlert(false);
     }
@@ -938,7 +1051,7 @@ const DashboardScreen: React.FC<DashboardProps> = ({ onLogout }) => {
   };
   
   const handleAddMeal = () => {
-    navigation.navigate('addMeal'); // You'll need to create this screen
+    navigation.navigate('addMeal', {});
   };
 
   const checkAchievements = async (userData: any, meals: any[]): Promise<Achievement[]> => {
@@ -1054,6 +1167,28 @@ const DashboardScreen: React.FC<DashboardProps> = ({ onLogout }) => {
       today.setHours(0, 0, 0, 0);
       const tomorrow = new Date(today);
       tomorrow.setDate(tomorrow.getDate() + 1);
+
+      // Check first meal achievement
+      if (meals && meals.length > 0) {
+        const firstMealAchievement = newAchievements.find(a => a.id === 'first_meal');
+        if (firstMealAchievement && !firstMealAchievement.earned) {
+          firstMealAchievement.earned = true;
+          firstMealAchievement.earnedDate = Timestamp.fromDate(new Date());
+          
+          // Save the achievement
+          await addDoc(achievementsRef, {
+            ...firstMealAchievement,
+            earnedDate: firstMealAchievement.earnedDate
+          });
+          
+          showMessage({
+            message: 'Ново постижение!',
+            description: 'Добавихте първото си ястие! 🍽️',
+            type: 'success',
+            duration: 3000,
+          });
+        }
+      }
 
       const waterRef = collection(db, 'users', user.uid, 'waterIntake');
       const waterQuery = query(
@@ -1390,7 +1525,36 @@ const DashboardScreen: React.FC<DashboardProps> = ({ onLogout }) => {
   // Add this function near the other utility functions
   const generateMealSuggestions = async (mealType: string, targetCalories: number) => {
     try {
-      const response = await fetch('http://localhost:3000/recipes/random');
+      const user = auth.currentUser;
+      if (!user) return [];
+
+      // First, get the list of blocked meals
+      const blockedMealsRef = collection(db, 'users', user.uid, 'blockedMeals');
+      const blockedMealsSnapshot = await getDocs(blockedMealsRef);
+      const blockedMealNames = new Set(
+        blockedMealsSnapshot.docs.map(doc => doc.data().name)
+      );
+      
+      // Use the environment variable for the IP address instead of localhost
+      const apiUrl = `http://${process.env.EXPO_PUBLIC_IPADDRESS || 'localhost'}:3000/recipes/random`;
+      
+      // Add timeout to the fetch request
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+      
+      const response = await fetch(apiUrl, { 
+        signal: controller.signal,
+        headers: {
+          'Cache-Control': 'no-cache'
+        }
+      });
+      
+      clearTimeout(timeoutId);
+      
+      if (!response.ok) {
+        throw new Error(`API responded with status: ${response.status}`);
+      }
+      
       const data = await response.json();
 
       // Define appropriate categories for each meal type
@@ -1417,11 +1581,11 @@ const DashboardScreen: React.FC<DashboardProps> = ({ onLogout }) => {
         'снаксове': 'snacks'
       };
 
-      const mappedMealType = mealTypeMap[mealType.toLowerCase()];
+      const mappedMealType = mealTypeMap[mealType.toLowerCase()] || 'breakfast';
       const calorieRange = mealRecommendations[mappedMealType];
       const appropriateCategories = mealTypeCategories[mealType.toLowerCase()];
 
-      // Transform and filter meals by calorie range AND category
+      // Transform and filter meals by calorie range AND category AND not blocked
       const suggestions = data.meals
         .map((meal: any) => ({
           name: meal.name,
@@ -1437,12 +1601,14 @@ const DashboardScreen: React.FC<DashboardProps> = ({ onLogout }) => {
           instructions: meal.instructions,
           ingredients: meal.ingredients || []
         }))
-        .filter(meal => {
+        .filter((meal: SuggestedMeal) => {
           const calories = meal.calories || meal.kcal || 0;
-          const isAppropriateCategory = appropriateCategories.includes(meal.category);
+          const isAppropriateCategory = appropriateCategories.includes(meal.category || '');
+          const isNotBlocked = !blockedMealNames.has(meal.name);
           return calories >= calorieRange.min * 0.4 && 
                  calories <= calorieRange.max * 0.7 && 
-                 isAppropriateCategory;
+                 isAppropriateCategory &&
+                 isNotBlocked;
         });
 
       // Randomly select meals while ensuring total calories stay within range
@@ -1464,12 +1630,127 @@ const DashboardScreen: React.FC<DashboardProps> = ({ onLogout }) => {
         }
       }
 
+      // If no meals were selected, return fallback meals
+      if (selectedMeals.length === 0) {
+        return getFallbackMeals(mealType, calorieRange);
+      }
+
       return selectedMeals;
 
     } catch (error) {
       console.error('Error generating meal suggestions:', error);
-      return [];
+      
+      // Return fallback meals based on meal type
+      const mappedMealType = mealTypeMap[mealType.toLowerCase()] || 'breakfast';
+      const calorieRange = mealRecommendations[mappedMealType];
+      return getFallbackMeals(mealType, calorieRange);
     }
+  };
+
+  // Add a helper function to provide fallback meals
+  const getFallbackMeals = (mealType: string, calorieRange: { min: number, max: number }): SuggestedMeal[] => {
+    // Define fallback meals for each meal type
+    const fallbackMeals: { [key: string]: SuggestedMeal[] } = {
+      'breakfast': [
+        {
+          name: 'Овесена каша с плодове',
+          calories: 307,
+          protein: 13,
+          carbs: 55,
+          fats: 5,
+          servingSize: '1 порция',
+          category: 'Закуски',
+          image: 'https://images.unsplash.com/photo-1517673400267-0251440c45dc?ixlib=rb-4.0.3'
+        },
+        {
+          name: 'Мюсли с кисело мляко',
+          calories: 286,
+          protein: 11,
+          carbs: 45,
+          fats: 8,
+          servingSize: '1 порция',
+          category: 'Закуски',
+          image: 'https://www.acouplecooks.com/wp-content/uploads/2020/09/Muesli-005.jpg'
+        }
+      ],
+      'lunch': [
+        {
+          name: 'Пилешки гърди на скара',
+          calories: 165,
+          protein: 31,
+          carbs: 0,
+          fats: 3.6,
+          servingSize: '1 порция',
+          category: 'Основни ястия',
+          image: 'https://images.unsplash.com/photo-1632778149955-e80f8ceca2e8?ixlib=rb-4.0.3'
+        },
+        {
+          name: 'Гръцка салата',
+          calories: 230,
+          protein: 7,
+          carbs: 13,
+          fats: 18,
+          servingSize: '1 порция',
+          category: 'Салати',
+          image: 'https://images.unsplash.com/photo-1623428187969-5da2dcea5ebf?ixlib=rb-4.0.3'
+        }
+      ],
+      'dinner': [
+        {
+          name: 'Печена риба със зеленчуци',
+          calories: 280,
+          protein: 25,
+          carbs: 15,
+          fats: 12,
+          servingSize: '1 порция',
+          category: 'Основни ястия',
+          image: 'https://images.unsplash.com/photo-1519708227418-c8fd9a32b7a2?ixlib=rb-4.0.3'
+        },
+        {
+          name: 'Зеленчукова супа',
+          calories: 120,
+          protein: 5,
+          carbs: 20,
+          fats: 2,
+          servingSize: '1 порция',
+          category: 'Супи',
+          image: 'https://images.unsplash.com/photo-1547592166-23ac45744acd?ixlib=rb-4.0.3'
+        }
+      ],
+      'snacks': [
+        {
+          name: 'Плодова салата',
+          calories: 95,
+          protein: 1,
+          carbs: 25,
+          fats: 0,
+          servingSize: '1 порция',
+          category: 'Десерти',
+          image: 'https://images.unsplash.com/photo-1568909344668-6f14a07b56a0?ixlib=rb-4.0.3'
+        },
+        {
+          name: 'Ядкова смес',
+          calories: 170,
+          protein: 6,
+          carbs: 7,
+          fats: 14,
+          servingSize: '30г',
+          category: 'Закуски',
+          image: 'https://images.unsplash.com/photo-1599599810769-bcde5a160d32?ixlib=rb-4.0.3'
+        }
+      ]
+    };
+
+    // Map Bulgarian meal types to English keys
+    const mealTypeMap: { [key: string]: string } = {
+      'закуска': 'breakfast',
+      'обяд': 'lunch',
+      'вечеря': 'dinner',
+      'снаксове': 'snacks'
+    };
+
+    const key = mealTypeMap[mealType.toLowerCase()] || mealType.toLowerCase();
+    return fallbackMeals[key] || fallbackMeals['breakfast'];
   };
 
   const checkIfMealEaten = (mealName: string, todaysMeals: MealData[]): boolean => {
@@ -1486,14 +1767,25 @@ const DashboardScreen: React.FC<DashboardProps> = ({ onLogout }) => {
     console.log('Meal data in SuggestedMealItem:', meal);
 
     const handlePress = () => {
+      // Create a more complete meal object with all required properties
+      const enhancedMeal = {
+        ...meal,
+        image: meal.image || meal.thumbnail || 'https://via.placeholder.com/400x300/333333/FFFFFF?text=No+Image',
+        calories: meal.calories || meal.kcal || 0,
+        protein: meal.protein || 0,
+        carbs: meal.carbs || 0,
+        fats: meal.fats || 0,
+        servings: 1,
+        preparation_time: 0,
+        cooking_time: 0,
+        total_time: 0,
+        instructions: meal.instructions || '',
+        ingredients: meal.ingredients || []
+      };
+      
       navigation.navigate('mealDetail', {
-        meal: {
-          ...meal,
-          image: meal.image || meal.thumbnail || '',
-          calories: meal.calories || meal.kcal || 0,
-        },
-        mealType: mealTypeMap[mealType] || 'breakfast',
-        eaten: eaten
+        meal: enhancedMeal,
+        mealType: mealType
       });
     };
 
@@ -1556,7 +1848,10 @@ const DashboardScreen: React.FC<DashboardProps> = ({ onLogout }) => {
     // Update to get all meals for category
     const getMealsForCategory = (meals: MealData[], category: string) => {
       return meals.filter(meal => {
+        // Get meal category from either type or mealType field
         const mealCategory = meal.type?.toLowerCase() || meal.mealType?.toLowerCase();
+        if (!mealCategory) return false;
+        
         const searchCategory = category.toLowerCase();
         
         // Map Bulgarian titles to English categories
@@ -1575,9 +1870,20 @@ const DashboardScreen: React.FC<DashboardProps> = ({ onLogout }) => {
           'snacks': 'снаксове'
         };
         
+        // Also handle "основно" as a possible meal type
+        const additionalMappings: { [key: string]: string[] } = {
+          'закуска': ['breakfast', 'закуска'],
+          'обяд': ['lunch', 'обяд', 'основно'],
+          'вечеря': ['dinner', 'вечеря'],
+          'снаксове': ['snacks', 'снаксове']
+        };
+        
+        // Check if the meal category matches any of the possible values for this category
         return mealCategory === searchCategory.toLowerCase() || 
                mealCategory === categoryMap[searchCategory.toLowerCase()] ||
-               mealCategory === reverseCategoryMap[searchCategory.toLowerCase()];
+               mealCategory === reverseCategoryMap[searchCategory.toLowerCase()] ||
+               (additionalMappings[searchCategory.toLowerCase()] && 
+                additionalMappings[searchCategory.toLowerCase()].includes(mealCategory));
       });
     };
 
@@ -1728,6 +2034,9 @@ const DashboardScreen: React.FC<DashboardProps> = ({ onLogout }) => {
           timestamp: new Date()
         });
       }
+
+      // Update local state with the new water data
+      setWaterIntake([{ amount: newAmount, timestamp: new Date() }]);
 
       // Check if water goal is achieved
       if (newAmount >= (water || 2.5)) {
@@ -2002,6 +2311,17 @@ const DashboardScreen: React.FC<DashboardProps> = ({ onLogout }) => {
     try {
       if (!user) return;
 
+      // Show loading toast
+      Toast.show({
+        type: 'info',
+        text1: 'Обновяване на ястията',
+        text2: 'Моля, изчакайте...',
+        position: 'top',
+        visibilityTime: 3000,
+        autoHide: true,
+        topOffset: 50
+      });
+
       const dateKey = currentDate.toISOString().split('T')[0];
       
       // Generate new suggestions
@@ -2019,6 +2339,7 @@ const DashboardScreen: React.FC<DashboardProps> = ({ onLogout }) => {
         snacks,
       };
 
+      // Store in AsyncStorage for offline access
       await AsyncStorage.setItem('mealSuggestions', JSON.stringify(newSuggestions));
 
       // Update state
@@ -2038,12 +2359,23 @@ const DashboardScreen: React.FC<DashboardProps> = ({ onLogout }) => {
       });
     } catch (error) {
       console.error('Error regenerating meals:', error);
+      
+      // Show a more informative error message
+      let errorMessage = 'Неуспешно обновяване на ястията';
+      if (error instanceof Error) {
+        if (error.name === 'AbortError') {
+          errorMessage = 'Връзката към сървъра изтече. Проверете интернет връзката си.';
+        } else if (error.message.includes('Network request failed')) {
+          errorMessage = 'Проблем с мрежата. Проверете интернет връзката си.';
+        }
+      }
+      
       Toast.show({
         type: 'error',
         text1: 'Грешка при обновяване',
-        text2: 'Неуспешно обновяване на ястията',
+        text2: errorMessage,
         position: 'top',
-        visibilityTime: 3000,
+        visibilityTime: 5000,
         autoHide: true,
         topOffset: 50
       });
@@ -2125,7 +2457,7 @@ const DashboardScreen: React.FC<DashboardProps> = ({ onLogout }) => {
                           totalCalories={nutritionStats.targetCalories} 
                         />
                         <WaterTracker 
-                          currentAmount={waterIntake} 
+                          currentAmount={waterIntake.length > 0 ? waterIntake[0].amount : 0} 
                           targetAmount={water || 2.5} 
                           onAddWater={handleAddWater}
                         />
@@ -2709,14 +3041,42 @@ const styles = StyleSheet.create({
   },
   notificationToggleButton: {
     backgroundColor: '#1A1A1A',
-    padding: 10,
-    borderRadius: 8,
-    marginVertical: 10,
+    padding: 15,
+    borderRadius: 15,
+    marginVertical: 15,
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: '90%',
     alignSelf: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.2,
+    shadowRadius: 5,
+    elevation: 3,
+    borderWidth: 1,
+    borderColor: '#333333',
+  },
+  notificationToggleEnabled: {
+    backgroundColor: '#4CAF50',
+    borderColor: '#4CAF50',
+  },
+  notificationToggleDisabled: {
+    backgroundColor: '#1A1A1A',
+    borderColor: '#4CAF50',
   },
   notificationToggleText: {
     color: '#FFFFFF',
-    fontSize: 14,
+    fontSize: 16,
+    fontWeight: '600',
+    textAlign: 'center',
+  },
+  notificationToggleContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  notificationIcon: {
+    marginRight: 10,
   },
   waterTrackerContainer: {
     padding: 10,
@@ -3087,14 +3447,34 @@ const styles = StyleSheet.create({
   },
   notificationToggleButton: {
     backgroundColor: '#1A1A1A',
-    padding: 10,
-    borderRadius: 8,
-    marginVertical: 10,
+    padding: 15,
+    borderRadius: 15,
+    marginVertical: 15,
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: '90%',
     alignSelf: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.2,
+    shadowRadius: 5,
+    elevation: 3,
+    borderWidth: 1,
+    borderColor: '#333333',
+  },
+  notificationToggleEnabled: {
+    backgroundColor: '#4CAF50',
+    borderColor: '#4CAF50',
+  },
+  notificationToggleDisabled: {
+    backgroundColor: '#1A1A1A',
+    borderColor: '#4CAF50',
   },
   notificationToggleText: {
     color: '#FFFFFF',
-    fontSize: 14,
+    fontSize: 16,
+    fontWeight: '600',
+    textAlign: 'center',
   },
   additionalMeal: {
     marginTop: 4,

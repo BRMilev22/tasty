@@ -8,4 +8,8 @@ export type RootStackParamList = {
   'addMeal': undefined;
   'planMeal': { meal?: PlannedMeal };
   'trackWeight': undefined;
+  'genderSelect': undefined;
+  'weightSelect': undefined;
+  'heightSelect': undefined;
+  'targetWeightSelect': undefined;
 }; 

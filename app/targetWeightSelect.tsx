@@ -4,17 +4,16 @@ import { useRouter } from 'expo-router';
 import { doc, setDoc } from 'firebase/firestore'; // Firebase Firestore import
 import { db } from '../firebaseConfig'; // Your Firebase configuration
 import { getAuth } from 'firebase/auth'; // Firebase Auth import
+import { Picker } from '@react-native-picker/picker'; // Import Picker
 import { styled } from 'nativewind';
 import { Ionicons } from '@expo/vector-icons';
-import Logo from '../components/Logo';
-import { useNavigation } from '@react-navigation/native';
-import { RootStackParamList } from './types/navigation';
-import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import Logo from '@/components/Logo';
 
 const StyledImageBackground = styled(ImageBackground);
 const StyledView = styled(View);
 const StyledText = styled(Text);
 const StyledTouchableOpacity = styled(TouchableOpacity);
+const StyledPickerContainer = styled(View);
 
 const theme = {
     colors: {
@@ -36,34 +35,32 @@ const theme = {
     }
 };
 
-const GenderSelectionScreen = () => {
-  const [selectedGender, setSelectedGender] = useState<string | null>(null);
+const TargetWeightSelectionScreen = () => {
+  const [selectedWeight, setSelectedWeight] = useState<string>('70'); // Default weight 70 kg
   const [loading, setLoading] = useState(false);
   const router = useRouter();
-  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const auth = getAuth();
   const user = auth.currentUser;
 
-  // Function to handle gender selection
-  const handleGenderSelection = async (gender: string) => {
-    setSelectedGender(gender);
+  // Function to handle weight selection
+  const handleWeightSelection = async () => {
     setLoading(true);
 
     if (user) {
       try {
-        // Save the user's gender to Firestore
+        // Save the user's weight to Firestore
         await setDoc(
           doc(db, 'users', user.uid), // Reference to user's document
           {
-            gender: gender, // Save gender field
+            goalWeight: selectedWeight, // Save weight field
           },
           { merge: true } // Merge with existing document fields
         );
 
-        // Navigate to the next screen (e.g., GoalSelectionScreen)
-        router.replace('/targetWeightSelect'); // Change to your next screen route
+        // Navigate to the next screen (e.g., dashboard)
+        router.replace('/dashboard');
       } catch (error) {
-        console.error('Error saving gender: ', error);
+        console.error('Error saving target weight: ', error);
       } finally {
         setLoading(false);
       }
@@ -88,33 +85,33 @@ const GenderSelectionScreen = () => {
 
         <View style={styles.content}>
           <View style={styles.formBox}>
-            <Text style={styles.title}>Изберете пол</Text>
-            <Text style={styles.subtitle}>Изберете вашия пол за по-точни изчисления</Text>
+            <Text style={styles.title}>Изберете целево тегло</Text>
+            <Text style={styles.subtitle}>Въведете вашето целево тегло в килограми</Text>
+
+            <View style={styles.pickerContainer}>
+              <Picker
+                selectedValue={selectedWeight}
+                onValueChange={(itemValue) => setSelectedWeight(itemValue as string)}
+                style={styles.picker}
+              >
+                {Array.from({ length: 121 }, (_, i) => 30 + i).map((weight) => (
+                  <Picker.Item 
+                    key={weight} 
+                    label={`${weight} kg`} 
+                    value={weight.toString()}
+                    color={theme.colors.text.primary}
+                  />
+                ))}
+              </Picker>
+            </View>
 
             <TouchableOpacity
-              style={[styles.genderButton, selectedGender === 'Male' && styles.selectedButton]}
-              onPress={() => handleGenderSelection('Male')}
+              style={styles.confirmButton}
+              onPress={handleWeightSelection}
               disabled={loading}
             >
-              <Ionicons 
-                name="male" 
-                size={24} 
-                color={selectedGender === 'Male' ? theme.colors.text.primary : theme.colors.text.secondary} 
-              />
-              <Text style={[styles.buttonText, selectedGender === 'Male' && styles.selectedText]}>Мъж</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={[styles.genderButton, selectedGender === 'Female' && styles.selectedButton]}
-              onPress={() => handleGenderSelection('Female')}
-              disabled={loading}
-            >
-              <Ionicons 
-                name="female" 
-                size={24} 
-                color={selectedGender === 'Female' ? theme.colors.text.primary : theme.colors.text.secondary} 
-              />
-              <Text style={[styles.buttonText, selectedGender === 'Female' && styles.selectedText]}>Жена</Text>
+              <Text style={styles.buttonText}>Продължете</Text>
+              <Ionicons name="arrow-forward" size={24} color={theme.colors.text.primary} style={styles.buttonIcon} />
             </TouchableOpacity>
           </View>
         </View>
@@ -178,30 +175,38 @@ const styles = StyleSheet.create({
         marginBottom: 24,
         textAlign: 'center',
     },
-    genderButton: {
+    pickerContainer: {
         backgroundColor: theme.colors.background.input,
-        width: '100%',
-        padding: 20,
         borderRadius: 16,
-        marginBottom: 16,
-        flexDirection: 'row',
-        alignItems: 'center',
+        marginBottom: 24,
+        overflow: 'hidden',
         borderWidth: 1,
         borderColor: theme.colors.border.light,
     },
-    selectedButton: {
+    picker: {
+        width: '100%',
+        backgroundColor: 'transparent',
+        color: theme.colors.text.primary,
+    },
+    confirmButton: {
         backgroundColor: theme.colors.primary,
+        borderRadius: 16,
+        padding: 16,
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        borderWidth: 1,
         borderColor: 'rgba(255, 255, 255, 0.2)',
     },
     buttonText: {
-        color: theme.colors.text.secondary,
-        fontSize: 18,
-        marginLeft: 12,
-    },
-    selectedText: {
         color: theme.colors.text.primary,
+        fontSize: 18,
         fontWeight: '500',
+        marginRight: 8,
+    },
+    buttonIcon: {
+        marginLeft: 8,
     },
 });
 
-export default GenderSelectionScreen;
+export default TargetWeightSelectionScreen;

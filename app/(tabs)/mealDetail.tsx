@@ -77,40 +77,102 @@ const MealDetailScreen = () => {
       try {
         setLoading(true);
         
-        // Fetch complete meal data from our API using the meal name
-        const response = await fetch(`http://localhost:3000/recipes/name/${encodeURIComponent(initialMeal.name)}`);
-        const data = await response.json();
+        // Use the environment variable for the IP address instead of localhost
+        const apiUrl = `http://${process.env.EXPO_PUBLIC_IPADDRESS || 'localhost'}:3000/recipes/name/${encodeURIComponent(initialMeal.name)}`;
         
-        if (data.meal) {
-          console.log('Complete meal data:', data.meal);
-          // Update the meal state with all the data
+        // Add timeout to the fetch request
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+        
+        try {
+          const response = await fetch(apiUrl, { 
+            signal: controller.signal,
+            headers: {
+              'Cache-Control': 'no-cache'
+            }
+          });
+          
+          clearTimeout(timeoutId);
+          
+          if (!response.ok) {
+            throw new Error(`API responded with status: ${response.status}`);
+          }
+          
+          const data = await response.json();
+          
+          if (data.meal) {
+            console.log('Complete meal data:', data.meal);
+            // Update the meal state with all the data
+            setMeal({
+              ...initialMeal,
+              ...data.meal,
+              // Extract values from nested objects
+              calories: data.meal.calories,
+              protein: data.meal.macros?.protein || initialMeal.protein,
+              carbs: data.meal.macros?.carbs || initialMeal.carbs,
+              fats: data.meal.macros?.fat || initialMeal.fats,
+              preparation_time: data.meal.timing?.preparation_time || 0,
+              cooking_time: data.meal.timing?.cooking_time || 0,
+              total_time: data.meal.timing?.total_time || 0,
+              servings: data.meal.servings || 1,
+              ingredients: data.meal.ingredients || []
+            });
+
+            // Set ingredients directly from the API response
+            setIngredients(data.meal.ingredients.map((ing: any) => ({
+              name: ing.name,
+              measure: ing.measure,
+              image: `https://www.themealdb.com/images/ingredients/${encodeURIComponent(ing.name)}-Small.png`
+            })));
+            
+            // Set instructions
+            setInstructions([data.meal.instructions]);
+          }
+        } catch (fetchError) {
+          console.error('Fetch error:', fetchError);
+          // Use the initial meal data as fallback
+          console.log('Using initial meal data as fallback');
+          
           setMeal({
             ...initialMeal,
-            ...data.meal,
-            // Extract values from nested objects
-            calories: data.meal.calories,
-            protein: data.meal.macros.protein,
-            carbs: data.meal.macros.carbs,
-            fats: data.meal.macros.fat,
-            preparation_time: data.meal.timing.preparation_time,
-            cooking_time: data.meal.timing.cooking_time,
-            total_time: data.meal.timing.total_time,
-            servings: data.meal.servings,
-            ingredients: data.meal.ingredients
+            servings: initialMeal.servings || 1,
+            preparation_time: initialMeal.preparation_time || 0,
+            cooking_time: initialMeal.cooking_time || 0,
+            total_time: initialMeal.total_time || 0,
+            ingredients: initialMeal.ingredients || []
           });
-
-          // Set ingredients directly from the API response
-          setIngredients(data.meal.ingredients.map((ing: any) => ({
-            name: ing.name,
-            measure: ing.measure,
-            image: `https://www.themealdb.com/images/ingredients/${encodeURIComponent(ing.name)}-Small.png`
-          })));
           
-          // Set instructions
-          setInstructions([data.meal.instructions]);
+          // Set fallback ingredients if available
+          if (initialMeal.ingredients && initialMeal.ingredients.length > 0) {
+            setIngredients(initialMeal.ingredients.map((ing: any) => ({
+              name: ing.name || '',
+              measure: ing.measure || '',
+              image: ing.image || `https://www.themealdb.com/images/ingredients/placeholder-Small.png`
+            })));
+          }
+          
+          // Set fallback instructions
+          setInstructions([initialMeal.instructions || 'No instructions available']);
+          
+          // Show a toast message about using offline data
+          Toast.show({
+            type: 'info',
+            text1: 'Using offline data',
+            text2: 'Could not connect to the server. Showing limited meal information.',
+            position: 'top',
+            visibilityTime: 3000
+          });
         }
       } catch (error) {
         console.error('Error processing meal details:', error);
+        // Show error toast
+        Toast.show({
+          type: 'error',
+          text1: 'Error loading meal details',
+          text2: 'Please try again later',
+          position: 'top',
+          visibilityTime: 3000
+        });
       } finally {
         setLoading(false);
       }
@@ -198,13 +260,9 @@ const MealDetailScreen = () => {
       const user = auth.currentUser;
       if (!user) return;
 
-      // First check if meal is saved
-      const savedMealsRef = collection(db, 'users', user.uid, 'meals');
-      const savedQuery = query(savedMealsRef, 
-        where('status', '==', 'saved'), 
-        where('name', '==', meal.name)
-      );
-      
+      // Check if the meal is already saved
+      const savedMealsRef = collection(db, 'users', user.uid, 'savedMeals');
+      const savedQuery = query(savedMealsRef, where('name', '==', meal.name));
       const savedQuerySnapshot = await getDocs(savedQuery);
       
       // If meal is saved, show notification and return
@@ -216,13 +274,37 @@ const MealDetailScreen = () => {
         );
         return;
       }
+      
+      // Check if meal is already blocked
+      const blockedMealsRef = collection(db, 'users', user.uid, 'blockedMeals');
+      const blockedQuery = query(blockedMealsRef, where('name', '==', meal.name));
+      const blockedQuerySnapshot = await getDocs(blockedQuery);
+      
+      // If meal is already blocked, show notification and return
+      if (!blockedQuerySnapshot.empty) {
+        showNotification(
+          'Блокирано ястие',
+          'Това ястие вече е блокирано',
+          'error'
+        );
+        return;
+      }
 
-      // If not saved, proceed with blocking
-      await addDoc(savedMealsRef, {
-        ...meal,
-        status: 'blocked',
+      // Create a safe copy of the meal object with all required properties
+      const mealData = {
+        name: meal.name || '',
+        calories: meal.calories || 0,
+        protein: meal.protein || 0,
+        carbs: meal.carbs || 0,
+        fats: meal.fats || 0,
+        image: meal.image || '',
         timestamp: serverTimestamp()
-      });
+      };
+
+      console.log('Blocking meal:', mealData); // Debug log
+
+      // Add to blockedMeals collection
+      await addDoc(blockedMealsRef, mealData);
 
       showNotification(
         'Блокирано ястие',
@@ -244,23 +326,33 @@ const MealDetailScreen = () => {
       const user = auth.currentUser;
       if (!user) return;
 
-      const mealRef = collection(db, 'users', user.uid, 'meals');
-      await addDoc(mealRef, {
-        ...meal,
-        status: 'liked',
-        timestamp: serverTimestamp()
-      });
+      // Add meal to daily meals
+      const mealData = {
+        name: meal.name,
+        calories: meal.calories * servings,
+        protein: (meal.protein || 0) * servings,
+        carbs: (meal.carbs || 0) * servings,
+        fats: (meal.fats || 0) * servings,
+        timestamp: serverTimestamp(),
+        type: route.params?.mealType || meal.category || 'основно',
+        image: meal.image,
+      };
+
+      const mealsRef = collection(db, 'users', user.uid, 'meals');
+      await addDoc(mealsRef, mealData);
 
       showNotification(
-        'Харесано ястие',
-        'Ще се показва по-често в препоръките',
+        'Добавено ястие',
+        'Ястието е добавено към дневника ви',
         'success'
       );
+      
+      navigation.goBack();
     } catch (error) {
-      console.error('Error liking meal:', error);
+      console.error('Error adding meal:', error);
       showNotification(
         'Грешка',
-        'Неуспешно харесване на ястието',
+        'Неуспешно добавяне на ястието',
         'error'
       );
     }
@@ -271,13 +363,9 @@ const MealDetailScreen = () => {
       const user = auth.currentUser;
       if (!user) return;
 
-      // First check if meal is blocked
-      const mealsRef = collection(db, 'users', user.uid, 'meals');
-      const blockedQuery = query(mealsRef, 
-        where('status', '==', 'blocked'), 
-        where('name', '==', meal.name)
-      );
-      
+      // Check if meal is already blocked
+      const blockedMealsRef = collection(db, 'users', user.uid, 'blockedMeals');
+      const blockedQuery = query(blockedMealsRef, where('name', '==', meal.name));
       const blockedQuerySnapshot = await getDocs(blockedQuery);
       
       // If meal is blocked, show notification and return
@@ -289,13 +377,37 @@ const MealDetailScreen = () => {
         );
         return;
       }
+      
+      // Check if meal is already saved
+      const savedMealsRef = collection(db, 'users', user.uid, 'savedMeals');
+      const savedQuery = query(savedMealsRef, where('name', '==', meal.name));
+      const savedQuerySnapshot = await getDocs(savedQuery);
+      
+      // If meal is already saved, show notification and return
+      if (!savedQuerySnapshot.empty) {
+        showNotification(
+          'Запазено ястие',
+          'Това ястие вече е запазено',
+          'error'
+        );
+        return;
+      }
 
-      // If not blocked, proceed with saving
-      await addDoc(mealsRef, {
-        ...meal,
-        status: 'saved',
+      // Create a safe copy of the meal object with all required properties
+      const mealData = {
+        name: meal.name || '',
+        calories: meal.calories || 0,
+        protein: meal.protein || 0,
+        carbs: meal.carbs || 0,
+        fats: meal.fats || 0,
+        image: meal.image || '',
         timestamp: serverTimestamp()
-      });
+      };
+
+      console.log('Saving meal:', mealData); // Debug log
+
+      // Add to savedMeals collection
+      await addDoc(savedMealsRef, mealData);
 
       showNotification(
         'Запазено ястие',

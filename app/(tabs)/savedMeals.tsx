@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, Image, Dimensions } from 'react-native';
 import { getAuth } from 'firebase/auth';
-import { getFirestore, collection, query, where, getDocs, updateDoc, doc, deleteDoc } from 'firebase/firestore';
+import { getFirestore, collection, query, where, getDocs, updateDoc, doc, deleteDoc, getDoc, addDoc } from 'firebase/firestore';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { useNavigation } from '@react-navigation/native';
 import Toast from 'react-native-toast-message';
@@ -23,16 +23,22 @@ const SavedMealsScreen = () => {
   const fetchMeals = async () => {
     if (!auth.currentUser) return;
     
-    const mealsRef = collection(db, 'users', auth.currentUser.uid, 'meals');
-    const q = query(mealsRef, where('status', '==', activeTab));
-    
-    const querySnapshot = await getDocs(q);
-    const mealsList = querySnapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data()
-    }));
-    
-    setMeals(mealsList);
+    try {
+      // Use the appropriate collection based on the active tab
+      const collectionName = activeTab === 'saved' ? 'savedMeals' : 'blockedMeals';
+      const mealsRef = collection(db, 'users', auth.currentUser.uid, collectionName);
+      
+      const querySnapshot = await getDocs(mealsRef);
+      const mealsList = querySnapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      }));
+      
+      setMeals(mealsList);
+    } catch (error) {
+      console.error('Error fetching meals:', error);
+      showNotification('Грешка', 'Неуспешно зареждане на ястията', 'error');
+    }
   };
 
   const showNotification = (title: string, message: string, type: 'success' | 'error') => {
@@ -54,11 +60,25 @@ const SavedMealsScreen = () => {
     try {
       if (!auth.currentUser) return;
       
-      const mealRef = doc(db, 'users', auth.currentUser.uid, 'meals', mealId);
+      // Determine the source collection
+      const sourceCollection = activeTab === 'saved' ? 'savedMeals' : 'blockedMeals';
+      const mealRef = doc(db, 'users', auth.currentUser.uid, sourceCollection, mealId);
       
+      // Get the meal data before deleting
+      const mealDoc = await getDoc(mealRef);
+      if (!mealDoc.exists()) {
+        showNotification('Грешка', 'Ястието не е намерено', 'error');
+        return;
+      }
+      
+      const mealData = mealDoc.data();
+      console.log('Meal data:', mealData); // Debug log
+      
+      // Remove from UI immediately
       setMeals(currentMeals => currentMeals.filter(meal => meal.id !== mealId));
       
       if (newStatus === null) {
+        // Just delete the meal
         setTimeout(async () => {
           await deleteDoc(mealRef);
           showNotification(
@@ -70,7 +90,29 @@ const SavedMealsScreen = () => {
           );
         }, 300);
       } else {
-        await updateDoc(mealRef, { status: newStatus });
+        // Move to the other collection
+        const targetCollection = newStatus === 'saved' ? 'savedMeals' : 'blockedMeals';
+        
+        // Create a safe copy of the meal data with all required properties
+        const safeMealData = {
+          name: mealData.name || '',
+          calories: mealData.calories || 0,
+          protein: mealData.protein || 0,
+          carbs: mealData.carbs || 0,
+          fats: mealData.fats || 0,
+          image: mealData.image || '',
+          // Use serverTimestamp if timestamp is undefined
+          timestamp: mealData.timestamp || new Date()
+        };
+        
+        console.log('Safe meal data:', safeMealData); // Debug log
+        
+        // Add to the target collection
+        await addDoc(collection(db, 'users', auth.currentUser.uid, targetCollection), safeMealData);
+        
+        // Delete from the source collection
+        await deleteDoc(mealRef);
+        
         showNotification(
           'Статусът е променен',
           'Успешно променихте статуса на ястието',
@@ -94,7 +136,10 @@ const SavedMealsScreen = () => {
   const renderMealItem = ({ item }: { item: any }) => (
     <TouchableOpacity 
       style={styles.mealCard}
-      onPress={() => navigation.navigate('mealDetail', { meal: item })}
+      onPress={() => {
+        // @ts-ignore - Ignoring type error for navigation
+        navigation.navigate('mealDetail', { meal: item });
+      }}
     >
       <Image source={{ uri: item.image }} style={styles.mealImage} />
       <View style={styles.mealOverlay}>

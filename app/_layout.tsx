@@ -11,6 +11,7 @@ import GenderSelectionScreen from './genderSelect';
 import GoalSelectionScreen from './goalsSelect';
 import HeightSelectionScreen from './heightSelect';
 import WeightSelectionScreen from './weightSelect';
+import TargetWeightSelectionScreen from './targetWeightSelect'; // Import the TargetWeightSelectionScreen
 import EditProfileScreen from './editProfile';
 import ExpoCamera from './(tabs)/scan'
 import PlanMealScreen from './(tabs)/planMeal';
@@ -148,6 +149,7 @@ const _layout = () => {
         <Stack.Screen name="heightSelect" component={HeightSelectionScreen} options={{ headerShown: false }} />
         <Stack.Screen name="weightSelect" component={WeightSelectionScreen} options={{ headerShown: false }} />
         <Stack.Screen name="genderSelect" component={GenderSelectionScreen} options={{ headerShown: false }} />
+        <Stack.Screen name="targetWeightSelect" component={TargetWeightSelectionScreen} options={{ headerShown: false }} />
         <Stack.Screen name="scan" component={ExpoCamera} options={{ headerShown: false }} />
         <Stack.Screen name="planMeal" component={PlanMealScreen} options={{ headerShown: false }} />
         <Stack.Screen name="trackWeight" component={TrackWeightScreen} options={{ headerShown: false }} />
