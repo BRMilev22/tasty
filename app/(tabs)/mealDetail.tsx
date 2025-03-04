@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, Image, StyleSheet, TouchableOpacity, ScrollView, ActivityIndicator, Dimensions } from 'react-native';
-import { useRoute, useNavigation } from '@react-navigation/native';
+import { useRoute, useNavigation, RouteProp } from '@react-navigation/native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { getAuth } from 'firebase/auth';
-import { getFirestore, addDoc, collection, serverTimestamp } from 'firebase/firestore';
-import { showMessage } from 'react-native-flash-message';
+import { getFirestore, addDoc, collection, serverTimestamp, query, where, getDocs, deleteDoc } from 'firebase/firestore';
 import { PieChart } from 'react-native-chart-kit';
+import Toast from 'react-native-toast-message';
 
 interface Ingredient {
   name: string;
@@ -20,9 +20,18 @@ interface MealDetails {
   servings: number;
 }
 
+// Add route params type
+type RootStackParamList = {
+  mealDetail: {
+    meal: any;
+    mealType?: string;
+    eaten?: boolean;
+  };
+};
+
 const translations = {
   block: 'Блокирай',
-  like: 'Харесай',
+  like: 'Добави',
   save: 'Запази',
   add: 'Добави',
   more: 'Още',
@@ -42,11 +51,15 @@ const translations = {
   addError: 'Грешка при добавяне на ястието',
   carbs: 'Въглехидрати',
   fat: 'Мазнини',
-  protein: 'Протеин'
+  protein: 'Протеин',
+  blockSuccess: 'Ястието е блокирано успешно',
+  blockError: 'Грешка при блокиране на ястието',
+  saveSuccess: 'Ястието е запазено успешно',
+  saveError: 'Грешка при запазване на ястието',
 };
 
 const MealDetailScreen = () => {
-  const route = useRoute();
+  const route = useRoute<RouteProp<RootStackParamList, 'mealDetail'>>();
   const navigation = useNavigation();
   const { meal: initialMeal } = route.params as { meal: any };
   
@@ -70,29 +83,32 @@ const MealDetailScreen = () => {
         
         if (data.meal) {
           console.log('Complete meal data:', data.meal);
+          // Update the meal state with all the data
           setMeal({
             ...initialMeal,
-            preparation_time: data.meal.preparation_time,
-            cooking_time: data.meal.cooking_time,
-            total_time: data.meal.total_time,
-            servings: data.meal.servings
+            ...data.meal,
+            // Extract values from nested objects
+            calories: data.meal.calories,
+            protein: data.meal.macros.protein,
+            carbs: data.meal.macros.carbs,
+            fats: data.meal.macros.fat,
+            preparation_time: data.meal.timing.preparation_time,
+            cooking_time: data.meal.timing.cooking_time,
+            total_time: data.meal.timing.total_time,
+            servings: data.meal.servings,
+            ingredients: data.meal.ingredients
           });
-        }
 
-        // Extract ingredients and measures
-        const ingredientsList: Ingredient[] = [];
-        if (initialMeal.ingredients) {
-          initialMeal.ingredients.forEach((ing: any) => {
-            ingredientsList.push({
-              name: ing.name,
-              measure: ing.measure,
-              image: `https://www.themealdb.com/images/ingredients/${encodeURIComponent(ing.name)}-Small.png`
-            });
-          });
+          // Set ingredients directly from the API response
+          setIngredients(data.meal.ingredients.map((ing: any) => ({
+            name: ing.name,
+            measure: ing.measure,
+            image: `https://www.themealdb.com/images/ingredients/${encodeURIComponent(ing.name)}-Small.png`
+          })));
+          
+          // Set instructions
+          setInstructions([data.meal.instructions]);
         }
-        setIngredients(ingredientsList);
-        
-        setInstructions([initialMeal.instructions]);
       } catch (error) {
         console.error('Error processing meal details:', error);
       } finally {
@@ -102,6 +118,46 @@ const MealDetailScreen = () => {
 
     fetchMealDetails();
   }, [initialMeal]);
+
+  const showNotification = (title: string, message: string, type: 'success' | 'error') => {
+    Toast.show({
+      type: type,
+      text1: title,
+      text2: message,
+      position: 'top',
+      visibilityTime: 4000,
+      autoHide: true,
+      topOffset: 50,
+      props: {
+        onPress: () => {
+          // Show a longer notification when pressed
+          Toast.show({
+            type: type,
+            text1: title,
+            text2: message,
+            position: 'top',
+            visibilityTime: 8000, // Longer duration when expanded
+            autoHide: true,
+            topOffset: 50,
+            text1Style: {
+              fontSize: 16,
+              fontWeight: 'bold',
+            },
+            text2Style: {
+              fontSize: 14,
+            }
+          });
+        }
+      },
+      text1Style: {
+        fontSize: 16,
+        fontWeight: 'bold',
+      },
+      text2Style: {
+        fontSize: 14,
+      }
+    });
+  };
 
   const handleAddMeal = async () => {
     try {
@@ -115,22 +171,144 @@ const MealDetailScreen = () => {
         carbs: (meal.carbs || 0) * servings,
         fats: (meal.fats || 0) * servings,
         timestamp: serverTimestamp(),
-        type: meal.category || 'основно',
+        type: route.params?.mealType || meal.category || 'основно',
         image: meal.image,
       };
 
       await addDoc(collection(db, 'users', user.uid, 'meals'), mealData);
-      showMessage({
-        message: translations.addSuccess,
-        type: 'success',
-      });
+      
+      showNotification(
+        'Добавено ястие',
+        'Ястието е добавено към дневника ви',
+        'success'
+      );
+      
       navigation.goBack();
     } catch (error) {
-      console.error('Error adding meal:', error);
-      showMessage({
-        message: translations.addError,
-        type: 'danger',
+      showNotification(
+        'Грешка',
+        'Неуспешно добавяне на ястието',
+        'error'
+      );
+    }
+  };
+
+  const handleBlockMeal = async () => {
+    try {
+      const user = auth.currentUser;
+      if (!user) return;
+
+      // First check if meal is saved
+      const savedMealsRef = collection(db, 'users', user.uid, 'meals');
+      const savedQuery = query(savedMealsRef, 
+        where('status', '==', 'saved'), 
+        where('name', '==', meal.name)
+      );
+      
+      const savedQuerySnapshot = await getDocs(savedQuery);
+      
+      // If meal is saved, show notification and return
+      if (!savedQuerySnapshot.empty) {
+        showNotification(
+          'Запазено ястие',
+          'Това ястие е запазено. Първо трябва да го премахнете от секция "Запазени"',
+          'error'
+        );
+        return;
+      }
+
+      // If not saved, proceed with blocking
+      await addDoc(savedMealsRef, {
+        ...meal,
+        status: 'blocked',
+        timestamp: serverTimestamp()
       });
+
+      showNotification(
+        'Блокирано ястие',
+        'Това ястие вече няма да се показва в препоръките',
+        'success'
+      );
+    } catch (error) {
+      console.error('Error blocking meal:', error);
+      showNotification(
+        'Грешка',
+        'Неуспешно блокиране на ястието',
+        'error'
+      );
+    }
+  };
+
+  const handleLikeMeal = async () => {
+    try {
+      const user = auth.currentUser;
+      if (!user) return;
+
+      const mealRef = collection(db, 'users', user.uid, 'meals');
+      await addDoc(mealRef, {
+        ...meal,
+        status: 'liked',
+        timestamp: serverTimestamp()
+      });
+
+      showNotification(
+        'Харесано ястие',
+        'Ще се показва по-често в препоръките',
+        'success'
+      );
+    } catch (error) {
+      console.error('Error liking meal:', error);
+      showNotification(
+        'Грешка',
+        'Неуспешно харесване на ястието',
+        'error'
+      );
+    }
+  };
+
+  const handleSaveMeal = async () => {
+    try {
+      const user = auth.currentUser;
+      if (!user) return;
+
+      // First check if meal is blocked
+      const mealsRef = collection(db, 'users', user.uid, 'meals');
+      const blockedQuery = query(mealsRef, 
+        where('status', '==', 'blocked'), 
+        where('name', '==', meal.name)
+      );
+      
+      const blockedQuerySnapshot = await getDocs(blockedQuery);
+      
+      // If meal is blocked, show notification and return
+      if (!blockedQuerySnapshot.empty) {
+        showNotification(
+          'Блокирано ястие',
+          'Това ястие е блокирано. Първо трябва да го отблокирате от секция "Блокирани"',
+          'error'
+        );
+        return;
+      }
+
+      // If not blocked, proceed with saving
+      await addDoc(mealsRef, {
+        ...meal,
+        status: 'saved',
+        timestamp: serverTimestamp()
+      });
+
+      showNotification(
+        'Запазено ястие',
+        'Ястието е добавено към любими',
+        'success'
+      );
+    } catch (error) {
+      console.error('Error saving meal:', error);
+      showNotification(
+        'Грешка',
+        'Неуспешно запазване на ястието',
+        'error'
+      );
     }
   };
 
@@ -187,21 +365,17 @@ const MealDetailScreen = () => {
       <Image source={{ uri: meal.image }} style={styles.mealImage} />
       
       <View style={styles.actionButtons}>
-        <TouchableOpacity style={styles.actionButton}>
+        <TouchableOpacity style={styles.actionButton} onPress={handleBlockMeal}>
           <Ionicons name="thumbs-down" size={24} color="#ff4444" />
           <Text style={styles.actionButtonText}>{translations.block}</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.actionButton}>
-          <Ionicons name="thumbs-up" size={24} color="#4CAF50" />
-          <Text style={styles.actionButtonText}>{translations.like}</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.actionButton}>
-          <Ionicons name="star" size={24} color="#FFD700" />
-          <Text style={styles.actionButtonText}>{translations.save}</Text>
-        </TouchableOpacity>
         <TouchableOpacity style={styles.actionButton} onPress={handleAddMeal}>
           <Ionicons name="calendar" size={24} color="#FFA500" />
-          <Text style={styles.actionButtonText}>{translations.add}</Text>
+          <Text style={styles.actionButtonText}>{translations.like}</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.actionButton} onPress={handleSaveMeal}>
+          <Ionicons name="star" size={24} color="#FFD700" />
+          <Text style={styles.actionButtonText}>{translations.save}</Text>
         </TouchableOpacity>
         <TouchableOpacity style={styles.actionButton}>
           <Ionicons name="ellipsis-horizontal" size={24} color="#ffffff" />
@@ -217,7 +391,7 @@ const MealDetailScreen = () => {
             </View>
             <View style={styles.timeTextContainer}>
               <Text style={styles.timeValue}>
-                {typeof meal.preparation_time === 'number' ? meal.preparation_time : 0}
+                {meal.preparation_time || 0}
               </Text>
               <Text style={styles.timeLabel}>{translations.prepTime}</Text>
             </View>
@@ -229,7 +403,7 @@ const MealDetailScreen = () => {
             </View>
             <View style={styles.timeTextContainer}>
               <Text style={styles.timeValue}>
-                {typeof meal.cooking_time === 'number' ? meal.cooking_time : 0}
+                {meal.cooking_time || 0}
               </Text>
               <Text style={styles.timeLabel}>{translations.cookTime}</Text>
             </View>
@@ -243,7 +417,7 @@ const MealDetailScreen = () => {
             </View>
             <View style={styles.timeTextContainer}>
               <Text style={styles.timeValue}>
-                {typeof meal.total_time === 'number' ? meal.total_time : 0}
+                {meal.total_time || 0}
               </Text>
               <Text style={styles.timeLabel}>{translations.totalTime}</Text>
             </View>
@@ -255,7 +429,7 @@ const MealDetailScreen = () => {
             </View>
             <View style={styles.timeTextContainer}>
               <Text style={styles.timeValue}>
-                {typeof meal.servings === 'number' ? meal.servings : 0}
+                {meal.servings || 0}
               </Text>
               <Text style={styles.timeLabel}>{translations.servingsCount}</Text>
             </View>
@@ -284,7 +458,7 @@ const MealDetailScreen = () => {
       </View>
 
       <View style={styles.nutritionInfo}>
-        <Text style={styles.calories}>{meal.calories * servings}</Text>
+        <Text style={styles.calories}>{Math.round(meal.calories * servings)}</Text>
         <Text style={styles.caloriesLabel}>{translations.calories}</Text>
         
         <View style={styles.chartContainer}>

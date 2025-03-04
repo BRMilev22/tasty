@@ -1,5 +1,5 @@
 import express from 'express';
-import mysql, { RowDataPacket } from 'mysql2/promise';
+import mysql, { RowDataPacket, ResultSetHeader, OkPacket } from 'mysql2/promise';
 import cors from 'cors';
 
 const app = express();
@@ -58,8 +58,9 @@ pool.getConnection()
     process.exit(1);
   });
 
-interface MealRow extends RowDataPacket {
-  id: string;
+// Add this interface to match your database schema
+interface MealResult extends RowDataPacket {
+  id: number;
   name: string;
   category: string;
   area: string;
@@ -75,7 +76,12 @@ interface MealRow extends RowDataPacket {
   cooking_time: string;
   total_time: string;
   servings: string;
-  [key: string]: any; // For dynamic ingredient and measure fields
+  // Add fields for ingredients and measures (1-20)
+  ingredient1?: string;
+  measure1?: string;
+  ingredient2?: string;
+  measure2?: string;
+  // ... continue for all 20 pairs
 }
 
 // Add a root route for testing
@@ -86,110 +92,53 @@ app.get('/', (req, res) => {
 // Get random meals
 app.get('/recipes/random', async (req, res) => {
   try {
-    const [rows] = await pool.query<MealRow[]>(`
-      SELECT 
-        id,
-        name,
-        category,
-        area,
-        instructions,
-        thumbnail,
-        youtube_link,
-        source,
-        carbs,
-        protein,
-        fat,
-        kcal,
-        preparation_time,
-        cooking_time,
-        total_time,
-        servings,
-        ingredient1, measure1,
-        ingredient2, measure2,
-        ingredient3, measure3,
-        ingredient4, measure4,
-        ingredient5, measure5,
-        ingredient6, measure6,
-        ingredient7, measure7,
-        ingredient8, measure8,
-        ingredient9, measure9,
-        ingredient10, measure10,
-        ingredient11, measure11,
-        ingredient12, measure12,
-        ingredient13, measure13,
-        ingredient14, measure14,
-        ingredient15, measure15,
-        ingredient16, measure16,
-        ingredient17, measure17,
-        ingredient18, measure18,
-        ingredient19, measure19,
-        ingredient20, measure20
+    const [rows] = await pool.execute<MealResult[]>(`
+      SELECT *
       FROM recipesBulgarian 
       ORDER BY RAND() 
       LIMIT 50
     `);
 
-    // Add debug logging to see raw data
-    if (rows.length > 0) {
-      console.log('Raw database row:', {
-        name: rows[0].name,
-        preparation_time: rows[0].preparation_time,
-        cooking_time: rows[0].cooking_time,
-        total_time: rows[0].total_time,
-        servings: rows[0].servings
-      });
+    const transformedMeals = rows.map(meal => ({
+      id: meal.id,
+      name: meal.name,
+      category: meal.category,
+      area: meal.area,
+      instructions: meal.instructions,
+      image: meal.thumbnail,
+      youtube_link: meal.youtube_link,
+      source: meal.source,
+      calories: Math.round(meal.kcal * 10) / 10,
+      macros: {
+        carbs: Math.round(meal.carbs * 10) / 10,
+        protein: Math.round(meal.protein * 10) / 10,
+        fat: Math.round(meal.fat * 10) / 10
+      },
+      timing: {
+        preparation_time: parseInt(meal.preparation_time?.replace('мин.', '').trim()) || 0,
+        cooking_time: parseInt(meal.cooking_time?.replace('мин.', '').trim()) || 0,
+        total_time: parseInt(meal.total_time?.replace('мин.', '').trim()) || 0,
+      },
+      servings: parseInt(meal.servings?.toString()) || 0,
+      ingredients: Array.from({ length: 20 }, (_, i) => {
+        const num = i + 1;
+        const ingredient = meal[`ingredient${num}` as keyof MealResult];
+        const measure = meal[`measure${num}` as keyof MealResult];
+        if (ingredient && measure) {
+          return { name: ingredient, measure: measure };
+        }
+        return null;
+      }).filter(Boolean)
+    }));
+
+    // Log first meal for debugging
+    if (transformedMeals.length > 0) {
+      console.log('Sample transformed meal:', transformedMeals[0]);
     }
 
-    const transformedRows = rows.map(row => {
-      // Parse time values from strings, removing "мин." and converting to numbers
-      const prep_time = row.preparation_time ? parseInt(row.preparation_time.replace('мин.', '').trim()) : 0;
-      const cook_time = row.cooking_time ? parseInt(row.cooking_time.replace('мин.', '').trim()) : 0;
-      const total = row.total_time ? parseInt(row.total_time.replace('мин.', '').trim()) : 0;
-      const servs = row.servings ? parseInt(row.servings.toString()) : 0;
-
-      const transformed = {
-        id: row.id,
-        name: row.name,
-        category: row.category,
-        area: row.area,
-        instructions: row.instructions,
-        image: row.thumbnail,
-        youtube_link: row.youtube_link,
-        source: row.source,
-        carbs: row.carbs,
-        protein: row.protein,
-        fat: row.fat,
-        calories: row.kcal,
-        preparation_time: prep_time,
-        cooking_time: cook_time,
-        total_time: total,
-        servings: servs,
-        ingredients: Array.from({ length: 20 }, (_, i) => {
-          const num = i + 1;
-          const ingredient = row[`ingredient${num}`];
-          const measure = row[`measure${num}`];
-          if (ingredient && measure) {
-            return { name: ingredient, measure: measure };
-          }
-          return null;
-        }).filter(Boolean)
-      };
-
-      // Debug log for transformed data
-      console.log('Transformed meal:', {
-        name: transformed.name,
-        preparation_time: transformed.preparation_time,
-        cooking_time: transformed.cooking_time,
-        total_time: transformed.total_time,
-        servings: transformed.servings
-      });
-
-      return transformed;
-    });
-
-    res.json({ meals: transformedRows });
+    res.json({ meals: transformedMeals });
   } catch (error) {
-    console.error('Database error:', error);
+    console.error('Error fetching random meals:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 });
@@ -197,7 +146,7 @@ app.get('/recipes/random', async (req, res) => {
 // Get meal by ID
 app.get('/recipes/:id', async (req, res) => {
   try {
-    const [rows] = await pool.query<MealRow[]>(`
+    const [rows] = await pool.query<MealResult[]>(`
       SELECT 
         id,
         name,
@@ -257,7 +206,7 @@ app.get('/recipes/:id', async (req, res) => {
 // Get meals by category
 app.get('/recipes/category/:category', async (req, res) => {
   try {
-    const [rows] = await pool.query<MealRow[]>(
+    const [rows] = await pool.query<MealResult[]>(
       'SELECT * FROM recipesBulgarian WHERE category = ?',
       [req.params.category]
     );
@@ -303,7 +252,7 @@ app.get('/ingredients', async (req, res) => {
 // Add this route after your other routes
 app.get('/recipes/details/:id', async (req, res) => {
   try {
-    const [rows] = await pool.query<MealRow[]>(`
+    const [rows] = await pool.query<MealResult[]>(`
       SELECT 
         preparation_time,
         cooking_time,
@@ -335,35 +284,60 @@ app.get('/recipes/details/:id', async (req, res) => {
 // Add a new endpoint to get meal by name
 app.get('/recipes/name/:name', async (req, res) => {
   try {
-    const [rows] = await pool.query<MealRow[]>(
-      'SELECT * FROM recipesBulgarian WHERE name = ?',
-      [req.params.name]
-    );
+    const { name } = req.params;
+    const query = `
+      SELECT *
+      FROM recipesBulgarian 
+      WHERE name = ?
+    `;
+    
+    const [rows] = await pool.execute<MealResult[]>(query, [name]);
     
     if (!rows || rows.length === 0) {
-      res.status(404).json({ error: 'Meal not found' });
-      return;
+      return res.status(404).json({ error: 'Recipe not found' });
     }
 
-    const row = rows[0];
-    // Parse time values from strings, removing "мин." and converting to numbers
-    const prep_time = row.preparation_time ? parseInt(row.preparation_time.replace('мин.', '').trim()) : 0;
-    const cook_time = row.cooking_time ? parseInt(row.cooking_time.replace('мин.', '').trim()) : 0;
-    const total = row.total_time ? parseInt(row.total_time.replace('мин.', '').trim()) : 0;
-    const servs = row.servings ? parseInt(row.servings.toString()) : 0;
-
-    const transformed = {
-      id: row.id,
-      name: row.name,
-      preparation_time: prep_time,
-      cooking_time: cook_time,
-      total_time: total,
-      servings: servs
+    const meal = rows[0];
+    
+    // Transform the data to include all fields
+    const transformedMeal = {
+      id: meal.id,
+      name: meal.name,
+      category: meal.category,
+      area: meal.area,
+      instructions: meal.instructions,
+      image: meal.thumbnail,
+      youtube_link: meal.youtube_link,
+      source: meal.source,
+      calories: Math.round(meal.kcal * 10) / 10,
+      macros: {
+        carbs: Math.round(meal.carbs * 10) / 10,
+        protein: Math.round(meal.protein * 10) / 10,
+        fat: Math.round(meal.fat * 10) / 10
+      },
+      timing: {
+        preparation_time: parseInt(meal.preparation_time?.replace('мин.', '').trim()) || 0,
+        cooking_time: parseInt(meal.cooking_time?.replace('мин.', '').trim()) || 0,
+        total_time: parseInt(meal.total_time?.replace('мин.', '').trim()) || 0,
+      },
+      servings: parseInt(meal.servings?.toString()) || 0,
+      ingredients: Array.from({ length: 20 }, (_, i) => {
+        const num = i + 1;
+        const ingredient = meal[`ingredient${num}` as keyof MealResult];
+        const measure = meal[`measure${num}` as keyof MealResult];
+        if (ingredient && measure) {
+          return { name: ingredient, measure: measure };
+        }
+        return null;
+      }).filter(Boolean)
     };
 
-    res.json({ meal: transformed });
+    // Log the transformed meal for debugging
+    console.log('Transformed meal:', transformedMeal);
+
+    res.json({ meal: transformedMeal });
   } catch (error) {
-    console.error('Error fetching meal by name:', error);
+    console.error('Error fetching recipe:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 });

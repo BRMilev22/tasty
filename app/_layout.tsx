@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { NavigationContainer } from '@react-navigation/native';
+import { View } from 'react-native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { getAuth } from 'firebase/auth';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -18,7 +18,53 @@ import { ExternalLink } from '@/components/ExternalLink';
 import TrackWeightScreen from './(tabs)/trackWeight';
 import MealDetailScreen from './(tabs)/mealDetail';
 import RecipeDetailScreen from './(tabs)/RecipeDetailScreen'; // Import the new RecipeDetailScreen
+import Toast, { BaseToast, ErrorToast } from 'react-native-toast-message';
 const Stack = createNativeStackNavigator();
+
+const toastConfig = {
+  success: (props) => (
+    <BaseToast
+      {...props}
+      style={{
+        borderLeftColor: '#4CAF50',
+        backgroundColor: '#1A1A1A',
+        borderRadius: 8,
+        marginHorizontal: 16,
+      }}
+      contentContainerStyle={{ paddingHorizontal: 15 }}
+      text1Style={{
+        fontSize: 16,
+        fontWeight: 'bold',
+        color: '#FFFFFF'
+      }}
+      text2Style={{
+        fontSize: 14,
+        color: '#CCCCCC'
+      }}
+    />
+  ),
+  error: (props) => (
+    <ErrorToast
+      {...props}
+      style={{
+        borderLeftColor: '#FF4444',
+        backgroundColor: '#1A1A1A',
+        borderRadius: 8,
+        marginHorizontal: 16,
+      }}
+      contentContainerStyle={{ paddingHorizontal: 15 }}
+      text1Style={{
+        fontSize: 16,
+        fontWeight: 'bold',
+        color: '#FFFFFF'
+      }}
+      text2Style={{
+        fontSize: 14,
+        color: '#CCCCCC'
+      }}
+    />
+  ),
+};
 
 const _layout = () => {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -70,53 +116,54 @@ const _layout = () => {
   }, []);
 
   return (
-<Stack.Navigator>
-  {isFirstLaunch && !isLoggedIn ? (
-    // If it's the first launch and the user is not logged in, show the WelcomeScreen
-    <Stack.Screen
-      name="welcomeScreen"
-      options={{ headerShown: false }}
-      children={({ navigation, route }) => (<WelcomeScreen navigation={navigation} route={route} onLogin={handleLogin} />
-    )}
-/>
-  ) : !isFirstLaunch && !isLoggedIn ? (
-    // If it's not the first launch and the user is not logged in, show the AuthScreen
-    <Stack.Screen
-      name="auth/AuthScreen"
-      options={{ headerShown: false }}
-      children={() => <AuthScreen onLogin={handleLogin} />}
-    />
-  ) : (
-    // If it's not the first launch and the user is logged in, show the Dashboard
-    <Stack.Screen
-      name="(tabs)/dashboard"
-      options={{ headerShown: false }}
-      children={() => <Dashboard onLogout={handleLogout} />}
-    />
-  )}
-  <Stack.Screen
-    name="auth/RegisterScreen"
-    options={{ headerShown: false }}
-    component={RegisterScreen}
-  />
-  <Stack.Screen name="goalsSelect" component={GoalSelectionScreen} options={{ headerShown: false }} />
-  <Stack.Screen name="heightSelect" component={HeightSelectionScreen} options={{ headerShown: false }} />
-  <Stack.Screen name="weightSelect" component={WeightSelectionScreen} options={{ headerShown: false }} />
-  <Stack.Screen name="genderSelect" component={GenderSelectionScreen} options={{ headerShown: false }} />
-  <Stack.Screen name="scan" component={ExpoCamera} options={{ headerShown: false }} />
-  <Stack.Screen name="planMeal" component={PlanMealScreen} options={{ headerShown: false }} />
-  <Stack.Screen name="trackWeight" component={TrackWeightScreen} options={{ headerShown: false }} />
-  <Stack.Screen
-    name="mealDetail"
-    component={MealDetailScreen}
-    options={{ headerShown: false }}
-  />
-  <Stack.Screen
-    name="RecipeDetailScreen"
-    component={RecipeDetailScreen}
-    options={{ headerShown: false }}
-  />
-</Stack.Navigator>
+    <View style={{ flex: 1 }}>
+      <Stack.Navigator>
+        {isFirstLaunch && !isLoggedIn ? (
+          <Stack.Screen
+            name="welcomeScreen"
+            options={{ headerShown: false }}
+            children={({ navigation, route }) => (
+              <WelcomeScreen navigation={navigation} route={route} onLogin={handleLogin} />
+            )}
+          />
+        ) : !isFirstLaunch && !isLoggedIn ? (
+          <Stack.Screen
+            name="auth/AuthScreen"
+            options={{ headerShown: false }}
+            children={() => <AuthScreen onLogin={handleLogin} />}
+          />
+        ) : (
+          <Stack.Screen
+            name="(tabs)/dashboard"
+            options={{ headerShown: false }}
+            children={() => <Dashboard onLogout={handleLogout} />}
+          />
+        )}
+        <Stack.Screen
+          name="auth/RegisterScreen"
+          options={{ headerShown: false }}
+          component={RegisterScreen}
+        />
+        <Stack.Screen name="goalsSelect" component={GoalSelectionScreen} options={{ headerShown: false }} />
+        <Stack.Screen name="heightSelect" component={HeightSelectionScreen} options={{ headerShown: false }} />
+        <Stack.Screen name="weightSelect" component={WeightSelectionScreen} options={{ headerShown: false }} />
+        <Stack.Screen name="genderSelect" component={GenderSelectionScreen} options={{ headerShown: false }} />
+        <Stack.Screen name="scan" component={ExpoCamera} options={{ headerShown: false }} />
+        <Stack.Screen name="planMeal" component={PlanMealScreen} options={{ headerShown: false }} />
+        <Stack.Screen name="trackWeight" component={TrackWeightScreen} options={{ headerShown: false }} />
+        <Stack.Screen
+          name="mealDetail"
+          component={MealDetailScreen}
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen
+          name="RecipeDetailScreen"
+          component={RecipeDetailScreen}
+          options={{ headerShown: false }}
+        />
+      </Stack.Navigator>
+      <Toast config={toastConfig} />
+    </View>
   );
 };
 
