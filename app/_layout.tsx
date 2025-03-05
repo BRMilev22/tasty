@@ -20,6 +20,7 @@ import TrackWeightScreen from './(tabs)/trackWeight';
 import MealDetailScreen from './(tabs)/mealDetail';
 import RecipeDetailScreen from './(tabs)/RecipeDetailScreen'; // Import the new RecipeDetailScreen
 import Toast, { BaseToast, ErrorToast } from 'react-native-toast-message';
+import SavedMealsScreen from './(tabs)/savedMeals';
 const Stack = createNativeStackNavigator();
 
 const toastConfig = {
@@ -153,6 +154,7 @@ const _layout = () => {
         <Stack.Screen name="scan" component={ExpoCamera} options={{ headerShown: false }} />
         <Stack.Screen name="planMeal" component={PlanMealScreen} options={{ headerShown: false }} />
         <Stack.Screen name="trackWeight" component={TrackWeightScreen} options={{ headerShown: false }} />
+        <Stack.Screen name="savedMeals" component={SavedMealsScreen} options={{ headerShown: false }} />
         <Stack.Screen
           name="mealDetail"
           component={MealDetailScreen}

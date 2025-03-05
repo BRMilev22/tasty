@@ -471,6 +471,112 @@ const SkippedMealNotificationToggle = ({
   </TouchableOpacity>
 );
 
+// Add this interface for the refresh button in the meal item
+interface SuggestedMealItemProps {
+  meal: SuggestedMeal;
+  mealType: string;
+  eaten: boolean;
+  onRegenerate: () => Promise<void>;
+}
+
+// Update the SuggestedMealItem component
+const SuggestedMealItem = ({ meal, mealType, eaten, onRegenerate }: SuggestedMealItemProps) => {
+  const navigation = useNavigation<NavigationProp<RootStackParamList>>();
+  const [imageError, setImageError] = useState(false);
+  const [isRegenerating, setIsRegenerating] = useState(false);
+
+  const handlePress = () => {
+    const enhancedMeal = {
+      ...meal,
+      image: meal.image || meal.thumbnail || 'https://via.placeholder.com/400x300/333333/FFFFFF?text=No+Image',
+      calories: meal.calories || meal.kcal || 0,
+      protein: meal.protein || 0,
+      carbs: meal.carbs || 0,
+      fats: meal.fats || 0,
+      servings: 1,
+      preparation_time: 0,
+      cooking_time: 0,
+      total_time: 0,
+      instructions: meal.instructions || '',
+      ingredients: meal.ingredients || []
+    };
+    
+    navigation.navigate('mealDetail', {
+      meal: enhancedMeal,
+      mealType: mealType
+    });
+  };
+
+  const handleRegenerateMeal = async () => {
+    if (isRegenerating) return;
+    
+    setIsRegenerating(true);
+    try {
+      await onRegenerate();
+    } finally {
+      setIsRegenerating(false);
+    }
+  };
+
+  return (
+    <TouchableOpacity 
+      style={[
+        styles.suggestedMealItem, 
+        eaten && styles.suggestedMealItemEaten
+      ]} 
+      onPress={handlePress}
+    >
+      <View style={styles.bulletPoint} />
+      {(meal.image || meal.thumbnail) ? (
+        <Image 
+          source={{ 
+            uri: meal.image || meal.thumbnail
+          }} 
+          style={[
+            styles.suggestedMealImage,
+            eaten && styles.suggestedMealImageEaten
+          ]}
+          onError={() => setImageError(true)}
+        />
+      ) : (
+        <View style={[styles.suggestedMealImage, { backgroundColor: '#333' }]} />
+      )}
+      <View style={styles.suggestedMealContent}>
+        <View style={styles.suggestedMealNameRow}>
+          {eaten && (
+            <Ionicons name="checkmark-circle" size={16} color="#4CAF50" style={styles.eatenIcon} />
+          )}
+          <Text 
+            style={[
+              styles.suggestedMealName,
+              eaten && styles.suggestedMealNameEaten
+            ]}
+          >
+            {meal.name}
+          </Text>
+        </View>
+        <Text style={styles.suggestedMealDetails}>
+          {meal.servingSize} • {Math.round(meal.calories || meal.kcal || 0)} kcal
+        </Text>
+      </View>
+      <TouchableOpacity 
+        style={[
+          styles.regenerateMealButton,
+          isRegenerating && styles.regeneratingButton
+        ]}
+        onPress={handleRegenerateMeal}
+        disabled={isRegenerating}
+      >
+        <Ionicons 
+          name={isRegenerating ? "hourglass-outline" : "refresh-outline"} 
+          size={20} 
+          color="#4CAF50" 
+        />
+      </TouchableOpacity>
+    </TouchableOpacity>
+  );
+};
+
 const DashboardScreen: React.FC<DashboardProps> = ({ onLogout }) => {
   const navigation = useNavigation<NavigationProp<RootStackParamList>>();
   const user = auth.currentUser;
@@ -1759,79 +1865,73 @@ const DashboardScreen: React.FC<DashboardProps> = ({ onLogout }) => {
     );
   };
 
-  const SuggestedMealItem = ({ meal, mealType, eaten }: { meal: SuggestedMeal; mealType: string; eaten: boolean }) => {
-    const navigation = useNavigation<NavigationProp<RootStackParamList>>();
-    const [imageError, setImageError] = useState(false);
-
-    // Log the meal data to see what we're receiving
-    console.log('Meal data in SuggestedMealItem:', meal);
-
-    const handlePress = () => {
-      // Create a more complete meal object with all required properties
-      const enhancedMeal = {
-        ...meal,
-        image: meal.image || meal.thumbnail || 'https://via.placeholder.com/400x300/333333/FFFFFF?text=No+Image',
-        calories: meal.calories || meal.kcal || 0,
-        protein: meal.protein || 0,
-        carbs: meal.carbs || 0,
-        fats: meal.fats || 0,
-        servings: 1,
-        preparation_time: 0,
-        cooking_time: 0,
-        total_time: 0,
-        instructions: meal.instructions || '',
-        ingredients: meal.ingredients || []
-      };
+  // Add this function to the DashboardScreen component
+  const regenerateSingleMeal = async (
+    mealType: string, 
+    index: number,
+    currentSuggestions: SuggestedMeal[]
+  ) => {
+    try {
+      // Generate a single new meal suggestion
+      const newMeal = await generateMealSuggestions(mealType, nutritionStats.targetCalories);
       
-      navigation.navigate('mealDetail', {
-        meal: enhancedMeal,
-        mealType: mealType
-      });
-    };
+      if (newMeal && newMeal.length > 0) {
+        // Create a copy of the current suggestions
+        const updatedSuggestions = [...currentSuggestions];
+        // Replace the meal at the specified index
+        updatedSuggestions[index] = newMeal[0];
+        
+        // Update the appropriate state based on meal type
+        switch (mealType.toLowerCase()) {
+          case 'закуска':
+          case 'breakfast':
+            setBreakfastSuggestions(updatedSuggestions);
+            break;
+          case 'обяд':
+          case 'lunch':
+            setLunchSuggestions(updatedSuggestions);
+            break;
+          case 'вечеря':
+          case 'dinner':
+            setDinnerSuggestions(updatedSuggestions);
+            break;
+          case 'снаксове':
+          case 'snacks':
+            setSnackSuggestions(updatedSuggestions);
+            break;
+        }
 
-    return (
-      <TouchableOpacity 
-        style={[
-          styles.suggestedMealItem, 
-          eaten && styles.suggestedMealItemEaten
-        ]} 
-        onPress={handlePress}
-      >
-        <View style={styles.bulletPoint} />
-        {(meal.image || meal.thumbnail) ? (
-          <Image 
-            source={{ 
-              uri: meal.image || meal.thumbnail
-            }} 
-            style={[
-              styles.suggestedMealImage,
-              eaten && styles.suggestedMealImageEaten
-            ]}
-            onError={() => setImageError(true)}
-          />
-        ) : (
-          <View style={[styles.suggestedMealImage, { backgroundColor: '#333' }]} />
-        )}
-        <View style={styles.suggestedMealContent}>
-          <View style={styles.suggestedMealNameRow}>
-            {eaten && (
-              <Ionicons name="checkmark-circle" size={16} color="#4CAF50" style={styles.eatenIcon} />
-            )}
-            <Text 
-              style={[
-                styles.suggestedMealName,
-                eaten && styles.suggestedMealNameEaten
-              ]}
-            >
-              {meal.name}
-            </Text>
-          </View>
-          <Text style={styles.suggestedMealDetails}>
-            {meal.servingSize} • {Math.round(meal.calories || meal.kcal || 0)} kcal
-          </Text>
-        </View>
-      </TouchableOpacity>
-    );
+        // Update AsyncStorage
+        const dateKey = currentDate.toISOString().split('T')[0];
+        const storedSuggestionsJson = await AsyncStorage.getItem('mealSuggestions');
+        if (storedSuggestionsJson) {
+          const storedSuggestions = JSON.parse(storedSuggestionsJson);
+          storedSuggestions[mealTypeMap[mealType.toLowerCase()] || mealType.toLowerCase()] = updatedSuggestions;
+          await AsyncStorage.setItem('mealSuggestions', JSON.stringify(storedSuggestions));
+        }
+
+        Toast.show({
+          type: 'success',
+          text1: 'Ястието е обновено',
+          text2: 'Успешно обновихте препоръчаното ястие',
+          position: 'top',
+          visibilityTime: 2000,
+          autoHide: true,
+          topOffset: 50
+        });
+      }
+    } catch (error) {
+      console.error('Error regenerating single meal:', error);
+      Toast.show({
+        type: 'error',
+        text1: 'Грешка при обновяване',
+        text2: 'Неуспешно обновяване на ястието',
+        position: 'top',
+        visibilityTime: 3000,
+        autoHide: true,
+        topOffset: 50
+      });
+    }
   };
 
   const MealTimeButton = ({ 
@@ -1954,6 +2054,7 @@ const DashboardScreen: React.FC<DashboardProps> = ({ onLogout }) => {
                   meal={meal} 
                   mealType={title}
                   eaten={isEaten}
+                  onRegenerate={() => regenerateSingleMeal(title, index, suggestedMeals)}
                 />
               );
             })}
@@ -2158,6 +2259,7 @@ const DashboardScreen: React.FC<DashboardProps> = ({ onLogout }) => {
 
   const DateSelector: React.FC<DateSelectorProps> = ({ currentDate, onDateChange }) => {
     const [showDatePicker, setShowDatePicker] = useState(false);
+    const navigation = useNavigation();
 
     const formatDate = (date: Date) => {
       return date.toLocaleDateString('bg-BG', {
@@ -2192,12 +2294,21 @@ const DashboardScreen: React.FC<DashboardProps> = ({ onLogout }) => {
             <Ionicons name="chevron-down-outline" size={24} color="#FFFFFF" />
           </TouchableOpacity>
 
-          <TouchableOpacity
-            style={styles.regenerateButton}
-            onPress={handleRegenerateMeals}
-          >
-            <Ionicons name="refresh-outline" size={20} color="#4CAF50" />
-          </TouchableOpacity>
+          <View style={styles.headerButtons}>
+            <TouchableOpacity
+              style={styles.headerButton}
+              onPress={() => navigation.navigate('savedMeals')}
+            >
+              <Ionicons name="bookmark-outline" size={20} color="#4CAF50" />
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.headerButton}
+              onPress={handleRegenerateMeals}
+            >
+              <Ionicons name="refresh-outline" size={20} color="#4CAF50" />
+            </TouchableOpacity>
+          </View>
         </View>
 
         {showDatePicker && (
@@ -2405,16 +2516,15 @@ const DashboardScreen: React.FC<DashboardProps> = ({ onLogout }) => {
               iconName = 'home-outline';
             } else if (route.name === 'Goals') {
               iconName = 'flag-outline';
-            } else if (route.name === 'Saved') { // Add new tab
-              iconName = 'bookmark-outline';
+            } else if (route.name === 'Inventory') {
+              iconName = 'cube-outline';
             } else if (route.name === 'Recipes') {
               iconName = 'restaurant-outline';
             } else if (route.name === 'scan') {
               iconName = 'scan-outline';
-            } else if (route.name === 'Profile') { // Add Profile tab
+            } else if (route.name === 'Profile') {
               iconName = 'person-outline';
             }
-
             return <Ionicons name={iconName || 'home-outline'} size={24} color={color} />;
           },
           tabBarActiveTintColor: theme.colors.primary,
@@ -2434,148 +2544,145 @@ const DashboardScreen: React.FC<DashboardProps> = ({ onLogout }) => {
           tabBarShowLabel: false,
         })}
       >
-        <Tab.Screen name="Dashboard" options={{ headerShown: false }}>
-          {() => (
-            <SafeAreaView style={styles.container}>
-              <StyledImageBackground
-                source={{
-                  uri: 'https://i.imgur.com/8F9ZGpX.png',
-                }}
-                style={styles.imageBackground}
-                blurRadius={5}
-              >
-                <View style={styles.headerBackground}>
-                  <DateSelector currentDate={currentDate} onDateChange={setCurrentDate} />
-                </View>
-                <View style={styles.mainContainer}>
-                  <FlatList
-                    data={[{ key: 'content' }]}
-                    renderItem={() => (
-                      <>
-                        <CalorieCircle 
-                          calories={nutritionStats.calories} 
-                          totalCalories={nutritionStats.targetCalories} 
-                        />
-                        <WaterTracker 
-                          currentAmount={waterIntake.length > 0 ? waterIntake[0].amount : 0} 
-                          targetAmount={water || 2.5} 
-                          onAddWater={handleAddWater}
-                        />
-                        <MealTimeButton
-                          icon="🥐"
-                          title={translations.breakfast}
-                          subtitle={todaysMeals.find(m => 
-                            m.type?.toLowerCase() === 'breakfast' || 
-                            m.mealType?.toLowerCase() === 'breakfast'
-                          )?.name}
-                          calories={todaysMeals.find(m => 
-                            m.type?.toLowerCase() === 'breakfast' || 
-                            m.mealType?.toLowerCase() === 'breakfast'
-                          )?.calories}
-                          recommended={`${mealRecommendations.breakfast.min} - ${mealRecommendations.breakfast.max} kcal`}
-                          todaysMeals={todaysMeals}
-                          suggestedMeals={breakfastSuggestions}
-                        />
-                        <MealTimeButton
-                          icon="🍴"
-                          title={translations.lunch}
-                          subtitle={todaysMeals.find(m => 
-                            m.type?.toLowerCase() === 'lunch' || 
-                            m.mealType?.toLowerCase() === 'lunch'
-                          )?.name}
-                          calories={todaysMeals.find(m => 
-                            m.type?.toLowerCase() === 'lunch' || 
-                            m.mealType?.toLowerCase() === 'lunch'
-                          )?.calories}
-                          recommended={`${mealRecommendations.lunch.min} - ${mealRecommendations.lunch.max} kcal`}
-                          todaysMeals={todaysMeals}
-                          suggestedMeals={lunchSuggestions}
-                        />
-                        <MealTimeButton
-                          icon="🍽️"
-                          title={translations.dinner}
-                          subtitle={todaysMeals.find(m => 
-                            m.type?.toLowerCase() === 'dinner' || 
-                            m.mealType?.toLowerCase() === 'dinner'
-                          )?.name}
-                          calories={todaysMeals.find(m => 
-                            m.type?.toLowerCase() === 'dinner' || 
-                            m.mealType?.toLowerCase() === 'dinner'
-                          )?.calories}
-                          recommended={`${mealRecommendations.dinner.min} - ${mealRecommendations.dinner.max} kcal`}
-                          todaysMeals={todaysMeals}
-                          suggestedMeals={dinnerSuggestions}
-                        />
-                        <MealTimeButton
-                          icon="🍪"
-                          title={translations.snacks}
-                          subtitle={todaysMeals.find(m => 
-                            m.type?.toLowerCase() === 'snacks' || 
-                            m.mealType?.toLowerCase() === 'snacks'
-                          )?.name}
-                          calories={todaysMeals.find(m => 
-                            m.type?.toLowerCase() === 'snacks' || 
-                            m.mealType?.toLowerCase() === 'snacks'
-                          )?.calories}
-                          recommended={`${mealRecommendations.snacks.min} - ${mealRecommendations.snacks.max} kcal`}
-                          todaysMeals={todaysMeals}
-                          suggestedMeals={snackSuggestions}
-                        />
-                        <View style={styles.actionButtons}>
-                          <TouchableOpacity
-                            style={styles.actionButton}
-                            onPress={handlePlanMeal}
-                          >
-                            <Ionicons name="restaurant-outline" size={24} color="#ffffff" />
-                            <Text style={styles.actionButtonText}>Отчетете хранене</Text>
-                          </TouchableOpacity>
+        <Tab.Screen 
+          name="Dashboard" 
+          options={{ headerShown: false }}
+        >{() => (
+          <SafeAreaView style={styles.container}>
+            <StyledImageBackground
+              source={{
+                uri: 'https://i.imgur.com/8F9ZGpX.png',
+              }}
+              style={styles.imageBackground}
+              blurRadius={5}
+            >
+              <View style={styles.headerBackground}>
+                <DateSelector currentDate={currentDate} onDateChange={setCurrentDate} />
+              </View>
+              <View style={styles.mainContainer}>
+                <FlatList
+                  data={[{ key: 'content' }]}
+                  renderItem={() => (
+                    <>
+                      <CalorieCircle 
+                        calories={nutritionStats.calories} 
+                        totalCalories={nutritionStats.targetCalories} 
+                      />
+                      <WaterTracker 
+                        currentAmount={waterIntake.length > 0 ? waterIntake[0].amount : 0} 
+                        targetAmount={water || 2.5} 
+                        onAddWater={handleAddWater}
+                      />
+                      <MealTimeButton
+                        icon="🥐"
+                        title={translations.breakfast}
+                        subtitle={todaysMeals.find(m => 
+                          m.type?.toLowerCase() === 'breakfast' || 
+                          m.mealType?.toLowerCase() === 'breakfast'
+                        )?.name}
+                        calories={todaysMeals.find(m => 
+                          m.type?.toLowerCase() === 'breakfast' || 
+                          m.mealType?.toLowerCase() === 'breakfast'
+                        )?.calories}
+                        recommended={`${mealRecommendations.breakfast.min} - ${mealRecommendations.breakfast.max} kcal`}
+                        todaysMeals={todaysMeals}
+                        suggestedMeals={breakfastSuggestions}
+                      />
+                      <MealTimeButton
+                        icon="🍴"
+                        title={translations.lunch}
+                        subtitle={todaysMeals.find(m => 
+                          m.type?.toLowerCase() === 'lunch' || 
+                          m.mealType?.toLowerCase() === 'lunch'
+                        )?.name}
+                        calories={todaysMeals.find(m => 
+                          m.type?.toLowerCase() === 'lunch' || 
+                          m.mealType?.toLowerCase() === 'lunch'
+                        )?.calories}
+                        recommended={`${mealRecommendations.lunch.min} - ${mealRecommendations.lunch.max} kcal`}
+                        todaysMeals={todaysMeals}
+                        suggestedMeals={lunchSuggestions}
+                      />
+                      <MealTimeButton
+                        icon="🍽️"
+                        title={translations.dinner}
+                        subtitle={todaysMeals.find(m => 
+                          m.type?.toLowerCase() === 'dinner' || 
+                          m.mealType?.toLowerCase() === 'dinner'
+                        )?.name}
+                        calories={todaysMeals.find(m => 
+                          m.type?.toLowerCase() === 'dinner' || 
+                          m.mealType?.toLowerCase() === 'dinner'
+                        )?.calories}
+                        recommended={`${mealRecommendations.dinner.min} - ${mealRecommendations.dinner.max} kcal`}
+                        todaysMeals={todaysMeals}
+                        suggestedMeals={dinnerSuggestions}
+                      />
+                      <MealTimeButton
+                        icon="🍪"
+                        title={translations.snacks}
+                        subtitle={todaysMeals.find(m => 
+                          m.type?.toLowerCase() === 'snacks' || 
+                          m.mealType?.toLowerCase() === 'snacks'
+                        )?.name}
+                        calories={todaysMeals.find(m => 
+                          m.type?.toLowerCase() === 'snacks' || 
+                          m.mealType?.toLowerCase() === 'snacks'
+                        )?.calories}
+                        recommended={`${mealRecommendations.snacks.min} - ${mealRecommendations.snacks.max} kcal`}
+                        todaysMeals={todaysMeals}
+                        suggestedMeals={snackSuggestions}
+                      />
+                      <View style={styles.actionButtons}>
+                        <TouchableOpacity
+                          style={styles.actionButton}
+                          onPress={handlePlanMeal}
+                        >
+                          <Ionicons name="restaurant-outline" size={24} color="#ffffff" />
+                          <Text style={styles.actionButtonText}>Отчетете хранене</Text>
+                        </TouchableOpacity>
 
-                          <TouchableOpacity
-                            style={styles.actionButton}
-                            onPress={() => navigation.navigate('trackWeight')}
-                          >
-                            <Ionicons name="scale-outline" size={24} color="#ffffff" />
-                            <Text style={styles.actionButtonText}>Запишете тегло</Text>
-                          </TouchableOpacity>
-                        </View>
-                        <TodaysMealsList 
-                          meals={todaysMeals} 
-                          onDeleteMeal={handleDeleteMeal}
+                        <TouchableOpacity
+                          style={styles.actionButton}
+                          onPress={() => navigation.navigate('trackWeight')}
+                        >
+                          <Ionicons name="scale-outline" size={24} color="#ffffff" />
+                          <Text style={styles.actionButtonText}>Запишете тегло</Text>
+                        </TouchableOpacity>
+                      </View>
+                      <TodaysMealsList 
+                        meals={todaysMeals} 
+                        onDeleteMeal={handleDeleteMeal}
+                      />
+                      <WeightProgressCard weightHistory={weightHistory} />
+                      <PlannedMealsCard meals={plannedMeals} />
+                      <AchievementsCard achievements={achievements} />
+                      <View style={styles.logoutContainer}>
+                        <SkippedMealNotificationToggle 
+                          isNotificationEnabled={isNotificationEnabled}
+                          setIsNotificationEnabled={setIsNotificationEnabled}
                         />
-                        <WeightProgressCard weightHistory={weightHistory} />
-                        <PlannedMealsCard meals={plannedMeals} />
-                        <AchievementsCard achievements={achievements} />
-                        <View style={styles.logoutContainer}>
-                          <SkippedMealNotificationToggle 
-                            isNotificationEnabled={isNotificationEnabled}
-                            setIsNotificationEnabled={setIsNotificationEnabled}
-                          />
-                          <TouchableOpacity
-                            onPress={handleLogout}
-                            style={styles.logoutButton}
-                          >
-                            <Text style={styles.logoutText}>Отпишете се</Text>
-                          </TouchableOpacity>
-                        </View>
-                      </>
-                    )}
-                    keyExtractor={() => 'content'}
-                    showsVerticalScrollIndicator={false}
-                  />
-                </View>
-              </StyledImageBackground>
-            </SafeAreaView>
-          )}
-        </Tab.Screen>
+                        <TouchableOpacity
+                          onPress={handleLogout}
+                          style={styles.logoutButton}
+                        >
+                          <Text style={styles.logoutText}>Отпишете се</Text>
+                        </TouchableOpacity>
+                      </View>
+                    </>
+                  )}
+                  keyExtractor={() => 'content'}
+                  showsVerticalScrollIndicator={false}
+                />
+              </View>
+            </StyledImageBackground>
+          </SafeAreaView>
+        )}</Tab.Screen>
         <Tab.Screen name="Goals" component={GoalsScreen} options={{ headerShown: false }} />
-        <Tab.Screen name="Saved" component={SavedMealsScreen} options={{ headerShown: false }} />
+        <Tab.Screen name="Inventory" component={InventoryScreen} options={{ headerShown: false }} />
         <Tab.Screen name="Recipes" component={RecipesScreen} options={{ headerShown: false }} />
         <Tab.Screen name="scan" component={ScanScreen} options={{ headerShown: false }} />
-        <Tab.Screen 
-          name="Profile" 
-          component={EditProfileScreen} 
-          options={{ headerShown: false }} 
-        />
+        <Tab.Screen name="Profile" component={EditProfileScreen} options={{ headerShown: false }} />
       </Tab.Navigator>
 
       {showMissedMealAlert && missedMealType && (
@@ -3479,6 +3586,28 @@ const styles = StyleSheet.create({
   additionalMeal: {
     marginTop: 4,
     opacity: 0.8,
+  },
+  headerButtons: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  
+  headerButton: {
+    padding: 8,
+    borderRadius: 20,
+    backgroundColor: 'rgba(26, 26, 26, 0.8)',
+  },
+  
+  regenerateMealButton: {
+    padding: 8,
+    borderRadius: 20,
+    backgroundColor: 'rgba(26, 26, 26, 0.8)',
+    marginLeft: 8,
+  },
+  
+  regeneratingButton: {
+    opacity: 0.5,
   },
 });
 
