@@ -737,7 +737,7 @@ const InventoryScreen = () => {
 
   const handleClearInventory = () => {
     Alert.alert(
-      'Изчистване на инвентара',
+      'Изчистване на списъка с продукти',
       'Сигурни ли сте, че искате да изтриете всички продукти?',
       [
         { text: 'Отказ', style: 'cancel' },
@@ -753,10 +753,10 @@ const InventoryScreen = () => {
                 batch.delete(itemRef);
               });
               await batch.commit();
-              Alert.alert('Успех', 'Инвентарът е изчистен успешно!');
+              Alert.alert('Успех', 'Списъкът с продукти е изчистен успешно!');
             } catch (error) {
               console.error('Error clearing inventory:', error);
-              Alert.alert('Грешка', 'Възникна проблем при изчистването на инвентара.');
+              Alert.alert('Грешка', 'Възникна проблем при изчистването на списъка с продукти.');
             }
           }
         }
@@ -974,7 +974,7 @@ const InventoryScreen = () => {
     <StyledView style={styles.container}>
       <StyledView style={styles.header}>
         <StyledView style={styles.headerTop}>
-          <StyledText style={styles.headerTitle}>Вашият инвентар</StyledText>
+          <StyledText style={styles.headerTitle}>Вашият списък с продукти</StyledText>
           <TouchableOpacity
             style={styles.clearButton}
             onPress={handleClearInventory}
@@ -1014,7 +1014,7 @@ const InventoryScreen = () => {
         <StyledView style={styles.emptyContainer}>
           <Ionicons name="cube-outline" size={60} color="#333333" />
           <StyledText style={styles.emptyText}>
-            {searchQuery ? 'Няма намерени продукти' : 'Вашият инвентар е празен'}
+            {searchQuery ? 'Няма намерени продукти' : 'Вашият списък с продукти е празен'}
           </StyledText>
           <StyledText style={styles.emptySubtext}>
             {searchQuery 

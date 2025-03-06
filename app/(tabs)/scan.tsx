@@ -585,11 +585,11 @@ const ScanScreen = () => {
         barcode: barcode || null // Store barcode if available
       });
 
-      Alert.alert('Успешно', 'Продуктът е добавен в инвентара.');
+      Alert.alert('Успешно', 'Продуктът е добавен в списъка с продукти.');
       handleScanAgain();
     } catch (error) {
       console.error('Error adding to inventory:', error);
-      Alert.alert('Грешка', 'Възникна проблем при добавянето в инвентара.');
+      Alert.alert('Грешка', 'Възникна проблем при добавянето в списъка с продукти.');
     }
   };
 
@@ -957,7 +957,7 @@ const ScanScreen = () => {
         }
       });
 
-      Alert.alert('Успешно', `${item.name} е добавен в инвентара.`);
+      Alert.alert('Успешно', `${item.name} е добавен в списъка с продукти.`);
       
       // Remove the item from the list
       setReceiptItems(receiptItems.filter(i => i !== item));
@@ -968,7 +968,7 @@ const ScanScreen = () => {
       }
     } catch (error) {
       console.error('Error adding to inventory:', error);
-      Alert.alert('Грешка', 'Възникна проблем при добавянето в инвентара.');
+      Alert.alert('Грешка', 'Възникна проблем при добавянето в списъка с продукти.');
     }
   };
 
@@ -978,7 +978,7 @@ const ScanScreen = () => {
     
     try {
       // Show loading indicator or message
-      Alert.alert('Добавяне', 'Добавяне на всички продукти в инвентара...');
+      Alert.alert('Добавяне', 'Добавяне на всички продукти в списъка с продукти...');
       
       // Add each item to inventory
       for (const item of receiptItems) {
@@ -1000,11 +1000,11 @@ const ScanScreen = () => {
         });
       }
 
-      Alert.alert('Успешно', 'Всички продукти са добавени в инвентара.');
+      Alert.alert('Успешно', 'Всички продукти са добавени в списъка с продукти.');
       handleScanAgain();
     } catch (error) {
       console.error('Error adding all items to inventory:', error);
-      Alert.alert('Грешка', 'Възникна проблем при добавянето на продуктите в инвентара.');
+      Alert.alert('Грешка', 'Възникна проблем при добавянето на продуктите в списъка с продукти.');
     }
   };
 
@@ -1181,13 +1181,13 @@ const ScanScreen = () => {
             </StyledView>
           )}
 
-          <StyledView className="flex-row justify-between mt-4">
+          <StyledView className="mt-4">
             <StyledTouchableOpacity 
               onPress={handleAddToInventory} 
-              style={styles.primaryButton}
+              style={[styles.primaryButton, { marginBottom: 8 }]}
             >
               <Ionicons name="archive-outline" size={20} color="white" />
-              <StyledText className="text-white font-bold ml-2">Добави в инвентар</StyledText>
+              <StyledText className="text-white font-bold ml-2">Добави в списъка с продукти</StyledText>
             </StyledTouchableOpacity>
             
             <StyledTouchableOpacity 
