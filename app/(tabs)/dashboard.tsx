@@ -997,98 +997,106 @@ const DashboardScreen: React.FC<DashboardProps> = ({ onLogout }) => {
           setLunchSuggestions(data.lunch || []);
           setDinnerSuggestions(data.dinner || []);
           setSnackSuggestions(data.snacks || []);
-        } else {
-          // Try to get suggestions from AsyncStorage first (offline fallback)
-          const storedSuggestionsJson = await AsyncStorage.getItem('mealSuggestions');
-          if (storedSuggestionsJson) {
-            const storedData = JSON.parse(storedSuggestionsJson) as StoredMealSuggestions;
-            // Only use stored suggestions if they're for the same date
-            if (storedData.date === dateKey) {
-              setStoredSuggestions(storedData);
-              setBreakfastSuggestions(storedData.breakfast || []);
-              setLunchSuggestions(storedData.lunch || []);
-              setDinnerSuggestions(storedData.dinner || []);
-              setSnackSuggestions(storedData.snacks || []);
-              
-              // Also save to Firestore for future reference
-              await setDoc(suggestionsRef, storedData);
-              setLoadingSuggestions(false);
-              return;
-            }
-          }
-          
-          // Generate new suggestions for the selected date
-          try {
-            const breakfast = await generateMealSuggestions('breakfast', nutritionStats.targetCalories);
-            const lunch = await generateMealSuggestions('lunch', nutritionStats.targetCalories);
-            const dinner = await generateMealSuggestions('dinner', nutritionStats.targetCalories);
-            const snacks = await generateMealSuggestions('snacks', nutritionStats.targetCalories);
+          setLoadingSuggestions(false);
+          return;
+        }
 
-            // Store the suggestions with the selected date
-            const newSuggestions: StoredMealSuggestions = {
-              date: dateKey,
-              breakfast,
-              lunch,
-              dinner,
-              snacks
-            };
-
-            // Only store suggestions for today or future dates
-            const today = new Date();
-            today.setHours(0, 0, 0, 0);
-            const selectedDate = new Date(currentDate);
-            selectedDate.setHours(0, 0, 0, 0);
-
-            if (selectedDate >= today) {
-              await setDoc(suggestionsRef, newSuggestions);
-              // Also save to AsyncStorage for offline access
-              await AsyncStorage.setItem('mealSuggestions', JSON.stringify(newSuggestions));
-            }
+        // Try to get suggestions from AsyncStorage first (offline fallback)
+        const storedSuggestionsJson = await AsyncStorage.getItem('mealSuggestions');
+        if (storedSuggestionsJson) {
+          const storedData = JSON.parse(storedSuggestionsJson) as StoredMealSuggestions;
+          // Only use stored suggestions if they're for the same date
+          if (storedData.date === dateKey) {
+            setStoredSuggestions(storedData);
+            setBreakfastSuggestions(storedData.breakfast || []);
+            setLunchSuggestions(storedData.lunch || []);
+            setDinnerSuggestions(storedData.dinner || []);
+            setSnackSuggestions(storedData.snacks || []);
             
-            setStoredSuggestions(newSuggestions);
-            setBreakfastSuggestions(breakfast);
-            setLunchSuggestions(lunch);
-            setDinnerSuggestions(dinner);
-            setSnackSuggestions(snacks);
-          } catch (error) {
-            console.error('Error generating meal suggestions:', error);
-            
-            // Show a user-friendly error message
-            Toast.show({
-              type: 'error',
-              text1: 'Грешка при зареждане на ястия',
-              text2: 'Използваме запазени ястия вместо това',
-              position: 'top',
-              visibilityTime: 3000,
-              autoHide: true,
-              topOffset: 50
-            });
-            
-            // Use fallback meals
-            const breakfast = getFallbackMeals('breakfast', mealRecommendations.breakfast);
-            const lunch = getFallbackMeals('lunch', mealRecommendations.lunch);
-            const dinner = getFallbackMeals('dinner', mealRecommendations.dinner);
-            const snacks = getFallbackMeals('snacks', mealRecommendations.snacks);
-            
-            const fallbackSuggestions: StoredMealSuggestions = {
-              date: dateKey,
-              breakfast,
-              lunch,
-              dinner,
-              snacks
-            };
-            
-            setStoredSuggestions(fallbackSuggestions);
-            setBreakfastSuggestions(breakfast);
-            setLunchSuggestions(lunch);
-            setDinnerSuggestions(dinner);
-            setSnackSuggestions(snacks);
+            // Also save to Firestore for future reference
+            await setDoc(suggestionsRef, storedData);
+            setLoadingSuggestions(false);
+            return;
           }
         }
-      } catch (error) {
-        console.error('Error fetching/storing meal suggestions:', error);
         
-        // Show error to user
+        // Generate new suggestions for the selected date
+        let breakfast, lunch, dinner, snacks;
+        
+        try {
+          breakfast = await generateMealSuggestions('breakfast', nutritionStats.targetCalories);
+          lunch = await generateMealSuggestions('lunch', nutritionStats.targetCalories);
+          dinner = await generateMealSuggestions('dinner', nutritionStats.targetCalories);
+          snacks = await generateMealSuggestions('snacks', nutritionStats.targetCalories);
+        } catch (error) {
+          console.error('Error generating meal suggestions:', error);
+          
+          // Use fallback meals if API fails
+          breakfast = getFallbackMeals('breakfast', mealRecommendations.breakfast);
+          lunch = getFallbackMeals('lunch', mealRecommendations.lunch);
+          dinner = getFallbackMeals('dinner', mealRecommendations.dinner);
+          snacks = getFallbackMeals('snacks', mealRecommendations.snacks);
+          
+          Toast.show({
+            type: 'error',
+            text1: 'Грешка при зареждане на ястия',
+            text2: 'Използваме запазени ястия вместо това',
+            position: 'top',
+            visibilityTime: 3000,
+            autoHide: true,
+            topOffset: 50
+          });
+        }
+
+        // Store the suggestions with the selected date
+        const newSuggestions: StoredMealSuggestions = {
+          date: dateKey,
+          breakfast,
+          lunch,
+          dinner,
+          snacks,
+        };
+
+        // Only store suggestions for today or future dates
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const selectedDate = new Date(currentDate);
+        selectedDate.setHours(0, 0, 0, 0);
+
+        if (selectedDate >= today) {
+          try {
+            await setDoc(suggestionsRef, newSuggestions);
+            // Also save to AsyncStorage for offline access
+            await AsyncStorage.setItem('mealSuggestions', JSON.stringify(newSuggestions));
+          } catch (error) {
+            console.error('Error storing suggestions:', error);
+          }
+        }
+        
+        setStoredSuggestions(newSuggestions);
+        setBreakfastSuggestions(breakfast);
+        setLunchSuggestions(lunch);
+        setDinnerSuggestions(dinner);
+        setSnackSuggestions(snacks);
+        
+      } catch (error) {
+        console.error('Error in fetchAndStoreSuggestions:', error);
+        
+        // Use fallback meals as a last resort
+        const fallbackSuggestions: StoredMealSuggestions = {
+          date: currentDate.toISOString().split('T')[0],
+          breakfast: getFallbackMeals('breakfast', mealRecommendations.breakfast),
+          lunch: getFallbackMeals('lunch', mealRecommendations.lunch),
+          dinner: getFallbackMeals('dinner', mealRecommendations.dinner),
+          snacks: getFallbackMeals('snacks', mealRecommendations.snacks)
+        };
+        
+        setStoredSuggestions(fallbackSuggestions);
+        setBreakfastSuggestions(fallbackSuggestions.breakfast);
+        setLunchSuggestions(fallbackSuggestions.lunch);
+        setDinnerSuggestions(fallbackSuggestions.dinner);
+        setSnackSuggestions(fallbackSuggestions.snacks);
+        
         Toast.show({
           type: 'error',
           text1: 'Грешка при зареждане',
@@ -1098,27 +1106,6 @@ const DashboardScreen: React.FC<DashboardProps> = ({ onLogout }) => {
           autoHide: true,
           topOffset: 50
         });
-        
-        // Use fallback meals
-        const dateKey = currentDate.toISOString().split('T')[0];
-        const breakfast = getFallbackMeals('breakfast', mealRecommendations.breakfast);
-        const lunch = getFallbackMeals('lunch', mealRecommendations.lunch);
-        const dinner = getFallbackMeals('dinner', mealRecommendations.dinner);
-        const snacks = getFallbackMeals('snacks', mealRecommendations.snacks);
-        
-        const fallbackSuggestions: StoredMealSuggestions = {
-          date: dateKey,
-          breakfast,
-          lunch,
-          dinner,
-          snacks
-        };
-        
-        setStoredSuggestions(fallbackSuggestions);
-        setBreakfastSuggestions(breakfast);
-        setLunchSuggestions(lunch);
-        setDinnerSuggestions(dinner);
-        setSnackSuggestions(snacks);
       } finally {
         setLoadingSuggestions(false);
       }
@@ -1524,20 +1511,36 @@ const DashboardScreen: React.FC<DashboardProps> = ({ onLogout }) => {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
       
-      const response = await fetch(apiUrl, { 
-        signal: controller.signal,
-        headers: {
-          'Cache-Control': 'no-cache'
-        }
-      });
-      
-      clearTimeout(timeoutId);
+      let response;
+      try {
+        response = await fetch(apiUrl, { 
+          signal: controller.signal,
+          headers: {
+            'Cache-Control': 'no-cache'
+          }
+        });
+        clearTimeout(timeoutId);
+      } catch (error) {
+        clearTimeout(timeoutId);
+        console.error('Network error fetching meals:', error);
+        throw new Error('Network error fetching meals');
+      }
       
       if (!response.ok) {
         throw new Error(`API responded with status: ${response.status}`);
       }
       
-      const data = await response.json();
+      let data;
+      try {
+        data = await response.json();
+      } catch (error) {
+        console.error('Error parsing API response:', error);
+        throw new Error('Invalid API response format');
+      }
+
+      if (!data.meals || !Array.isArray(data.meals) || data.meals.length === 0) {
+        throw new Error('No meals received from API');
+      }
 
       // Define appropriate categories for each meal type
       const mealTypeCategories: { [key: string]: string[] } = {
@@ -1593,6 +1596,12 @@ const DashboardScreen: React.FC<DashboardProps> = ({ onLogout }) => {
                  isNotBlocked;
         });
 
+      // If no suitable meals found after filtering, use fallback meals
+      if (suggestions.length === 0) {
+        console.log('No suitable meals found after filtering, using fallbacks');
+        return getFallbackMeals(mealType, calorieRange);
+      }
+
       // Randomly select meals while ensuring total calories stay within range
       const shuffled = suggestions.sort(() => 0.5 - Math.random());
       const selectedMeals: typeof suggestions = [];
@@ -1614,6 +1623,7 @@ const DashboardScreen: React.FC<DashboardProps> = ({ onLogout }) => {
 
       // If no meals were selected, return fallback meals
       if (selectedMeals.length === 0) {
+        console.log('No meals selected within calorie range, using fallbacks');
         return getFallbackMeals(mealType, calorieRange);
       }
 
