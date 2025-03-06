@@ -19,6 +19,7 @@ import { ExternalLink } from '@/components/ExternalLink';
 import TrackWeightScreen from './(tabs)/trackWeight';
 import MealDetailScreen from './(tabs)/mealDetail';
 import RecipeDetailScreen from './(tabs)/RecipeDetailScreen'; // Import the new RecipeDetailScreen
+import AllRecipesScreen from './(tabs)/allRecipes'; // Import the AllRecipesScreen
 import Toast, { BaseToast, ErrorToast, BaseToastProps } from 'react-native-toast-message';
 import SavedMealsScreen from './(tabs)/savedMeals';
 const Stack = createNativeStackNavigator();
@@ -163,6 +164,11 @@ const _layout = () => {
         <Stack.Screen
           name="RecipeDetailScreen"
           component={RecipeDetailScreen}
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen
+          name="allRecipes"
+          component={AllRecipesScreen}
           options={{ headerShown: false }}
         />
       </Stack.Navigator>

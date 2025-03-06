@@ -205,6 +205,8 @@ type RootStackParamList = {
   trackWeight: undefined;
   goalsSelect: undefined;
   mealDetail: { meal: SuggestedMeal; mealType?: string; eaten?: boolean };
+  savedMeals: undefined;
+  allRecipes: undefined;
 };
 
 const calculateAge = (dateOfBirth: any): number => {
@@ -479,6 +481,28 @@ interface SuggestedMealItemProps {
   onRegenerate: () => Promise<void>;
 }
 
+// Add this helper function before SuggestedMealItem definition
+const getEncodedImageUrl = (url?: string) => {
+  if (!url) return 'https://via.placeholder.com/300';
+  
+  try {
+    // Handle URLs with spaces, Cyrillic characters, or special symbols
+    const baseUrl = url.split('?')[0]; // Remove any query parameters
+    const encodedUrl = encodeURI(baseUrl);
+    
+    // Check if URL already has a protocol
+    if (!encodedUrl.startsWith('http')) {
+      // If it's a relative path, ensure it has a protocol
+      return `http://${process.env.EXPO_PUBLIC_IPADDRESS || 'localhost'}:3000${encodedUrl.startsWith('/') ? '' : '/'}${encodedUrl}`;
+    }
+    
+    return encodedUrl;
+  } catch (error) {
+    console.error('Error encoding image URL:', error, url);
+    return 'https://via.placeholder.com/300';
+  }
+};
+
 // Update the SuggestedMealItem component
 const SuggestedMealItem = ({ meal, mealType, eaten, onRegenerate }: SuggestedMealItemProps) => {
   const navigation = useNavigation<NavigationProp<RootStackParamList>>();
@@ -488,7 +512,7 @@ const SuggestedMealItem = ({ meal, mealType, eaten, onRegenerate }: SuggestedMea
   const handlePress = () => {
     const enhancedMeal = {
       ...meal,
-      image: meal.image || meal.thumbnail || 'https://via.placeholder.com/400x300/333333/FFFFFF?text=No+Image',
+      image: getEncodedImageUrl(meal.image || meal.thumbnail),
       calories: meal.calories || meal.kcal || 0,
       protein: meal.protein || 0,
       carbs: meal.carbs || 0,
@@ -530,13 +554,17 @@ const SuggestedMealItem = ({ meal, mealType, eaten, onRegenerate }: SuggestedMea
       {(meal.image || meal.thumbnail) ? (
         <Image 
           source={{ 
-            uri: meal.image || meal.thumbnail
+            uri: getEncodedImageUrl(meal.image || meal.thumbnail),
+            cache: 'force-cache'
           }} 
           style={[
             styles.suggestedMealImage,
             eaten && styles.suggestedMealImageEaten
           ]}
-          onError={() => setImageError(true)}
+          onError={(e) => {
+            console.log('Error loading image:', e.nativeEvent.error, meal.name);
+            setImageError(true);
+          }}
         />
       ) : (
         <View style={[styles.suggestedMealImage, { backgroundColor: '#333' }]} />
@@ -1438,158 +1466,6 @@ const DashboardScreen: React.FC<DashboardProps> = ({ onLogout }) => {
     );
   };
 
-  const PlannedMealsCard = ({ meals }: { meals: PlannedMeal[] }) => {
-    const navigation = useNavigation();
-    const user = auth.currentUser;
-    
-    const handleDeleteMeal = async (mealId: string) => {
-      if (!user) return;
-
-      Alert.alert(
-        "Изтриване на планирано ястие",
-        "Сигурни ли сте, че искате да изтриете това ястие?",
-        [
-          {
-            text: "Отказ",
-            style: "cancel"
-          },
-          {
-            text: "Изтрий",
-            style: "destructive",
-            onPress: async () => {
-              try {
-                await deleteDoc(doc(db, 'users', user.uid, 'plannedMeals', mealId));
-                showMessage({
-                  message: 'Ястието беше изтрито успешно',
-                  type: 'success',
-                });
-              } catch (error) {
-                console.error('Error deleting meal:', error);
-                showMessage({
-                  message: 'Грешка при изтриване на ястието',
-                  type: 'danger',
-                });
-              }
-            }
-          }
-        ]
-      );
-    };
-
-    const handleEditMeal = (meal: PlannedMeal) => {
-      navigation.navigate('planMeal', { meal });
-    };
-
-    const handleCompleteMeal = async (meal: PlannedMeal) => {
-      if (!user || animatingMeals.includes(meal.id)) return;
-
-      try {
-        setAnimatingMeals(prev => [...prev, meal.id]);
-
-        // Start fade out animation
-        Animated.timing(meal.fadeAnim!, {
-          toValue: 0,
-          duration: 500,
-          useNativeDriver: true,
-        }).start(async () => {
-          // After animation completes, update the database
-          await updateDoc(doc(db, 'users', user.uid, 'plannedMeals', meal.id), {
-            status: 'completed'
-          });
-
-          // Add to today's meals
-          await addDoc(collection(db, 'users', user.uid, 'meals'), {
-            name: meal.name,
-            calories: meal.calories,
-            protein: meal.protein,
-            carbs: meal.carbs,
-            fats: meal.fats,
-            timestamp: new Date(),
-            source: 'planned_meal',
-            originalMealId: meal.id
-          });
-
-          showMessage({
-            message: 'Ястието е отбелязано като изядено',
-            type: 'success',
-          });
-
-          setAnimatingMeals(prev => prev.filter(id => id !== meal.id));
-        });
-      } catch (error) {
-        console.error('Error completing meal:', error);
-        showMessage({
-          message: 'Грешка при отбелязване на ястието',
-          type: 'danger',
-        });
-        setAnimatingMeals(prev => prev.filter(id => id !== meal.id));
-      }
-    };
-
-    return (
-      <View style={[styles.cardContainer, styles.mealsCard]}>
-        <Text style={styles.cardTitle}>Планирани ястия</Text>
-        {meals.filter(meal => meal.status !== 'completed').length > 0 ? (
-          <FlatList
-            data={meals.filter(meal => meal.status !== 'completed')}
-            renderItem={({ item }) => (
-              <Animated.View 
-                style={[
-                  styles.mealItem,
-                  { opacity: item.fadeAnim }
-                ]}
-              >
-                <View style={styles.mealHeader}>
-                  <TouchableOpacity 
-                    style={styles.mealTitleRow}
-                    onPress={() => handleCompleteMeal(item)}
-                  >
-                    <Ionicons 
-                      name="checkmark-circle-outline"
-                      size={24} 
-                      color="#bdbdbd"
-                      style={styles.checkIcon}
-                    />
-                    <Text style={styles.mealName}>{item.name}</Text>
-                  </TouchableOpacity>
-                  <View style={styles.mealActions}>
-                    <TouchableOpacity 
-                      onPress={() => handleEditMeal(item)}
-                      style={styles.actionIcon}
-                    >
-                      <Ionicons name="pencil" size={20} color="#1e88e5" />
-                    </TouchableOpacity>
-                    <TouchableOpacity 
-                      onPress={() => handleDeleteMeal(item.id)}
-                      style={styles.actionIcon}
-                    >
-                      <Ionicons name="trash" size={20} color="#e74c3c" />
-                    </TouchableOpacity>
-                  </View>
-                </View>
-                <Text style={styles.mealTime}>
-                  {item.plannedFor instanceof Date ? 
-                    item.plannedFor.toLocaleDateString('bg-BG', {
-                      hour: '2-digit',
-                      minute: '2-digit',
-                      day: 'numeric',
-                      month: 'long'
-                    }) : 'Invalid date'}
-                </Text>
-                <Text style={styles.mealMacros}>
-                  {item.calories} kcal | П: {item.protein}g | В: {item.carbs}g | М: {item.fats}g
-                </Text>
-              </Animated.View>
-            )}
-            keyExtractor={item => item.id}
-          />
-        ) : (
-          <Text style={styles.noMealsText}>Няма планирани ястия</Text>
-        )}
-      </View>
-    );
-  };
-
   const AchievementsCard = ({ achievements }: { achievements: Achievement[] }) => {
     return (
       <View style={[styles.cardContainer, styles.achievementsCard]}>
@@ -2297,6 +2173,13 @@ const DashboardScreen: React.FC<DashboardProps> = ({ onLogout }) => {
           <View style={styles.headerButtons}>
             <TouchableOpacity
               style={styles.headerButton}
+              onPress={() => navigation.navigate('allRecipes')}
+            >
+              <Ionicons name="restaurant-outline" size={20} color="#4CAF50" />
+            </TouchableOpacity>
+            
+            <TouchableOpacity
+              style={styles.headerButton}
               onPress={() => navigation.navigate('savedMeals')}
             >
               <Ionicons name="bookmark-outline" size={20} color="#4CAF50" />
@@ -2424,7 +2307,7 @@ const DashboardScreen: React.FC<DashboardProps> = ({ onLogout }) => {
 
       // Show loading toast
       Toast.show({
-        type: 'info',
+        type: 'success',
         text1: 'Обновяване на ястията',
         text2: 'Моля, изчакайте...',
         position: 'top',
@@ -2655,7 +2538,6 @@ const DashboardScreen: React.FC<DashboardProps> = ({ onLogout }) => {
                         onDeleteMeal={handleDeleteMeal}
                       />
                       <WeightProgressCard weightHistory={weightHistory} />
-                      <PlannedMealsCard meals={plannedMeals} />
                       <AchievementsCard achievements={achievements} />
                       <View style={styles.logoutContainer}>
                         <SkippedMealNotificationToggle 

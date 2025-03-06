@@ -458,6 +458,27 @@ const MealDetailScreen = () => {
   const servingsText = `${translations.ingredientsFor} ${meal.servings} ${translations.servings}`;
   const directionsText = `${translations.directionsFor} ${meal.servings} ${translations.servings}`;
 
+  const getEncodedImageUrl = (url?: string) => {
+    if (!url) return 'https://via.placeholder.com/300';
+    
+    try {
+      // Handle URLs with spaces, Cyrillic characters, or special symbols
+      const baseUrl = url.split('?')[0]; // Remove any query parameters
+      const encodedUrl = encodeURI(baseUrl);
+      
+      // Check if URL already has a protocol
+      if (!encodedUrl.startsWith('http')) {
+        // If it's a relative path, ensure it has a protocol
+        return `http://${process.env.EXPO_PUBLIC_IPADDRESS || 'localhost'}:3000${encodedUrl.startsWith('/') ? '' : '/'}${encodedUrl}`;
+      }
+      
+      return encodedUrl;
+    } catch (error) {
+      console.error('Error encoding image URL:', error, url);
+      return 'https://via.placeholder.com/300';
+    }
+  };
+
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
@@ -468,13 +489,22 @@ const MealDetailScreen = () => {
 
   return (
     <ScrollView style={styles.container}>
-      <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-        <Ionicons name="chevron-back" size={24} color="#fff" />
-      </TouchableOpacity>
+      <View style={styles.headerContainer}>
+        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+          <Ionicons name="chevron-back" size={24} color="#fff" />
+        </TouchableOpacity>
+        <Text style={styles.title}>{meal.name}</Text>
+        <View style={styles.headerSpacer} />
+      </View>
       
-      <Text style={styles.title}>{meal.name}</Text>
-      
-      <Image source={{ uri: meal.image }} style={styles.mealImage} />
+      <Image 
+        source={{ 
+          uri: getEncodedImageUrl(meal.image),
+          cache: 'force-cache' 
+        }}
+        onError={(e) => console.log('Error loading meal image:', e.nativeEvent.error)}
+        style={styles.mealImage} 
+      />
       
       <View style={styles.actionButtons}>
         <TouchableOpacity style={styles.actionButton} onPress={handleBlockMeal}>
@@ -615,24 +645,30 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#000000',
   },
+  headerContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingTop: 50,
+    paddingBottom: 10,
+    paddingHorizontal: 15,
+  },
   backButton: {
-    position: 'absolute',
-    top: 40,
-    left: 10,
-    zIndex: 1,
-    padding: 10,
+    padding: 5,
+  },
+  headerSpacer: {
+    width: 30, // Equal width to balance the header
   },
   title: {
+    flex: 1,
     fontSize: 24,
     color: '#fff',
     fontWeight: 'bold',
-    marginTop: 40,
-    marginHorizontal: 20,
+    textAlign: 'center',
   },
   mealImage: {
     width: '100%',
     height: 300,
-    marginTop: 20,
+    marginTop: 10,
   },
   actionButtons: {
     flexDirection: 'row',
