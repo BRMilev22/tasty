@@ -357,7 +357,7 @@ const GoalsScreen = () => {
         <StyledView style={styles.modalOverlay}>
           <StyledView style={styles.modalContainer}>
             <StyledText style={styles.modalTitle}>
-              {selectedGoal ? 'Edit Goal' : 'New Goal'}
+              {selectedGoal ? 'Редактирайте цел' : 'Нова цел'}
             </StyledText>
             
             {/* Category Selector */}
@@ -378,7 +378,7 @@ const GoalsScreen = () => {
 
             {/* Progress Slider */}
             <StyledView style={styles.progressInput}>
-              <StyledText style={styles.inputLabel}>Progress</StyledText>
+              <StyledText style={styles.inputLabel}>Прогрес</StyledText>
               <Slider
                 value={progress}
                 onValueChange={setProgress}
@@ -397,14 +397,14 @@ const GoalsScreen = () => {
                 style={[styles.modalButton, styles.modalCancelButton]} 
                 onPress={closeModal}
               >
-                <StyledText style={styles.modalButtonText}>Cancel</StyledText>
+                <StyledText style={styles.modalButtonText}>Откажи</StyledText>
               </StyledTouchableOpacity>
               
               <StyledTouchableOpacity 
                 style={[styles.modalButton, styles.modalSaveButton]} 
                 onPress={handleSaveGoal}
               >
-                <StyledText style={styles.modalButtonText}>Save</StyledText>
+                <StyledText style={styles.modalButtonText}>Запази</StyledText>
               </StyledTouchableOpacity>
             </StyledView>
           </StyledView>
