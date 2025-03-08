@@ -142,8 +142,8 @@
 
 <h4 align="center">Тук ще намерите връзки към публичната документация, презентацията и брошурата на проекта и приложението. Те са предоставени само за справка и не бива да се използват като шаблони за други проекти или за други цели без изрично разрешение от създателите на "Тейсти".</h4>
 
-  📄 <a href="https://codingburgas-my.sharepoint.com/:b:/g/personal/badimov21_codingburgas_bg/EXcVEnHJUilIqbTXT9eRWd8BTsluxJmMk26wYFZsWdEoKQ?e=0NOoMY">Документация</a><br>
-  📊 <a href="https://codingburgas-my.sharepoint.com/:p:/g/personal/badimov21_codingburgas_bg/EQoABq-Lb4hBpfLJz6mPRcEBkQ6zwhJv8F-MS8s6CPHz7A?e=tzQwcQ">Презентация</a><br>
+  📄 <a href="https://codingburgas-my.sharepoint.com/:b:/g/personal/badimov21_codingburgas_bg/EQIDtbYYVSFFkALEZpzrxzcBnOe6FlzF7nITLpTA1zJK8A?e=8DAxdX">Документация</a><br>
+  📊 <a href="https://codingburgas-my.sharepoint.com/:p:/g/personal/badimov21_codingburgas_bg/ESlwEDKh-8tGk_U2EGfatmsBlyKlYe_2W1zkOWhv997gQg?e=BUdm66">Презентация</a><br>
   📘 <a href="https://codingburgas-my.sharepoint.com/:b:/g/personal/badimov21_codingburgas_bg/EdrQgB07haZJpfVEsO2dWD4B6pjEXr7tD3iaVNxh6ivp6w?e=MTN5o8">Брошура</a><br>
 
 
