@@ -147,95 +147,98 @@
   📘 <a href="https://codingburgas-my.sharepoint.com/:b:/g/personal/badimov21_codingburgas_bg/EdrQgB07haZJpfVEsO2dWD4B6pjEXr7tD3iaVNxh6ivp6w?e=MTN5o8">Брошура</a><br>
 
 
-### 🔧 Файлова структура на проекта
+### 🔧 Файлова архитектура на проекта
+Проекът "Тейсти" е написан на React Native с TypeScript и използва една от най-разпространените съвместими архитектури, а именно - <strong>функционално сегментирана архитектура</strong> (feature-sliced architecture). <br>
 Преглед на структурата на всички директории и най-важните файлове в тях:
   ```bash
-TASTY/
+tasty/
 ├── .expo/
-├── .firebase/
-├── android/
-├── api/
-│   └── index.ts
-├── app/                         # All screen components organized by feature
-│   ├── (tabs)/
-│   │   ├── addMeal.tsx
-│   │   ├── dashboard.tsx
-│   │   ├── goals.tsx
-│   │   ├── inventory.tsx
-│   │   ├── mealDetail.tsx
-│   │   ├── planMeal.tsx
-│   │   ├── RecipeDetailScreen.tsx
-│   │   ├── recipes.tsx
-│   │   ├── scan.tsx
-│   │   └── trackWeight.tsx 
-│   ├── auth/                    # Authentication-related screens
-│   │   ├── AuthScreen.tsx
-│   │   └── RegisterScreen.tsx   
-│   ├── components/              # Onboarding & Setup screens
-│   │   ├── AddMealButton.tsx
-│   │   ├── LogMealModal.tsx
-│   │   ├── ManualMenuInput.tsx
-│   │   ├── MealSelector.tsx
-│   │   └── NutritionCard.tsx
-│   ├── data/
-│   │   └── predefinedMeals.ts
-│   ├── services/
-│   │   └── mealService.ts
-│   ├── types/
-│   │   └── navigation.ts
-│   ├── _layout_.tsx
-│   ├── editProfile.tsx
-│   ├── genderSelect.tsx
-│   ├── goalsSelect.tsx
-│   ├── heightSelect.tsx
-│   ├── weightSelect.tsx
-│   └── welcomeScreen.tsx
-├── components/                  # Reusable components
-│   ├── __tests__/
-│   ├── EditScreenInfo.tsx
-│   ├── ExternalLink.tsx
-│   ├── Logo.tsx
-│   ├── StyledText.tsx
-│   ├── Themed.tsx
-│   ├── useClientOnlyValue.ts
-│   ├── useClientOnlyValue.web.ts
-│   ├── useColorScheme.ts
-│   └── useColorScheme.web.ts
-├── assets/                      # Static assets such as images and fonts
-│   ├── fonts/
-│   └── images/
-├── constants/                   # Constants and configuration files
-│   └── Colors.ts
-├── docs/
-├── ios/
-├── moblie-app-landing-template/
-├── node_modules/      
-├── public/                      # Public assets
-├── scripts/
+├── .firebaserc                 
+├── .gitignore                 
+├── android/                   
+├── app.json                   
+├── babel.config.js             
+├── docs/                       
+│   ├── brochure/
+│   ├── presentation/
+│   └── tasty_public.pdf
+├── eas.json                    
+├── expo-env.d.ts              
+├── firebase.json               
+├── firestore.rules             
+├── index.js                    
+├── ios/                        
+├── metro.config.js            
+├── package-lock.json           
+├── package.json               
+├── react-native.d.ts           
+├── README.md                   
+├── scripts/                    
 │   └── testReceiptProcessing.ts
-├── services/
-│   ├── receiptProcessingService.ts/
-│   └── recipeService.ts
-├── types/
-│   └── env.d.ts
-├── web/
-├── .firebaserc
-├── .gitignore
-├── app.json
-├── babel.config.js
-├── eas.json
-├── expo-env.d.ts                # Expo environment type definitions
-├── firebase.json                # Firebase configuration file
-├── firebaseConfig.ts            # Firebase SDK initialization and config
-├── firestore.rules
-├── index.js
-├── metro.config.js
-├── package-lock.json
-├── package.json
-├── README.md
-├── SECURITY.md
-├── tailwind.config.js           # TailwindCSS configuration
-└── tsconfig.json                # TypeScript configuration
+├── SECURITY.md                
+├── src/                       
+│   ├── pages/                  
+│   │   ├── meals/
+│   │   │   ├── addMeal.tsx
+│   │   │   ├── mealDetail.tsx
+│   │   │   ├── planMeal.tsx
+│   │   │   └── savedMeals.tsx
+│   │   ├── recipes/
+│   │   │   ├── allRecipes.tsx
+│   │   │   ├── RecipeDetailScreen.tsx
+│   │   │   └── recipes.tsx
+│   │   ├── weight-tracking/
+│   │   │   └── trackWeight.tsx
+│   │   └── welcome/
+│   │       └── welcomeScreen.tsx
+│   ├── shared/                 
+│   │   ├── api/
+│   │   │   ├── backend/
+│   │   │   │   ├── index.ts
+│   │   │   │   ├── package-lock.json
+│   │   │   │   └── package.json
+│   │   │   └── services/
+│   │   │       ├── mealService.ts
+│   │   │       ├── receiptProcessing.ts
+│   │   │       └── recipeService.ts
+│   │   ├── assets/
+│   │   │   ├── fonts/
+│   │   │   │   └── SpaceMono-Regular.ttf
+│   │   │   └── images/
+│   │   │       ├── adaptive-icon.png
+│   │   │       ├── favicon.png
+│   │   │       ├── icon.png
+│   │   │       ├── splash.png
+│   │   │       ├── tasty-logo.png
+│   │   │       └── default-meal.jpg
+│   │   ├── config/            
+│   │   │   ├── firebase.json   
+│   │   │   ├── firebaseConfig.ts
+│   │   │   ├── firestore.rules
+│   │   │   └── tailwind.config.js
+│   │   ├── lib/
+│   │   │   └── Colors.ts
+│   │   ├── types/
+│   │   │   ├── env.d.ts
+│   │   │   └── navigation.ts
+│   │   └── ui/                
+│   │       ├── _tests_/
+│   │       │   └── StyledText-test.js
+│   │       ├── EditScreenInfo.tsx
+│   │       ├── ExternalLink.tsx
+│   │       ├── Logo.tsx
+│   │       ├── StyledText.tsx
+│   │       ├── Themed.tsx
+│   │       ├── useClientOnlyValue.tsx
+│   │       ├── useClientOnlyValue.web.tsx
+│   │       ├── useColorScheme.ts
+│   │       └── useColorScheme.web.ts
+│   └── widgets/              
+│       ├── meal-cards/
+│       │   └── MealSelector.tsx
+│       └── nutrition/
+│           └── NutritionCard.tsx
+└── tsconfig.json              
 ```
 
 <h3 align="center"> Благодарим Ви и дано приложението Ви хареса! <h3>
