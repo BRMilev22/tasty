@@ -1,0 +1,12 @@
+{
+  "hosting": {
+    "public": "dist",
+    "redirects": [
+      {
+        "source": "/",
+        "destination": "./auth/AuthScreen.html",
+        "type": 301
+      }
+    ]
+  }
+}

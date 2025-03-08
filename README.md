@@ -53,13 +53,13 @@
 - **[Божидар Димов](https://github.com/BADimov21)**
   	- Имейл: BADimov21@codingburgas.bg
   	- Full-Stack разработчик
-  	- Създател на „Tasty“
+  	- Създател на "Tasty"
   	- Ученик по програмиране и информационни технологии в ПГ по компютърно програмиране и иновации, гр. Бургас
   	- Специалност: Приложно програмиране
 - **[Борис Милев](https://github.com/BRMilev22)**
   - Имейл: BRMilev22@codingburgas.bg  
   - Full-Stack разработчик
-  - Създател на „Tasty“
+  - Създател на "Tasty"
   - Ученик по програмиране и информационни технологии в ПГ по компютърно програмиране и иновации, гр. Бургас
   - Специалност: Програмиране на роботи
 
@@ -238,7 +238,62 @@ TASTY/
 └── tsconfig.json                # TypeScript configuration
 ```
 
+# Tasty App
+
+This application has been restructured using Feature Sliced Architecture (FSA).
+
+## Directory Structure
+
+The project follows Feature Sliced Architecture with the following layers:
+
+- **app** - Application initialization, providers, and global styles
+  - `entry` - Application entry points
+  - `providers` - Global providers
+  - `styles` - Global styles
+
+- **processes** - Complex inter-feature processes and business flows
+
+- **pages** - Compositions of widgets and features for each page
+  - `auth` - Authentication pages
+  - `dashboard` - Main dashboard
+  - `recipes` - Recipe-related pages
+  - `meals` - Meal planning and tracking pages
+  - `inventory` - Inventory management pages
+  - `weight-tracking` - Weight tracking pages
+  - `goals` - User goals pages
+  - `welcome` - Onboarding pages
+
+- **widgets** - Compositions of entities and features for specific UI blocks
+  - `nutrition` - Nutrition information displays
+  - `meal-cards` - Meal card components
+  - `recipe-cards` - Recipe card components
+
+- **features** - Business logic and UI for specific use cases
+  - `auth` - Authentication features
+  - `meal-planning` - Meal planning features
+  - `weight-tracking` - Weight tracking features
+  - `recipe-management` - Recipe management features
+  - `inventory` - Inventory management features
+
+- **entities** - Business entities with their logic and UI
+  - `user` - User entity components
+  - `meal` - Meal entity components
+  - `recipe` - Recipe entity components
+  - `weight` - Weight tracking entity components
+
+- **shared** - Reusable functionality without business logic
+  - `api` - API integrations
+  - `config` - Configuration files
+  - `lib` - Utility libraries
+  - `ui` - UI components library
+  - `types` - TypeScript type definitions
+  - `assets` - Static assets
+
+## Original README
+
+[Original README content follows]
+
 <h3 align="center"> Благодарим Ви и дано приложението Ви хареса! <h3>
 <hr>
-<h4 align="center"> Създадено от екипа на „Tasty“ - Божидар Димов и Борис Милев | &copy 2024 - 2025 Всички права запазени.</h4>
+<h4 align="center"> Създадено от екипа на "Tasty" - Божидар Димов и Борис Милев | &copy 2024 - 2025 Всички права запазени.</h4>
 <h2 align="center">Благодарим Ви, че разгледахте нашето repo! Покажете малко ❤️, като дадете ⭐️ на repo-то!</h2>

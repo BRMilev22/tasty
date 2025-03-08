@@ -1,1 +1,0 @@
-__d((function(g,r,i,a,m,e,d){Object.defineProperty(e,"__esModule",{value:!0}),Object.defineProperty(e,"AssumeRoleCommand",{enumerable:!0,get:function(){return n.AssumeRoleCommand}}),Object.defineProperty(e,"STSClient",{enumerable:!0,get:function(){return n.STSClient}});var n=r(d[0])}),1252,[3950]);

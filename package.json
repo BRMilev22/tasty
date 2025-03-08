@@ -1,6 +1,6 @@
 {
   "name": "tasty",
-  "main": "expo-router/entry",
+  "main": "index.js",
   "version": "1.0.0",
   "scripts": {
     "start": "expo start --dev-client",
@@ -14,7 +14,7 @@
   },
   "dependencies": {
     "@expo/vector-icons": "^14.0.2",
-    "@react-native-async-storage/async-storage": "1.23.1",
+    "@react-native-async-storage/async-storage": "^1.23.1",
     "@react-native-community/datetimepicker": "^8.2.0",
     "@react-native-community/slider": "^4.5.5",
     "@react-native-picker/picker": "^2.7.5",
@@ -31,6 +31,7 @@
     "expo": "~52.0.36",
     "expo-blur": "~14.0.3",
     "expo-camera": "~16.0.17",
+    "expo-cli": "^6.3.12",
     "expo-constants": "~17.0.7",
     "expo-font": "~13.0.4",
     "expo-image-manipulator": "~13.0.6",

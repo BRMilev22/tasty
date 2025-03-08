@@ -1,8 +1,7 @@
+// This is the main entry point for the application
+import { AppRegistry } from 'react-native';
 import { registerRootComponent } from 'expo';
+import App from './src/app/entry/App';
 
-import App from './App';
-
-// registerRootComponent calls AppRegistry.registerComponent('main', () => App);
-// It also ensures that whether you load the app in Expo Go or in a native build,
-// the environment is set up appropriately
+// For a standard Expo app, use registerRootComponent instead of AppRegistry
 registerRootComponent(App);
