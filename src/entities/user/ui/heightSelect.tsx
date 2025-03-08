@@ -57,7 +57,7 @@ const HeightSelectionScreen = () => {
           { merge: true } // Merge with existing document fields
         );
 
-        // Navigate to the next screen (e.g., dashboard or next registration step)
+        // Navigate to the next screen
         router.push('/entry/App');
       } catch (error) {
         console.error('Error saving height: ', error);

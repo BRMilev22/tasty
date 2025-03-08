@@ -60,7 +60,7 @@ const GenderSelectionScreen = () => {
           { merge: true } // Merge with existing document fields
         );
 
-        // Navigate to the next screen (e.g., GoalSelectionScreen)
+        // Navigate to the next screen
         router.replace('/targetWeightSelect'); // Change to your next screen route
       } catch (error) {
         console.error('Error saving gender: ', error);

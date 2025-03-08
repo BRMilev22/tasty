@@ -57,7 +57,7 @@ const WeightSelectionScreen = () => {
           { merge: true } // Merge with existing document fields
         );
 
-        // Navigate to the next screen (e.g., gender selection)
+        // Navigate to the next screen
         router.replace('/genderSelect');
       } catch (error) {
         console.error('Error saving weight: ', error);

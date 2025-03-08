@@ -347,7 +347,7 @@ type RootStackParamList = {
   dashboard: undefined;
   scan: undefined;
   planMeal: undefined;
-  login: undefined;  // Add login screen to the type
+  login: undefined;
 };
 
 // Use the typed navigation
@@ -377,7 +377,7 @@ const ScanScreen = () => {
   const cameraRef = useRef(null);
   const navigation = useNavigation<NavigationProp>();
 
-  // Add your LogMeal API key
+  // LogMeal API key
   const LOGMEAL_API_KEY = process.env.EXPO_PUBLIC_LOGMEAL_API_KEY;
 
   // Visibility logic
@@ -385,7 +385,7 @@ const ScanScreen = () => {
   const showFoodDetails = isFoodMode && foodRecognitionResult && !isReceiptMode;
   const showReceiptDetails = isReceiptMode && isShowingReceiptDetails && receiptItems.length > 0;
 
-  // Add auth state monitoring
+  // Auth state monitoring
   const [isAuthenticated, setIsAuthenticated] = useState(false);
 
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -411,7 +411,7 @@ const ScanScreen = () => {
     })();
   }, []);
 
-  // Add fade animation effect
+  // Fade animation effect
   useEffect(() => {
     if (isProcessingReceipt) {
       Animated.loop(

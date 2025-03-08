@@ -71,7 +71,7 @@ const RecipeDetailScreen = () => {
         carbs: nutritionalInfo.carbs || 0,
         fats: nutritionalInfo.fat || 0,
         timestamp: serverTimestamp(),
-        type: 'recipe', // or any other type you want to define
+        type: 'recipe',
       };
 
       await addDoc(collection(db, 'users', user.uid, 'meals'), mealData);

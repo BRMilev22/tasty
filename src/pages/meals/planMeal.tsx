@@ -39,7 +39,7 @@ type FoodGroup = {
 type PortionSize = 'small' | 'medium' | 'large';
 type MealType = keyof typeof averageMeals;
 
-// First, let's add a type and constant for our categories
+// Type and constant for the categories
 type MealCategory = 'ЗАКУСКИ' | 'ОБЯД' | 'ВЕЧЕРЯ' | 'БЪРЗО ХРАНЕНЕ' | 'СНАКСОВЕ';
 
 const mealCategories: { [key: string]: MealCategory } = {
@@ -92,7 +92,7 @@ const mealCategories: { [key: string]: MealCategory } = {
   snack_croissant: 'СНАКСОВЕ',
 };
 
-// Add this type for collapsible state
+// Type for collapsible state
 type CollapsibleState = { [key in MealCategory]: boolean };
 
 const averageMeals: { [key: string]: FoodGroup } = {

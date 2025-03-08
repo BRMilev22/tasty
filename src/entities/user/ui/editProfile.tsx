@@ -311,7 +311,6 @@ const styles = StyleSheet.create({
   },
 });
 
-// Add this interface for the ReauthenticationDialog props
 interface ReauthDialogProps {
   visible: boolean;
   currentPassword: string;
@@ -320,7 +319,6 @@ interface ReauthDialogProps {
   onConfirm: () => void;
 }
 
-// Update the ReauthenticationDialog component to use props
 const ReauthenticationDialog: React.FC<ReauthDialogProps> = ({
   visible,
   currentPassword,
@@ -414,7 +412,6 @@ const EditProfileScreen = () => {
         { label: 'Изключително активен', value: 1.9 }
     ] as const;
 
-    // First, let's create a translation map for the goals
     const goalTranslations: { [key: string]: string } = {
         'Maintain Weight': 'Поддържане на тегло',
         'Lose Weight': 'Отслабване',
@@ -620,7 +617,6 @@ const EditProfileScreen = () => {
                 goalWeight,
                 activityLevel: Number(activityLevel),
                 profileImage,
-                // ... other user data ...
             }, { merge: true });
 
             showMessage({

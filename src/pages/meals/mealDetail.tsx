@@ -454,7 +454,7 @@ const MealDetailScreen = () => {
     ];
   };
 
-  // Актуализираме текста за порциите
+  // Update the servings text
   const servingsText = `${translations.ingredientsFor} ${meal.servings} ${translations.servings}`;
   const directionsText = `${translations.directionsFor} ${meal.servings} ${translations.servings}`;
 

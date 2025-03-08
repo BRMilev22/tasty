@@ -57,7 +57,7 @@ const TargetWeightSelectionScreen = () => {
           { merge: true } // Merge with existing document fields
         );
 
-        // Navigate to the next screen (e.g., dashboard)
+        // Navigate to the next screen
         router.replace('/dashboard');
       } catch (error) {
         console.error('Error saving target weight: ', error);

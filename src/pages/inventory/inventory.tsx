@@ -401,7 +401,9 @@ const EditItemModal = memo(({
     }
   }, [item]);
 
-  if (!item) return null;
+  if (!item) {
+    return null;
+  }
 
   return (
     <Modal
@@ -696,8 +698,9 @@ const InventoryScreen = () => {
 
   const handleEatItem = async (item: InventoryItem) => {
     try {
-      if (!user) return;
-
+      if (!user) {
+        return;
+      }
       // Log the meal
       await addDoc(collection(db, 'users', user.uid, 'meals'), {
         name: item.name,

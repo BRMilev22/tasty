@@ -1,3 +1,6 @@
+/**
+ * Meal data structure definition with nutritional information
+ */
 export interface Meal {
   id: string;
   name: string;
@@ -5,12 +8,13 @@ export interface Meal {
   protein: number;
   carbs: number;
   fats: number;
-  image?: string;
+  image?: string; // Optional meal image URL
   category: string;
 }
 
-// This is a sample dataset - you can expand this with more meals or 
-// fetch from an API
+/**
+ * Predefined meals with nutritional data and category information
+ */
 export const predefinedMeals: Meal[] = [
   {
     id: '1',
@@ -214,6 +218,11 @@ export const predefinedMeals: Meal[] = [
   }
 ];
 
+/**
+ * Available meal categories (in Bulgarian)
+ * всички (all), закуска (breakfast), основно (main), салата (salad), 
+ * десерт (dessert), снакс (snacks)
+ */
 export const categories = [
   'всички',
   'закуска',
@@ -221,4 +230,4 @@ export const categories = [
   'салата',
   'десерт',
   'снакс',
-]; 
+];
