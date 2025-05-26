@@ -1,5 +1,5 @@
 import express from 'express';
-import mysql, { RowDataPacket, ResultSetHeader, OkPacket } from 'mysql2/promise';
+import mysql from 'mysql2/promise';
 import cors from 'cors';
 
 const app = express();
@@ -58,8 +58,8 @@ pool.getConnection()
     process.exit(1);
   });
 
-// Add this interface to match your database schema
-interface MealResult extends RowDataPacket {
+// Define types to match mysql2 internal types
+interface MealResult {
   id: number;
   name: string;
   category: string;
@@ -81,7 +81,8 @@ interface MealResult extends RowDataPacket {
   measure1?: string;
   ingredient2?: string;
   measure2?: string;
-  // ... continue for all 20 pairs
+  // ... and so on for all 20 pairs
+  [key: string]: any; // Allow for dynamic ingredient/measure access
 }
 
 // Add this helper function to safely encode URLs
@@ -116,11 +117,11 @@ app.get('/', (req, res) => {
 app.get('/recipes/all', async (req, res) => {
   try {
     console.log('Fetching all recipes');
-    const [rows] = await pool.execute<MealResult[]>(`
+    const [rows] = await pool.execute(`
       SELECT *
       FROM recipesBulgarian 
       ORDER BY name
-    `);
+    `) as [MealResult[], any];
 
     console.log(`Found ${rows.length} recipes`);
     const transformedMeals = rows.map(meal => ({
@@ -147,8 +148,8 @@ app.get('/recipes/all', async (req, res) => {
       servings: parseInt(meal.servings?.toString()) || 0,
       ingredients: Array.from({ length: 20 }, (_, i) => {
         const num = i + 1;
-        const ingredient = meal[`ingredient${num}` as keyof MealResult];
-        const measure = meal[`measure${num}` as keyof MealResult];
+        const ingredient = meal[`ingredient${num}`];
+        const measure = meal[`measure${num}`];
         if (ingredient && measure) {
           return { name: ingredient, measure: measure };
         }
@@ -170,12 +171,12 @@ app.get('/recipes/random', async (req, res) => {
     // Get limit from query parameter, default to 50 if not provided
     const limit = req.query.limit ? parseInt(req.query.limit as string) : 50;
     
-    const [rows] = await pool.execute<MealResult[]>(`
+    const [rows] = await pool.execute(`
       SELECT *
       FROM recipesBulgarian 
       ORDER BY RAND() 
       LIMIT ${Math.min(limit, 352)} 
-    `);
+    `) as [MealResult[], any];
 
     const transformedMeals = rows.map(meal => ({
       id: meal.id,
@@ -201,8 +202,8 @@ app.get('/recipes/random', async (req, res) => {
       servings: parseInt(meal.servings?.toString()) || 0,
       ingredients: Array.from({ length: 20 }, (_, i) => {
         const num = i + 1;
-        const ingredient = meal[`ingredient${num}` as keyof MealResult];
-        const measure = meal[`measure${num}` as keyof MealResult];
+        const ingredient = meal[`ingredient${num}`];
+        const measure = meal[`measure${num}`];
         if (ingredient && measure) {
           return { name: ingredient, measure: measure };
         }
@@ -225,10 +226,10 @@ app.get('/recipes/random', async (req, res) => {
 // Get meals by category
 app.get('/recipes/category/:category', async (req, res) => {
   try {
-    const [rows] = await pool.query<MealResult[]>(
+    const [rows] = await pool.query(
       'SELECT * FROM recipesBulgarian WHERE category = ?',
       [req.params.category]
-    );
+    ) as [MealResult[], any];
     
     res.json({ meals: rows });
   } catch (error) {
@@ -240,7 +241,7 @@ app.get('/recipes/category/:category', async (req, res) => {
 // Add this route after your other routes
 app.get('/recipes/details/:id', async (req, res) => {
   try {
-    const [rows] = await pool.query<MealResult[]>(`
+    const [rows] = await pool.query(`
       SELECT 
         preparation_time,
         cooking_time,
@@ -248,7 +249,7 @@ app.get('/recipes/details/:id', async (req, res) => {
         servings
       FROM recipesBulgarian 
       WHERE id = ?
-    `, [req.params.id]);
+    `, [req.params.id]) as [MealResult[], any];
 
     if (!rows || rows.length === 0) {
       res.status(404).json({ error: 'Meal details not found' });
@@ -279,7 +280,7 @@ app.get('/recipes/name/:name', async (req, res) => {
       WHERE name = ?
     `;
     
-    const [rows] = await pool.execute<MealResult[]>(query, [name]);
+    const [rows] = await pool.execute(query, [name]) as [MealResult[], any];
     
     if (!rows || rows.length === 0) {
       return res.status(404).json({ error: 'Recipe not found' });
@@ -312,8 +313,8 @@ app.get('/recipes/name/:name', async (req, res) => {
       servings: parseInt(meal.servings?.toString()) || 0,
       ingredients: Array.from({ length: 20 }, (_, i) => {
         const num = i + 1;
-        const ingredient = meal[`ingredient${num}` as keyof MealResult];
-        const measure = meal[`measure${num}` as keyof MealResult];
+        const ingredient = meal[`ingredient${num}`];
+        const measure = meal[`measure${num}`];
         if (ingredient && measure) {
           return { name: ingredient, measure: measure };
         }
@@ -334,7 +335,7 @@ app.get('/recipes/name/:name', async (req, res) => {
 // Get meal by ID - place this AFTER other /recipes/ routes
 app.get('/recipes/:id', async (req, res) => {
   try {
-    const [rows] = await pool.query<MealResult[]>(`
+    const [rows] = await pool.query(`
       SELECT 
         id,
         name,
@@ -374,7 +375,7 @@ app.get('/recipes/:id', async (req, res) => {
         ingredient20, measure20
       FROM recipesBulgarian 
       WHERE id = ?
-    `, [req.params.id]);
+    `, [req.params.id]) as [MealResult[], any];
     
     if (!rows || rows.length === 0) {
       res.status(404).json({ error: 'Meal not found' });
@@ -400,15 +401,29 @@ app.get('/ingredients', async (req, res) => {
     `);
     console.log('Database columns:', columns);
 
-    const [rows] = await pool.query<RowDataPacket[]>(`
+    interface IngredientResult {
+      id: number;
+      name: string;
+      english_name: string;
+      image_url: string;
+      image_small_url: string;
+      image_medium_url: string;
+      calories_100g: number;
+      protein_100g: number;
+      carbs_100g: number;
+      fat_100g: number;
+      [key: string]: any;
+    }
+
+    const [rows] = await pool.query(`
       SELECT id, name, english_name, image_url, image_small_url, image_medium_url,
-             calories_100g, 
-             protein_100g, 
-             carbs_100g, 
-             fat_100g 
+            calories_100g, 
+            protein_100g, 
+            carbs_100g, 
+            fat_100g 
       FROM ingredientsBulgarian
       ORDER BY name
-    `);
+    `) as [IngredientResult[], any];
     
     // Log the first row to see what data we're getting
     if (rows.length > 0) {
@@ -434,4 +449,4 @@ app.listen(PORT, () => {
   console.log('  GET /recipes/details/:id');
   console.log('  GET /recipes/name/:name');
   console.log('  GET /recipes/all');
-}); 
+});
