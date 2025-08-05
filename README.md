@@ -1,86 +1,88 @@
 <p align="center"><img src="https://github.com/user-attachments/assets/428d2e63-de9f-43f6-9bfd-118885eefa2b" width="200" height="250" alt="Tasty Logo"></p>
 
-# 🍽️ Tasty - Приложение за планиране на здравословно хранене
+# 🍽️ Tasty - Healthy Meal Planning Application
 
-**Tasty** е приложение за планиране на здравословно хранене, разработено с **React Native** и **TypeScript**, което предлага мобилна и уеб версия. Потребителите могат да създават персонализирани планове за хранене, да проследяват инвентара си чрез сканиране на баркодове и касови бележки и да получават препоръки за рецепти въз основа на инвентара и целите си.
+> 📖 **[Прочетете на български / Read in Bulgarian](README-BG.md)**
 
-## 📦 Функционалности
+**Tasty** is a healthy meal planning application developed with **React Native** and **TypeScript**, offering both mobile and web versions. Users can create personalized meal plans, track their inventory through barcode and receipt scanning, and receive recipe recommendations based on their inventory and goals.
 
-- **Регистрация и вписване на потребителите:** 
-  - Създаване на профил с основна информация като пол, възраст, височина и тегло.
+## 📦 Features
+
+- **User Registration and Login:** 
+  - Create a profile with basic information such as gender, age, height, and weight.
   
-- **Цели:** 
-  - Задаване на цел — **Повишаване на теглото**, **Поддържане на теглото**, или **Отслабване**.
+- **Goals:** 
+  - Set a goal — **Weight Gain**, **Weight Maintenance**, or **Weight Loss**.
 
-- **Табло за управление:** 
-  - Преглеждане на персонализиран напредък и статистика, включително прием на калории и скорошни дейности.
+- **Dashboard:** 
+  - View personalized progress and statistics, including calorie intake and recent activities.
   
-- **Менажиране на инвентара:** 
-  - Сканиране на хранителни продукти при пазаруване или при всяка ситуация и автоматично добавяне към инвентара.
+- **Inventory Management:** 
+  - Scan food products while shopping or in any situation and automatically add them to inventory.
 
-- **Препоръки и генериране на рецепти чрез изкуствен интелект:** 
-  - Получаване на рецепти, съобразени с инвентара и диетичните цели.
+- **AI-powered Recipe Recommendations and Generation:** 
+  - Receive recipes tailored to your inventory and dietary goals.
 
-- **Поддръжка на различни платформи:** 
-  - Достъпно за телефон или в мрежата.
+- **Multi-platform Support:** 
+  - Available on mobile or web.
 
-- **Баркод скенер, скенер на касови бележки и разпознаване на храна чрез сканиране:** 
-  - Сканиране на хранителните продукти за бързо добавяне към инвентара чрез баркода на опаковката; сканиране на касова бележка за бързо разпознаване на хранителните продукти и тяхното добавяне в инвентара; сканиране на храна, която се разпознава чрез изкуствен интелект и биват генерирани нейните хранителни стойности.
+- **Barcode Scanner, Receipt Scanner, and Food Recognition through Scanning:** 
+  - Scan food products for quick addition to inventory via package barcode; scan receipts for quick food product recognition and addition to inventory; scan food that is recognized through artificial intelligence with generated nutritional values.
  
-## 🎬 Демонстрация
-<h3>Кликнете <a href="https://codingburgas-my.sharepoint.com/:v:/g/personal/badimov21_codingburgas_bg/EYzM0snp5SpLu5B1vwi9hFkBmv3ev_VnW_jSZnWvKAIU-w?e=NhKLOQ">тук</a> за видео демонстрация на приложението.</h3>
+## 🎬 Demo
+<h3>Click <a href="https://codingburgas-my.sharepoint.com/:v:/g/personal/badimov21_codingburgas_bg/EYzM0snp5SpLu5B1vwi9hFkBmv3ev_VnW_jSZnWvKAIU-w?e=NhKLOQ">here</a> for a video demonstration of the application.</h3>
   
-## 🛠️ Технологии
+## 🛠️ Technologies
 
 - **Frontend:**
-  - [React Native](https://reactnative.dev/) - Framework за създаване на native приложения с помощта на React.
-  - [TypeScript](https://www.typescriptlang.org/) - Програмен език и типизиран супернабор на JavaScript за изграждане на надеждни приложения.
-  - [NativeWind](https://www.nativewind.dev/) - Библиотека за използване на Tailwind CSS с React Native, която улеснява стилизирането и го прави по-стабилно за различни платформи.
-  - [Expo Go](https://expo.dev/) - Платформа за универсални native приложения за Android, iOS и уеб.
-  - [Expo Camera](https://docs.expo.dev/versions/latest/sdk/camera/) - Използва се за сканиране на баркодове и заснемане на изображения.
+  - [React Native](https://reactnative.dev/) - Framework for building native apps using React.
+  - [TypeScript](https://www.typescriptlang.org/) - A programming language and typed superset of JavaScript for building reliable applications.
+  - [NativeWind](https://www.nativewind.dev/) - Library for using Tailwind CSS with React Native, making styling easier and more consistent across platforms.
+  - [Expo Go](https://expo.dev/) - Platform for universal native apps for Android, iOS, and web.
+  - [Expo Camera](https://docs.expo.dev/versions/latest/sdk/camera/) - Used for barcode scanning and image capture.
   
 - **Backend:**
-  - [Node.js](https://nodejs.org/) - Mногоплатформена среда за изпълнение на сървърни и мрежови приложения с отворен код.
-  - [Express](https://expressjs.com/) - Минимален и гъвкав framework за уеб приложения с Node.js.
-  - [Firebase](https://firebase.google.com/) - Платформата на Google за сигурно съхранение на данни при мобилни и уеб приложения.
+  - [Node.js](https://nodejs.org/) - Cross-platform, open-source runtime environment for server-side and networking applications.
+  - [Express](https://expressjs.com/) - Minimal and flexible Node.js web application framework.
+  - [Firebase](https://firebase.google.com/) - Google's platform for secure data storage for mobile and web applications.
 
-- **Документация**
-  - [MS Word](https://www.microsoft.com/en-us/microsoft-365/word) - За направа на документацията и брошурата на проекта и приложението.
-  - [MS PowerPoint](https://www.microsoft.com/en-us/microsoft-365/powerpoint) - За направа на презентацията на проекта и приложението. 
+- **Documentation**
+  - [MS Word](https://www.microsoft.com/en-us/microsoft-365/word) - For creating project and application documentation and brochure.
+  - [MS PowerPoint](https://www.microsoft.com/en-us/microsoft-365/powerpoint) - For creating project and application presentation.
 
-## 🫂 Участници и разработчици
+## 🫂 Contributors and Developers
 
-- **[Божидар Димов](https://github.com/BADimov21)**
-  	- Имейл: BADimov21@codingburgas.bg
-  	- Full-Stack разработчик
-  	- Създател на „Tasty“
-  	- Ученик по програмиране и информационни технологии в ПГ по компютърно програмиране и иновации, гр. Бургас
-  	- Специалност: Приложно програмиране
-- **[Борис Милев](https://github.com/BRMilev22)**
-  - Имейл: BRMilev22@codingburgas.bg  
-  - Full-Stack разработчик
-  - Създател на „Tasty“
-  - Ученик по програмиране и информационни технологии в ПГ по компютърно програмиране и иновации, гр. Бургас
-  - Специалност: Програмиране на роботи
+- **[Bozhidar Dimov](https://github.com/BADimov21)**
+  	- Email: BADimov21@codingburgas.bg
+  	- Full-Stack Developer
+  	- Creator of "Tasty"
+  	- Student of Programming and Information Technologies at High School of Computer Programming and Innovation, Burgas
+  	- Specialty: Applied Programming
+- **[Boris Milev](https://github.com/BRMilev22)**
+  - Email: BRMilev22@codingburgas.bg  
+  - Full-Stack Developer
+  - Creator of "Tasty"
+  - Student of Programming and Information Technologies at High School of Computer Programming and Innovation, Burgas
+  - Specialty: Robot Programming
 
-## 📊 Първи стъпки
+## 📊 Getting Started
 
-### 📋 Предварителни изисквания
+### 📋 Prerequisites
 
-За да започнете, уверете се, че сте инсталирали следното:
+To get started, make sure you have the following installed:
 
-- **Node.js**: [Изтеглете Node.js](https://nodejs.org/)
-- **Expo CLI**: Инсталирайте, като копирате и поставите тази команда в командния ред:
+- **Node.js**: [Download Node.js](https://nodejs.org/)
+- **Expo CLI**: Install by copying and pasting this command in your terminal:
   ```bash
   npm install -g expo-cli
   
-### ⚙️ Инсталиране
-- Клонирайте хранилището, като копирате командите и ги поставите в командния си ред:
+### ⚙️ Installation
+- Clone the repository by copying the commands and pasting them in your terminal:
   ```bash
   git clone "https://github.com/BRMilev22/tasty.git"
   cd tasty
   ```
-- Инсталирайте зависимостите, като копирате командите и ги поставите в командния ред:
+- Install dependencies by copying the commands and pasting them in your terminal:
   ```bash
   npm install
   ```
@@ -88,21 +90,21 @@
   ```bash
   npx expo start
   ```
-  Следвайте указанията, за да стартирате приложението на предпочитаното от вас устройство или емулатор.
+  Follow the instructions to run the application on your preferred device or emulator.
 
-### 🧪 Тестване
-- За да стартирате тестовете за основни компоненти и помощни програми, копирайте командата и я поставете в командния ред:
+### 🧪 Testing
+- To run tests for core components and utilities, copy the command and paste it in your terminal:
 
   ```bash
   npm test
   ```
 
-### 📸 Снимки на приложението в действие
+### 📸 Application Screenshots
 <br>
 
 <table align="center">
   <tr>
-    <th>Табло за управление</th>
+    <th>Dashboard</th>
   </tr>
   <tr>
     <td align="center">
@@ -111,7 +113,7 @@
   </tr>
 
   <tr>
-    <th>Меню за управление на предложено ястие</th>
+    <th>Suggested Meal Management Menu</th>
   </tr>
   <tr>
     <td align="center">
@@ -120,7 +122,7 @@
   </tr>
 
   <tr>
-    <th>Сканиране на баркод на напитка</th>
+    <th>Beverage Barcode Scanning</th>
   </tr>
   <tr>
     <td align="center">
@@ -129,7 +131,7 @@
   </tr>
 
   <tr>
-    <th>Потребителски инвентар</th>
+    <th>User Inventory</th>
   </tr>
   <tr>
     <td align="center">
@@ -138,18 +140,18 @@
   </tr>
 </table>
 
-## 📜 Документация
+## 📜 Documentation
 
-<h4 align="center">Тук ще намерите връзки към публичната документация, презентацията и брошурата на проекта и приложението. Те са предоставени само за справка и не бива да се използват като шаблони за други проекти или за други цели без изрично разрешение от създателите на "Тейсти".</h4>
+<h4 align="center">Here you will find links to the public documentation, presentation, and brochure of the project and application. They are provided for reference only and should not be used as templates for other projects or for other purposes without explicit permission from the creators of "Tasty".</h4>
 
-  📄 <a href="https://codingburgas-my.sharepoint.com/:b:/g/personal/badimov21_codingburgas_bg/EQIDtbYYVSFFkALEZpzrxzcBnOe6FlzF7nITLpTA1zJK8A?e=8DAxdX">Документация</a><br>
-  📊 <a href="https://codingburgas-my.sharepoint.com/:p:/g/personal/badimov21_codingburgas_bg/ESlwEDKh-8tGk_U2EGfatmsBlyKlYe_2W1zkOWhv997gQg?e=BUdm66">Презентация</a><br>
-  📘 <a href="https://codingburgas-my.sharepoint.com/:b:/g/personal/badimov21_codingburgas_bg/EdrQgB07haZJpfVEsO2dWD4B6pjEXr7tD3iaVNxh6ivp6w?e=MTN5o8">Брошура</a><br>
+  📄 <a href="https://codingburgas-my.sharepoint.com/:b:/g/personal/badimov21_codingburgas_bg/EQIDtbYYVSFFkALEZpzrxzcBnOe6FlzF7nITLpTA1zJK8A?e=8DAxdX">Documentation</a><br>
+  📊 <a href="https://codingburgas-my.sharepoint.com/:p:/g/personal/badimov21_codingburgas_bg/ESlwEDKh-8tGk_U2EGfatmsBlyKlYe_2W1zkOWhv997gQg?e=BUdm66">Presentation</a><br>
+  📘 <a href="https://codingburgas-my.sharepoint.com/:b:/g/personal/badimov21_codingburgas_bg/EdrQgB07haZJpfVEsO2dWD4B6pjEXr7tD3iaVNxh6ivp6w?e=MTN5o8">Brochure</a><br>
 
 
-### 🔧 Файлова архитектура на проекта
-Проекът "Тейсти" е написан на React Native с TypeScript и използва една от най-разпространените съвместими архитектури, а именно - <strong>функционално сегментирана архитектура</strong> (feature-sliced architecture). <br>
-Преглед на структурата на всички директории и най-важните файлове в тях:
+### 🔧 Project File Architecture
+The "Tasty" project is written in React Native with TypeScript and uses one of the most widely adopted compatible architectures, namely - <strong>feature-sliced architecture</strong>. <br>
+Overview of the structure of all directories and the most important files in them:
   ```bash
 tasty/
 ├── .expo/
@@ -241,7 +243,7 @@ tasty/
 └── tsconfig.json              
 ```
 
-<h3 align="center"> Благодарим Ви и дано приложението Ви хареса! <h3>
+<h3 align="center"> Thank you and we hope you enjoy the application! <h3>
 <hr>
-<h4 align="center"> Създадено от екипа на „Tasty“ - Божидар Димов и Борис Милев | &copy 2024 - 2025 Всички права запазени.</h4>
-<h2 align="center">Благодарим Ви, че разгледахте нашето repo! Покажете малко ❤️, като дадете ⭐️ на repo-то!</h2>
+<h4 align="center"> Created by the "Tasty" team - Bozhidar Dimov and Boris Milev | &copy 2024 - 2025 All rights reserved.</h4>
+<h2 align="center">Thank you for checking out our repo! Show some ❤️ by giving a ⭐️ to the repo!</h2>
